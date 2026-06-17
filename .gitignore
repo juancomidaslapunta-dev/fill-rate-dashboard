@@ -2,5 +2,12 @@ node_modules/
 .DS_Store
 .env
 .env.local
+.env.example
 .vercel
 *.log
+.next/
+out/
+dist/
+build/
+.credentials
+.secrets

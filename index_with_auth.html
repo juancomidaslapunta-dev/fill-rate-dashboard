@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 Dashboard Fill Rate - Login</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .login-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 400px;
+            padding: 40px;
+        }
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .login-header h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .login-header p {
+            color: #666;
+            font-size: 14px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-bottom: 10px;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        .error {
+            color: #d32f2f;
+            font-size: 13px;
+            margin-top: 10px;
+            text-align: center;
+        }
+        .info {
+            background: #f0f7ff;
+            border: 1px solid #b3e5fc;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-size: 12px;
+            color: #01579b;
+        }
+        .roles {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+        .role-card {
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 12px;
+        }
+        .role-card.lector {
+            background: #e8f5e9;
+            border: 1px solid #4caf50;
+        }
+        .role-card.editor {
+            background: #fff3e0;
+            border: 1px solid #ff9800;
+        }
+        .role-card strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>📊 Dashboard Fill Rate</h1>
+            <p>Análisis de Logística en Tiempo Real</p>
+        </div>
+
+        <div class="info">
+            ℹ️ Autenticación requerida. Selecciona tu rol y accede con tus credenciales.
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="usuario">👤 Usuario</label>
+                <input 
+                    type="text" 
+                    id="usuario" 
+                    name="usuario"
+                    placeholder="lector o editor"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="password">🔑 Contraseña</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password"
+                    placeholder="Ingresa tu contraseña"
+                    required
+                >
+            </div>
+
+            <button type="submit" class="btn btn-primary">🔓 Acceder</button>
+            
+            <div id="error" class="error"></div>
+        </form>
+
+        <div class="roles">
+            <div class="role-card lector">
+                <strong>👁️ Lector</strong>
+                <div>Ver datos</div>
+            </div>
+            <div class="role-card editor">
+                <strong>✏️ Editor</strong>
+                <div>Ver + Importar</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ IMPORTANTE: Las contraseñas se almacenan en variables de entorno de Vercel
+        // NO hardcodear contraseñas en el cliente en producción
+        // Este es un ejemplo simple. Para producción, usar backend.
+        
+        // Credenciales (en producción: desde backend)
+        const CREDENTIALS = {
+            lector: {
+                password: '*APTRJdUf$hOcE6u',
+                role: 'viewer',
+                permissions: ['view']
+            },
+            editor: {
+                password: 'LKrxJ^AU&mY!FHTW',
+                role: 'editor',
+                permissions: ['view', 'import', 'export']
+            }
+        };
+
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const usuario = document.getElementById('usuario').value.trim();
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('error');
+            
+            // Verificar credenciales
+            if (CREDENTIALS[usuario] && CREDENTIALS[usuario].password === password) {
+                // Login exitoso
+                const userData = {
+                    usuario: usuario,
+                    role: CREDENTIALS[usuario].role,
+                    permissions: CREDENTIALS[usuario].permissions,
+                    loginTime: new Date().toISOString()
+                };
+                
+                // Guardar en sessionStorage (se borra al cerrar pestaña)
+                sessionStorage.setItem('user', JSON.stringify(userData));
+                
+                // Redirigir al dashboard
+                window.location.href = 'dashboard.html';
+            } else {
+                errorDiv.textContent = '❌ Usuario o contraseña incorrectos';
+            }
+        });
+
+        // Prevenir que se guarde la contraseña
+        document.getElementById('password').addEventListener('blur', function() {
+            this.value = this.value; // Limpiar autocomplete
+        });
+    </script>
+</body>
+</html>
