@@ -341,6 +341,7 @@ tbody tr:hover { background:#f8fafc; }
           <tr style="background:#667eea; color:white;">
             <th style="padding:10px; text-align:left;">Usuario</th>
             <th style="padding:10px; text-align:left;">Rol</th>
+            <th style="padding:10px; text-align:left;">Contraseña</th>
             <th style="padding:10px; text-align:left;">Cambiar Rol</th>
             <th style="padding:10px; text-align:left;">Acciones</th>
           </tr>
@@ -2233,18 +2234,55 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
 <!-- ============ SCRIPT DE AUTENTICACIÓN Y ADMINISTRACIÓN ============ -->
 <script>
 (function(){
-  // BASE DE DATOS DE USUARIOS (en memoria de sesión del navegador)
-  let users = {
-    'admin':  { pass: btoa('123456'), role: 'admin' },
-    'editor': { pass: btoa('123456'), role: 'editor' },
-    'lector': { pass: btoa('123456'), role: 'lector' }
-  };
+  const STORAGE_KEY = 'fillrate_users_db';
+
+  // BASE DE DATOS DE USUARIOS — persistida en localStorage para que sobreviva
+  // recargas de página y se comparta entre pestañas del mismo navegador.
+  function cargarUsuarios(){
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+          return parsed;
+        }
+      }
+    } catch(e) {
+      console.error('Error leyendo usuarios de localStorage:', e);
+    }
+    // Valores por defecto si no hay nada guardado o el storage está corrupto
+    return {
+      'admin':  { pass: btoa('123456'), role: 'admin' },
+      'editor': { pass: btoa('123456'), role: 'editor' },
+      'lector': { pass: btoa('123456'), role: 'lector' }
+    };
+  }
+
+  function guardarUsuarios(){
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+    } catch(e) {
+      console.error('Error guardando usuarios en localStorage:', e);
+      showAdminMessage('⚠️ No se pudo guardar el cambio (almacenamiento del navegador no disponible)', 'error');
+    }
+  }
+
+  let users = cargarUsuarios();
+  // Asegurar que la cuenta admin nunca desaparezca por datos antiguos corruptos
+  if (!users['admin']) {
+    users['admin'] = { pass: btoa('123456'), role: 'admin' };
+    guardarUsuarios();
+  }
 
   let currentUser = null;
   let currentRole = null;
+  let passwordsVisibles = {};
 
   window.loginUsuario = function(e){
     e.preventDefault();
+    // Releer por si otra pestaña creó/cambió usuarios desde el último login
+    users = cargarUsuarios();
+
     const user = document.getElementById('loginUser').value.trim();
     const pass = document.getElementById('loginPass').value;
     const errorDiv = document.getElementById('loginError');
@@ -2273,6 +2311,7 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
   window.logoutUsuario = function(){
     currentUser = null;
     currentRole = null;
+    passwordsVisibles = {};
     document.getElementById('mainDashboardContainer').style.display = 'none';
     document.getElementById('sessionBar').style.display = 'none';
     document.getElementById('adminModalOverlay').style.display = 'none';
@@ -2281,6 +2320,7 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
 
   window.abrirPanelAdmin = function(){
     if (currentRole !== 'admin') return;
+    users = cargarUsuarios();
     renderUsersTable();
     updateChangePassSelect();
     document.getElementById('adminModalOverlay').style.display = 'flex';
@@ -2296,26 +2336,32 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
     const role = document.getElementById('newRole').value;
 
     if (!user) return showAdminMessage('❌ Ingresa un nombre de usuario', 'error');
+    if (!/^[a-zA-Z0-9_.-]+$/.test(user)) return showAdminMessage('❌ El usuario solo puede tener letras, números, punto, guion y guion bajo', 'error');
     if (!pass || pass.length < 6) return showAdminMessage('❌ La contraseña debe tener al menos 6 caracteres', 'error');
     if (users[user]) return showAdminMessage('❌ El usuario ya existe', 'error');
 
     users[user] = { pass: btoa(pass), role: role };
+    guardarUsuarios();
+
     document.getElementById('newUser').value = '';
     document.getElementById('newPass').value = '';
 
-    showAdminMessage('✅ Usuario "' + user + '" creado como ' + role, 'success');
+    showAdminMessage('✅ Usuario "' + user + '" creado como ' + role + '. Ya puede iniciar sesión.', 'success');
     renderUsersTable();
     updateChangePassSelect();
   };
 
   window.cambiarRolUsuario = function(user, newRole){
-    if (user === 'admin' && currentUser !== 'admin') {
-      showAdminMessage('❌ No puedes cambiar el rol del administrador', 'error');
+    if (user === 'admin' && newRole !== 'admin') {
+      showAdminMessage('❌ No puedes quitarle el rol de administrador a "admin"', 'error');
+      renderUsersTable();
       return;
     }
     users[user].role = newRole;
+    guardarUsuarios();
     showAdminMessage('✅ Rol de "' + user + '" cambiado a ' + newRole, 'success');
     renderUsersTable();
+    updateChangePassSelect();
   };
 
   window.eliminarUsuario = function(user){
@@ -2325,6 +2371,7 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
     }
     if (confirm('⚠️ ¿Seguro que quieres eliminar a "' + user + '"?')) {
       delete users[user];
+      guardarUsuarios();
       showAdminMessage('✅ Usuario "' + user + '" eliminado', 'success');
       renderUsersTable();
       updateChangePassSelect();
@@ -2339,8 +2386,10 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
     if (!newPass || newPass.length < 6) return showAdminMessage('❌ La contraseña debe tener al menos 6 caracteres', 'error');
 
     users[user].pass = btoa(newPass);
+    guardarUsuarios();
     document.getElementById('newPassword').value = '';
     showAdminMessage('✅ Contraseña de "' + user + '" actualizada', 'success');
+    renderUsersTable();
   };
 
   window.generarContrasena = function(){
@@ -2353,6 +2402,17 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
       '<strong>Contraseña generada:</strong><br>' + pass + '<br>' +
       '<button onclick="navigator.clipboard.writeText(\'' + pass + '\').then(()=>alert(\'✅ Copiado\'))" style="margin-top:8px; padding:6px 12px; background:#667eea; color:white; border:none; border-radius:4px; cursor:pointer; font-size:12px;">📋 Copiar</button>' +
       '</div>';
+
+    // Sugerencia rápida: si hay un usuario seleccionado en "Cambiar Contraseña", precargar el campo
+    const select = document.getElementById('changePassUser');
+    if (select && select.value) {
+      document.getElementById('newPassword').value = pass;
+    }
+  };
+
+  window.togglePasswordVisible = function(user){
+    passwordsVisibles[user] = !passwordsVisibles[user];
+    renderUsersTable();
   };
 
   function renderUsersTable(){
@@ -2360,9 +2420,20 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
     let html = '';
     for (let user in users) {
       const role = users[user].role;
+      const visible = !!passwordsVisibles[user];
+      let plainPass = '';
+      try { plainPass = atob(users[user].pass); } catch(e) { plainPass = '(no se pudo decodificar)'; }
+
+      const passCellHtml = visible
+        ? '<code style="background:#f5f5f5; padding:3px 6px; border-radius:3px;">' + plainPass + '</code> ' +
+          '<button onclick="togglePasswordVisible(\'' + user + '\')" title="Ocultar" style="background:none; border:none; cursor:pointer; font-size:13px;">🙈</button>'
+        : '<span style="color:#999;">••••••••</span> ' +
+          '<button onclick="togglePasswordVisible(\'' + user + '\')" title="Ver contraseña" style="background:none; border:none; cursor:pointer; font-size:13px;">👁️</button>';
+
       html += '<tr>' +
         '<td style="padding:10px; border-bottom:1px solid #e0e0e0;"><strong>' + user + '</strong></td>' +
         '<td style="padding:10px; border-bottom:1px solid #e0e0e0;">' + role + '</td>' +
+        '<td style="padding:10px; border-bottom:1px solid #e0e0e0; white-space:nowrap;">' + passCellHtml + '</td>' +
         '<td style="padding:10px; border-bottom:1px solid #e0e0e0;">' +
           '<select onchange="cambiarRolUsuario(\'' + user + '\', this.value)" style="padding:5px; font-size:12px;">' +
             '<option value="' + role + '" selected>' + role + '</option>' +
@@ -2396,7 +2467,7 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
     setTimeout(() => { div.innerHTML = ''; }, 4000);
   }
 
-  console.log('✅ Sistema de autenticación cargado sobre el dashboard real');
+  console.log('✅ Sistema de autenticación cargado sobre el dashboard real (persistencia: localStorage)');
 })();
 </script>
 </body>
