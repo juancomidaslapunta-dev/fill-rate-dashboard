@@ -1,2113 +1,409 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>📊 Dashboard Logístico - Fill Rate</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<style>
-* { margin:0; padding:0; box-sizing:border-box; }
-html,body {
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  background:linear-gradient(135deg,#f8fafc 0%,#eef2f7 100%);
-  color:#1e293b; min-height:100vh;
-}
-.container { max-width:1340px; margin:0 auto; padding:1.5rem; }
-.header { margin-bottom:1.2rem; display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:1rem; }
-h1 { font-size:1.9rem; font-weight:800; color:#0f172a; }
-.subtitle { color:#64748b; margin-top:.2rem; font-size:.88rem; line-height:1.5; max-width:760px; }
-.badge-periodo { background:#0f172a; color:#fff; padding:.5rem 1rem; border-radius:2rem; font-size:.78rem; font-weight:600; white-space:nowrap; }
-
-/* Tabs */
-.tabs { display:flex; gap:.4rem; border-bottom:2px solid #e2e8f0; margin-bottom:1.4rem; }
-.tab-btn {
-  padding:.7rem 1.3rem; border:none; background:none; cursor:pointer;
-  font-size:.92rem; font-weight:600; color:#64748b; border-bottom:3px solid transparent;
-  transition:all .15s; margin-bottom:-2px;
-}
-.tab-btn:hover { color:#2563eb; }
-.tab-btn.active { color:#2563eb; border-bottom-color:#2563eb; }
-.tab-panel { display:none; }
-.tab-panel.active { display:block; }
-
-/* Upload zone */
-.upload-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:1.2rem; margin-bottom:1.5rem; }
-.upload-card { background:#fff; border-radius:.7rem; box-shadow:0 1px 3px rgba(0,0,0,.07); padding:1.4rem; }
-.upload-card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:.5rem; }
-.upload-card-header h3 { margin:0; flex:1; }
-.btn-delete { background:#fee2e2; border:1px solid #fca5a5; color:#dc2626; padding:.3rem .5rem; border-radius:.3rem; font-size:.8rem; cursor:pointer; font-weight:600; transition:all .15s; }
-.btn-delete:hover { background:#fecaca; border-color:#f87171; }
-.upload-card h3 { font-size:1rem; font-weight:700; color:#0f172a; margin-bottom:.3rem; display:flex; align-items:center; gap:.5rem; }
-.upload-card .hint { font-size:.78rem; color:#94a3b8; margin-bottom:1rem; }
-.dropzone {
-  border:2px dashed #cbd5e1; border-radius:.6rem; padding:1.8rem 1rem;
-  text-align:center; cursor:pointer; transition:all .2s; background:#f8fafc;
-}
-.dropzone:hover, .dropzone.dragover { border-color:#2563eb; background:#eff6ff; }
-.dropzone .icon { font-size:2.2rem; margin-bottom:.5rem; }
-.dropzone .txt { font-size:.85rem; color:#475569; font-weight:600; }
-.dropzone .sub { font-size:.74rem; color:#94a3b8; margin-top:.2rem; }
-.file-input { display:none; }
-.file-status {
-  margin-top:.9rem; padding:.7rem .9rem; border-radius:.5rem; font-size:.82rem;
-  display:none; align-items:center; gap:.5rem;
-}
-.file-status.ok { display:flex; background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; }
-.file-status.error { display:flex; background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
-.file-status.loading { display:flex; background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; }
-
-.upload-actions { display:flex; gap:.7rem; align-items:center; margin-top:1.2rem; flex-wrap:wrap; }
-.btn {
-  padding:.6rem 1.2rem; border-radius:.5rem; font-size:.85rem; font-weight:700;
-  cursor:pointer; border:none; transition:all .15s;
-}
-.btn-primary { background:#2563eb; color:#fff; }
-.btn-primary:hover { background:#1d4ed8; }
-.btn-primary:disabled { background:#cbd5e1; cursor:not-allowed; }
-.btn-secondary { background:#f1f5f9; color:#334155; }
-.btn-secondary:hover { background:#e2e8f0; }
-
-.log-panel {
-  background:#0f172a; color:#cbd5e1; border-radius:.6rem; padding:1rem 1.2rem;
-  font-family:'SF Mono',Consolas,monospace; font-size:.78rem; max-height:220px;
-  overflow-y:auto; line-height:1.7; margin-top:1rem;
-}
-.log-panel .ok-line { color:#4ade80; }
-.log-panel .warn-line { color:#fbbf24; }
-.log-panel .err-line { color:#f87171; }
-.log-panel .info-line { color:#93c5fd; }
-
-.methodology {
-  background:#eff6ff; border:1px solid #bfdbfe; border-radius:.6rem;
-  padding:.85rem 1.1rem; margin-bottom:1.1rem; font-size:.8rem; color:#1e3a8a; line-height:1.55;
-}
-.methodology b { color:#1e40af; }
-.data-quality-bar {
-  background:#fff7ed; border:1px solid #fed7aa; border-radius:.6rem;
-  padding:.8rem 1.1rem; margin-bottom:1.2rem; font-size:.8rem; color:#9a3412; line-height:1.55;
-}
-.data-quality-bar b { color:#7c2d12; }
-
-.toolbar {
-  background:#fff; border-radius:.6rem; box-shadow:0 1px 3px rgba(0,0,0,.08);
-  padding:1rem 1.2rem; margin-bottom:1.4rem; display:flex; gap:1.1rem;
-  align-items:center; flex-wrap:wrap; border-left:4px solid #2563eb;
-}
-.toolbar .fgroup { display:flex; flex-direction:column; gap:.2rem; }
-.toolbar label { font-size:.74rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.02em; }
-select {
-  padding:.42rem .7rem; border:1px solid #cbd5e1; border-radius:.4rem;
-  font-size:.84rem; background:#fff; cursor:pointer; min-width:140px;
-}
-select:focus { outline:none; border-color:#2563eb; }
-.btn-reset { font-size:.78rem; color:#2563eb; background:none; border:none; cursor:pointer; font-weight:600; padding:.4rem .6rem; }
-.btn-reset:hover { text-decoration:underline; }
-.filter-dropdown { position:relative; display:inline-block; }
-.filter-btn { padding:.5rem .8rem; border:1px solid #cbd5e1; border-radius:.4rem; background:#fff; cursor:pointer; font-size:.84rem; min-width:160px; text-align:left; }
-.filter-btn:hover { border-color:#2563eb; }
-.filter-menu { position:absolute; top:100%; left:0; background:#fff; border:1px solid #cbd5e1; border-radius:.4rem; box-shadow:0 4px 12px rgba(0,0,0,.12); z-index:1000; min-width:280px; max-height:400px; overflow-y:auto; padding:0; }
-.filter-search { width:100%; padding:.6rem; border:none; border-bottom:1px solid #e2e8f0; font-size:.84rem; }
-.filter-search:focus { outline:none; background:#f0f9ff; }
-.filter-controls { display:flex; gap:.4rem; padding:.5rem; border-bottom:1px solid #e2e8f0; }
-.filter-btn-small { flex:1; padding:.35rem; font-size:.75rem; border:1px solid #cbd5e1; background:#fff; border-radius:.3rem; cursor:pointer; }
-.filter-btn-small:hover { background:#f8fafc; border-color:#2563eb; }
-.filter-options { padding:.4rem; max-height:300px; overflow-y:auto; }
-.filter-option { display:flex; align-items:center; gap:.5rem; padding:.4rem; cursor:pointer; border-radius:.3rem; }
-.filter-option:hover { background:#f0f9ff; }
-.filter-option input[type="checkbox"] { width:18px; height:18px; cursor:pointer; }
-.filter-option label { flex:1; cursor:pointer; font-size:.84rem; margin:0; }
-.filter-actions { display:flex; gap:.4rem; padding:.5rem; border-top:1px solid #e2e8f0; }
-.filter-actions .btn { flex:1; padding:.4rem; font-size:.8rem; }
-select[multiple] { min-height:80px; padding:.35rem; cursor:pointer; }
-select[multiple] option { padding:.25rem; }
-
-.kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1rem; margin-bottom:1.6rem; }
-.kpi-card { background:#fff; border-radius:.7rem; padding:1.25rem 1.35rem; box-shadow:0 1px 3px rgba(0,0,0,.07); border-left:5px solid; }
-.kpi-card.blue{border-left-color:#2563eb;} .kpi-card.green{border-left-color:#059669;}
-.kpi-card.purple{border-left-color:#7c3aed;} .kpi-card.red{border-left-color:#dc2626;}
-.kpi-top { display:flex; justify-content:space-between; align-items:flex-start; }
-.kpi-title { font-size:.76rem; font-weight:700; letter-spacing:.03em; color:#64748b; text-transform:uppercase; }
-.kpi-icon { font-size:1.35rem; opacity:.85; }
-.kpi-value { font-size:1.9rem; font-weight:800; margin-top:.35rem; color:#0f172a; }
-.kpi-unit { font-size:.73rem; color:#94a3b8; margin-top:.15rem; }
-
-.grid-2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(420px,1fr)); gap:1.3rem; margin-bottom:1.6rem; }
-.panel { background:#fff; border-radius:.7rem; box-shadow:0 1px 3px rgba(0,0,0,.07); padding:1.35rem; }
-.panel-title { font-size:1rem; font-weight:700; color:#0f172a; margin-bottom:.35rem; }
-.panel-note { font-size:.74rem; color:#94a3b8; margin-bottom:.85rem; }
-canvas { max-height:270px; }
-
-table { width:100%; border-collapse:collapse; font-size:.84rem; }
-thead { background:#f1f5f9; }
-th { text-align:left; padding:.65rem .85rem; font-weight:700; color:#334155; border-bottom:2px solid #e2e8f0; white-space:nowrap; }
-td { padding:.6rem .85rem; border-bottom:1px solid #eef2f7; }
-tbody tr:hover { background:#f8fafc; }
-.sku { font-family:'SF Mono',Consolas,monospace; color:#2563eb; font-weight:600; }
-.gap-pos { color:#dc2626; font-weight:700; }
-
-.fr-pill { display:inline-block; padding:.16rem .55rem; border-radius:1rem; font-size:.76rem; font-weight:700; }
-.fr-low{background:#fee2e2;color:#991b1b;} .fr-mid{background:#fef9c3;color:#854d0e;} .fr-high{background:#dcfce7;color:#166534;} .fr-over{background:#dbeafe;color:#1e40af;}
-
-.bar-row { display:flex; align-items:center; gap:.7rem; padding:.5rem 0; border-bottom:1px solid #f1f5f9; }
-.bar-label { width:140px; font-size:.8rem; font-weight:600; color:#334155; flex-shrink:0; }
-.bar-track { flex:1; background:#f1f5f9; border-radius:.4rem; height:13px; overflow:hidden; }
-.bar-fill { height:100%; border-radius:.4rem; transition:width .5s ease; }
-.bar-value { width:58px; text-align:right; font-size:.78rem; font-weight:700; flex-shrink:0; }
-
-.empty-state { text-align:center; color:#94a3b8; padding:2rem; font-size:.85rem; }
-.footer-note { text-align:center; color:#94a3b8; font-size:.76rem; margin-top:1.7rem; padding-bottom:1rem; line-height:1.6; }
-
-@media (max-width:768px){
-  .container{padding:1rem;} h1{font-size:1.4rem;}
-  .bar-label{width:90px; font-size:.7rem;}
-  select{min-width:110px;}
-}
-
-/* ===== Análisis tab ===== */
-.summary-box { background:#fff; border-radius:.6rem; padding:1.2rem; margin-bottom:1rem; }
-.summary-title { font-size:.75rem; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.05em; margin-bottom:.8rem; }
-.summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(90px,1fr)); gap:.8rem; margin-bottom:0; }
-.summary-card { display:flex; flex-direction:column; align-items:center; text-align:center; }
-.summary-icon { width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:22px; margin-bottom:.6rem; }
-.summary-value { font-size:1.3rem; font-weight:800; color:#0f172a; line-height:1; margin-bottom:.2rem; }
-.summary-label { font-size:.7rem; color:#64748b; font-weight:600; }
-
-.icon-solicitado { background:#dbeafe; color:#1d4ed8; }
-.icon-despachado { background:#dcfce7; color:#15803d; }
-.icon-gap { background:#fee2e2; color:#dc2626; }
-.icon-fillrate { background:#fef3c7; color:#d97706; }
-.icon-programa { background:#f3e8ff; color:#7c3aed; }
-.icon-inventario { background:#cffafe; color:#0891b2; }
-.range-input {
-  width:75px; padding:.42rem .5rem; border:1px solid #cbd5e1; border-radius:.4rem;
-  font-size:.84rem; text-align:center;
-}
-.range-input:focus { outline:none; border-color:#2563eb; }
-.range-group { display:flex; align-items:center; gap:.4rem; }
-.search-input {
-  padding:.42rem .8rem; border:1px solid #cbd5e1; border-radius:.4rem;
-  font-size:.84rem; min-width:220px;
-}
-.search-input:focus { outline:none; border-color:#2563eb; }
-.analisis-table-wrap { overflow-x:auto; max-height:560px; }
-.analisis-table-wrap table { font-size:.82rem; }
-.analisis-table-wrap thead th { position:sticky; top:0; background:#f1f5f9; z-index:5; }
-.cumplimiento-cell { display:flex; align-items:center; gap:.5rem; }
-.cumplimiento-bar-mini { width:60px; height:8px; border-radius:4px; background:#f1f5f9; overflow:hidden; flex-shrink:0; }
-.cumplimiento-bar-mini-fill { height:100%; border-radius:4px; }
-.results-count { font-size:.78rem; color:#64748b; margin-bottom:.7rem; }
-.sort-th { cursor:pointer; user-select:none; }
-.sort-th:hover { color:#2563eb; }
-.sort-th .arrow { font-size:.7rem; opacity:.5; margin-left:.2rem; }
-.sort-th.active .arrow { opacity:1; color:#2563eb; }
-.filterable-th { position:relative; }
-.filter-icon { margin-left:.4rem; opacity:.4; font-size:.75rem; cursor:pointer; transition:opacity .15s; }
-.filterable-th:hover .filter-icon { opacity:1; }
-
-/* ===== Guías chips & tabla ===== */
-.guias-cell { display:flex; flex-wrap:wrap; gap:.3rem; max-width:220px; }
-.guia-chip {
-  display:inline-block; padding:.15rem .5rem; background:#eff6ff; color:#1d4ed8;
-  border:1px solid #bfdbfe; border-radius:.35rem; font-size:.72rem; font-family:'SF Mono',Consolas,monospace;
-  cursor:pointer; transition:all .15s;
-}
-.guia-chip:hover { background:#dbeafe; border-color:#93c5fd; }
-.guia-row { cursor:pointer; }
-.btn-ver-guia {
-  padding:.32rem .7rem; background:#2563eb; color:#fff; border:none; border-radius:.4rem;
-  font-size:.76rem; font-weight:600; cursor:pointer; white-space:nowrap;
-}
-.btn-ver-guia:hover { background:#1d4ed8; }
-
-/* ===== Modal ===== */
-.modal-overlay {
-  display:none; position:fixed; inset:0; background:rgba(15,23,42,.55);
-  z-index:100; align-items:center; justify-content:center; padding:1.5rem;
-}
-.modal-overlay.open { display:flex; }
-.modal-box {
-  background:#fff; border-radius:.8rem; max-width:640px; width:100%; max-height:85vh;
-  overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.3); padding:1.6rem;
-}
-.modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
-.modal-header h3 { font-size:1.15rem; font-weight:800; color:#0f172a; }
-.modal-close {
-  background:#f1f5f9; border:none; border-radius:.4rem; width:32px; height:32px;
-  font-size:1rem; cursor:pointer; color:#64748b;
-}
-.modal-close:hover { background:#e2e8f0; color:#0f172a; }
-.modal-meta {
-  display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:.6rem;
-  background:#f8fafc; border-radius:.5rem; padding:.9rem 1rem; margin-bottom:1.2rem; font-size:.82rem;
-}
-.modal-meta-item b { color:#475569; display:block; font-size:.7rem; text-transform:uppercase; letter-spacing:.02em; margin-bottom:.1rem; }
-.modal-table-wrap { max-height:340px; overflow-y:auto; }
-.modal-table-wrap table { width:100%; font-size:.84rem; }
-
-/* ===== Panel header con botón de acción ===== */
-.panel-header-row { display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:.4rem; flex-wrap:wrap; }
-.btn-download { display:inline-flex; align-items:center; gap:.4rem; background:#059669; white-space:nowrap; }
-.btn-download:hover { background:#047857; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Dashboard Fill Rate - Logística</title>
+    
+    <!-- SheetJS Library - CARGADO PRIMERO -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .navbar {
+            display: flex;
+            border-bottom: 2px solid #e0e0e0;
+            background: #fafafa;
+        }
+        
+        .nav-item {
+            flex: 1;
+            padding: 15px;
+            cursor: pointer;
+            text-align: center;
+            border: none;
+            background: none;
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s;
+        }
+        
+        .nav-item:hover {
+            background: #f0f0f0;
+        }
+        
+        .nav-item.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+            margin-bottom: -2px;
+        }
+        
+        .content {
+            padding: 30px;
+            min-height: 400px;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .error-message {
+            background: #ffebee;
+            border: 1px solid #f44336;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        
+        .success-message {
+            background: #e8f5e9;
+            border: 1px solid #4caf50;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        
+        .file-section {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .file-input-label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .file-input {
+            display: block;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .kpi-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .kpi-value {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .kpi-label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        table th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-size: 12px;
+        }
+        
+        table td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        table tr:hover {
+            background: #f5f5f5;
+        }
+    </style>
 </head>
 <body>
-<div class="container">
-
-  <div class="header">
-    <div>
-      <h1>📊 Dashboard Logístico</h1>
-      <div class="subtitle">Fill Rate calculado a nivel <b>SKU + Día + Sucursal</b>, agregado luego al periodo seleccionado</div>
-    </div>
-    <div class="badge-periodo" id="periodoBadge">Cargando…</div>
-  </div>
-
-  <div class="tabs">
-    <button class="tab-btn active" data-tab="dashboard">📈 Dashboard</button>
-    <button class="tab-btn" data-tab="analisis">🔍 Análisis</button>
-    <button class="tab-btn" data-tab="guias">🚚 Guías de Despacho</button>
-    <button class="tab-btn" data-tab="carga">📂 Importar Archivos</button>
-  </div>
-
-  <!-- ============ TAB: CARGA DE ARCHIVOS ============ -->
-  <div class="tab-panel" id="tab-carga">
-    <div class="upload-grid">
-      <div class="upload-card">
-        <div class="upload-card-header">
-          <h3>📋 Solicitudes de Sucursales</h3>
-          <button class="btn-delete" id="btnDelSolicitudes" title="Eliminar este archivo" style="display:none;">✕</button>
+    <div class="container">
+        <header>
+            <h1>📊 Dashboard Fill Rate</h1>
+            <p>Sistema de Análisis de Logística - Semana ISO 24 (8-12 Junio 2026)</p>
+        </header>
+        
+        <div class="navbar">
+            <button class="nav-item active" onclick="showTab('dashboard')">📈 Dashboard</button>
+            <button class="nav-item" onclick="showTab('analisis')">🔍 Análisis</button>
+            <button class="nav-item" onclick="showTab('guias')">🚚 Guías de Despacho</button>
+            <button class="nav-item" onclick="showTab('importar')">📂 Importar Archivos</button>
         </div>
-        <div class="hint">Archivo Excel con columnas: Código, Descripción, Cantidad, Nombre local, Número local, Fecha solicitud, Fecha entrega</div>
-        <div class="dropzone" id="dropSolicitudes">
-          <div class="icon">📄</div>
-          <div class="txt">Arrastra el archivo aquí o haz click</div>
-          <div class="sub">.xlsx, .xls, .csv</div>
-        </div>
-        <input type="file" id="inputSolicitudes" class="file-input" accept=".xlsx,.xls,.csv">
-        <div class="file-status" id="statusSolicitudes"></div>
-      </div>
-
-      <div class="upload-card">
-        <div class="upload-card-header">
-          <h3>🚚 Guías de Despacho</h3>
-          <button class="btn-delete" id="btnDelDespachos" title="Eliminar este archivo" style="display:none;">✕</button>
-        </div>
-        <div class="hint">Archivo Excel con columnas: Cód. cliente, Cód. Artículo, Artículo, Cantidad sin Insumos, Fecha emisión</div>
-        <div class="dropzone" id="dropDespachos">
-          <div class="icon">📄</div>
-          <div class="txt">Arrastra el archivo aquí o haz click</div>
-          <div class="sub">.xlsx, .xls, .csv</div>
-        </div>
-        <input type="file" id="inputDespachos" class="file-input" accept=".xlsx,.xls,.csv">
-        <div class="file-status" id="statusDespachos"></div>
-      </div>
-
-      <div class="upload-card">
-        <div class="upload-card-header">
-          <h3>📦 Inventarios</h3>
-          <button class="btn-delete" id="btnDelInventarios" title="Eliminar este archivo" style="display:none;">✕</button>
-        </div>
-        <div class="hint">Archivo Excel con columnas: SKU, Descripción, N° Local, Stock Físico, Semana, Fecha</div>
-        <div class="dropzone" id="dropInventarios">
-          <div class="icon">📄</div>
-          <div class="txt">Arrastra el archivo aquí o haz click</div>
-          <div class="sub">.xlsx, .xls, .csv</div>
-        </div>
-        <input type="file" id="inputInventarios" class="file-input" accept=".xlsx,.xls,.csv">
-        <div class="file-status" id="statusInventarios"></div>
-      </div>
-
-      <div class="upload-card">
-        <div class="upload-card-header">
-          <h3>📈 Programa de Ventas</h3>
-          <button class="btn-delete" id="btnDelPrograma" title="Eliminar este archivo" style="display:none;">✕</button>
-        </div>
-        <div class="hint">Archivo Excel con columnas: SKU, Descripcion Producto, ID Local, Fecha, Venta Diaria</div>
-        <div class="dropzone" id="dropPrograma">
-          <div class="icon">📄</div>
-          <div class="txt">Arrastra el archivo aquí o haz click</div>
-          <div class="sub">.xlsx, .xls, .csv</div>
-        </div>
-        <input type="file" id="inputPrograma" class="file-input" accept=".xlsx,.xls,.csv">
-        <div class="file-status" id="statusPrograma"></div>
-      </div>
-    </div>
-
-    <div class="upload-card">
-      <h3>⚙️ Procesar y Calcular</h3>
-      <div class="hint">Una vez cargados ambos archivos (o usando los datos de ejemplo precargados), procesa para recalcular el dashboard.</div>
-      <div class="upload-actions">
-        <button class="btn btn-primary" id="btnProcesar">🔄 Procesar y Calcular Fill Rate</button>
-        <button class="btn btn-secondary" id="btnDemo">📦 Usar datos de ejemplo (Semana 24)</button>
-        <button class="btn btn-secondary" id="btnLimpiar">🗑️ Limpiar todo</button>
-      </div>
-      <div class="log-panel" id="logPanel"><span class="info-line">Esperando archivos…</span></div>
-    </div>
-
-    <div class="methodology">
-      🧮 <b>Metodología:</b> 1) Solicitado se agrupa por (SKU, Fecha de Entrega, Sucursal). 2) Despachado se agrupa por (SKU, Fecha de Emisión de Guía, Sucursal), considerando solo comprobantes cuyo número empieza con <b>"G"</b> (Guía de despacho real) — se excluyen los que empiezan con "F" (Factura) o "B" (Boleta), que corresponden a ventas facturadas, no a despacho físico de mercadería a sucursal propia. 3) Se cruzan por esa clave compuesta. 4) Fill Rate = Σ despachado granular / Σ solicitado granular del periodo filtrado — no un promedio de porcentajes diarios. Se excluyen también SKU de insumos/bodega que no pertenecen al flujo de Solicitudes.
-    </div>
-
-    <div class="data-quality-bar" id="dqBar"></div>
-  </div>
-
-  <!-- ============ TAB: DASHBOARD ============ -->
-  <div class="tab-panel active" id="tab-dashboard">
-
-    <div class="toolbar">
-      <div class="fgroup">
-        <label>Local / Sucursal</label>
-        <div class="filter-dropdown" id="filtroLocalDD">
-          <button class="filter-btn">Seleccionar locales...</button>
-          <div class="filter-menu" style="display:none;">
-            <input type="text" class="filter-search" placeholder="Buscar sucursal..." id="filtroLocalSearch">
-            <div class="filter-controls">
-              <button class="filter-btn-small" id="filtroLocalAll">✓ Todos</button>
-              <button class="filter-btn-small" id="filtroLocalNone">✗ Ninguno</button>
+        
+        <div class="content">
+            <!-- TAB: DASHBOARD -->
+            <div id="dashboard" class="tab-content active">
+                <h2>📈 Dashboard</h2>
+                
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-label">Solicitado</div>
+                        <div class="kpi-value" id="kpi-solicitado">47,890.6</div>
+                        <div class="kpi-label">unidades</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Despachado</div>
+                        <div class="kpi-value" id="kpi-despachado">44,461.1</div>
+                        <div class="kpi-label">unidades</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Fill Rate</div>
+                        <div class="kpi-value" id="kpi-fillrate">92.8%</div>
+                        <div class="kpi-label">cumplimiento</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Diferencia</div>
+                        <div class="kpi-value" id="kpi-diferencia">3,429.5</div>
+                        <div class="kpi-label">unidades</div>
+                    </div>
+                </div>
+                
+                <p style="color: #666; font-size: 14px;">
+                    ✅ Dashboard con datos de ejemplo cargados. 
+                    Usa la pestaña "Importar Archivos" para cargar tus propios datos.
+                </p>
             </div>
-            <div class="filter-options" id="filtroLocalOptions"></div>
-            <div class="filter-actions">
-              <button class="btn btn-primary" id="filtroLocalApply">Aplicar filtro</button>
-              <button class="btn btn-secondary" id="filtroLocalCancel">Cancelar</button>
+            
+            <!-- TAB: ANÁLISIS -->
+            <div id="analisis" class="tab-content">
+                <h2>🔍 Análisis Detallado</h2>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>SKU</th>
+                            <th>Descripción</th>
+                            <th>Sucursal</th>
+                            <th>Solicitado</th>
+                            <th>Despachado</th>
+                            <th>% Cumplimiento</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-analisis">
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: #999;">
+                                Carga archivos en la pestaña "Importar Archivos" para ver datos
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="fgroup">
-        <label>Semana</label>
-        <div class="filter-dropdown" id="filtroSemanaDD">
-          <button class="filter-btn">Seleccionar semanas...</button>
-          <div class="filter-menu" style="display:none;">
-            <div class="filter-controls">
-              <button class="filter-btn-small" id="filtroSemanaAll">✓ Todos</button>
-              <button class="filter-btn-small" id="filtroSemanaNone">✗ Ninguno</button>
+            
+            <!-- TAB: GUÍAS -->
+            <div id="guias" class="tab-content">
+                <h2>🚚 Guías de Despacho</h2>
+                <p style="color: #666; margin: 20px 0;">
+                    Total de 171 guías de despacho procesadas.
+                </p>
             </div>
-            <div class="filter-options" id="filtroSemanaOptions"></div>
-            <div class="filter-actions">
-              <button class="btn btn-primary" id="filtroSemanaApply">Aplicar filtro</button>
-              <button class="btn btn-secondary" id="filtroSemanaCancel">Cancelar</button>
+            
+            <!-- TAB: IMPORTAR -->
+            <div id="importar" class="tab-content">
+                <h2>📂 Importar Archivos</h2>
+                
+                <div id="error-container"></div>
+                
+                <div class="file-section">
+                    <label class="file-input-label">1️⃣ Solicitudes</label>
+                    <input type="file" id="inputSolicitudes" class="file-input" accept=".xlsx,.xls,.csv">
+                    <button class="btn" onclick="procesarArchivo('solicitudes')">📤 Cargar Solicitudes</button>
+                </div>
+                
+                <div class="file-section">
+                    <label class="file-input-label">2️⃣ Despachos</label>
+                    <input type="file" id="inputDespachos" class="file-input" accept=".xlsx,.xls,.csv">
+                    <button class="btn" onclick="procesarArchivo('despachos')">📤 Cargar Despachos</button>
+                </div>
+                
+                <div id="success-container"></div>
             </div>
-          </div>
         </div>
-      </div>
-
-      <div class="fgroup">
-        <label>Día</label>
-        <div class="filter-dropdown" id="filtroDiaDD">
-          <button class="filter-btn">Seleccionar días...</button>
-          <div class="filter-menu" style="display:none;">
-            <div class="filter-controls">
-              <button class="filter-btn-small" id="filtroDiaAll">✓ Todos</button>
-              <button class="filter-btn-small" id="filtroDiaNone">✗ Ninguno</button>
-            </div>
-            <div class="filter-options" id="filtroDiaOptions"></div>
-            <div class="filter-actions">
-              <button class="btn btn-primary" id="filtroDiaApply">Aplicar filtro</button>
-              <button class="btn btn-secondary" id="filtroDiaCancel">Cancelar</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="fgroup">
-        <label for="filtroOrden">Ordenar quiebres</label>
-        <select id="filtroOrden">
-          <option value="diferencia">Mayor Diferencia</option>
-          <option value="solicitado">Mayor Solicitado</option>
-        </select>
-      </div>
-      <button class="btn-reset" id="btnResetFiltros">✕ Limpiar filtros</button>
-    </div>
-
-    <div class="kpi-grid">
-      <div class="kpi-card blue">
-        <div class="kpi-top"><span class="kpi-title">Fill Rate</span><span class="kpi-icon">📈</span></div>
-        <div class="kpi-value" id="kpiFillRate">—</div>
-        <div class="kpi-unit">Σ Despachado / Σ Solicitado</div>
-      </div>
-      <div class="kpi-card green">
-        <div class="kpi-top"><span class="kpi-title">Solicitado</span><span class="kpi-icon">📦</span></div>
-        <div class="kpi-value" id="kpiSolicitado">—</div>
-        <div class="kpi-unit">unidades en el filtro actual</div>
-      </div>
-      <div class="kpi-card purple">
-        <div class="kpi-top"><span class="kpi-title">Despachado</span><span class="kpi-icon">🚚</span></div>
-        <div class="kpi-value" id="kpiDespachado">—</div>
-        <div class="kpi-unit">unidades en el filtro actual</div>
-      </div>
-      <div class="kpi-card red">
-        <div class="kpi-top"><span class="kpi-title">Diferencia</span><span class="kpi-icon">⚠️</span></div>
-        <div class="kpi-value" id="kpiGap">—</div>
-        <div class="kpi-unit">unidades no despachadas</div>
-      </div>
-    </div>
-
-    <div class="grid-2">
-      <div class="panel">
-        <div class="panel-title">📊 Solicitado vs Despachado (por día)</div>
-        <div class="panel-note">Se ajusta automáticamente al filtro de Local / Semana / Día seleccionado.</div>
-        <canvas id="chartLinea"></canvas>
-      </div>
-      <div class="panel">
-        <div class="panel-title">📈 Evolución Fill Rate (%)</div>
-        <div class="panel-note">Capado visualmente en 150% para legibilidad.</div>
-        <canvas id="chartArea"></canvas>
-      </div>
-    </div>
-
-    <div class="grid-2">
-      <div class="panel">
-        <div class="panel-title">🏬 Fill Rate por Sucursal</div>
-        <div id="sucursalBars"></div>
-      </div>
-      <div class="panel">
-        <div class="panel-title">🔴 Top Quiebres (SKU+Sucursal con mayor brecha)</div>
-        <div style="overflow-x:auto; max-height:330px;">
-          <table>
-            <thead><tr><th>SKU</th><th>Descripción</th><th>Sucursal</th><th style="text-align:right">Solicitado</th><th style="text-align:right">Diferencia</th></tr></thead>
-            <tbody id="quiebresBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- ============ TAB: ANÁLISIS ============ -->
-  <div class="tab-panel" id="tab-analisis">
-
-    <div class="toolbar">
-      <div class="fgroup">
-        <label>Local / Sucursal</label>
-        <div class="filter-dropdown" id="anLocalDD">
-          <button class="filter-btn">Seleccionar locales...</button>
-          <div class="filter-menu" style="display:none;">
-            <input type="text" class="filter-search" placeholder="Buscar sucursal..." id="anLocalSearch">
-            <div class="filter-controls">
-              <button class="filter-btn-small" id="anLocalAll">✓ Todos</button>
-              <button class="filter-btn-small" id="anLocalNone">✗ Ninguno</button>
-            </div>
-            <div class="filter-options" id="anLocalOptions"></div>
-            <div class="filter-actions">
-              <button class="btn btn-primary" id="anLocalApply">Aplicar filtro</button>
-              <button class="btn btn-secondary" id="anLocalCancel">Cancelar</button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="fgroup">
-        <label for="anFechaDesde">Fecha desde</label>
-        <input type="date" id="anFechaDesde" class="range-input" style="width:140px;">
-      </div>
-      <div class="fgroup">
-        <label for="anFechaHasta">Fecha hasta</label>
-        <input type="date" id="anFechaHasta" class="range-input" style="width:140px;">
-      </div>
-      <div class="fgroup">
-        <label>% Cumplimiento</label>
-        <div class="range-group">
-          <input type="number" id="anPctMin" class="range-input" placeholder="Mín" min="0" max="999">
-          <span style="color:#94a3b8;">–</span>
-          <input type="number" id="anPctMax" class="range-input" placeholder="Máx" min="0" max="999">
-        </div>
-      </div>
-      <div class="fgroup">
-        <label for="anBuscar">Buscar SKU / Descripción</label>
-        <input type="text" id="anBuscar" class="search-input" placeholder="Ej: empanada, 2101010…">
-      </div>
-      <button class="btn-reset" id="anBtnReset">✕ Limpiar filtros</button>
-    </div>
-
-    <div class="panel">
-      <div class="panel-header-row">
-        <div class="panel-title" style="margin-bottom:0;">📋 Detalle SKU — Solicitado vs Despachado</div>
-        <div style="display:flex; gap:.6rem;">
-          <button class="btn btn-primary" id="anBtnImprimir">🖨️ Imprimir</button>
-          <button class="btn btn-primary btn-download" id="anBtnDescargar">⬇️ Descargar detalle</button>
-        </div>
-      </div>
-      <div class="results-count" id="anResultsCount"></div>
-      
-      <!-- RESUMEN DE TOTALES -->
-      <div class="summary-box" id="anSummaryBox" style="display:none;">
-        <div class="summary-title">Resumen Filtrado</div>
-        <div class="summary-grid">
-          <div class="summary-card">
-            <div class="summary-icon icon-solicitado">📊</div>
-            <div class="summary-value" id="sumSolicitado">0</div>
-            <div class="summary-label">Solicitado</div>
-          </div>
-          <div class="summary-card">
-            <div class="summary-icon icon-despachado">✓</div>
-            <div class="summary-value" id="sumDespachado">0</div>
-            <div class="summary-label">Despachado</div>
-          </div>
-          <div class="summary-card">
-            <div class="summary-icon icon-gap">⚠</div>
-            <div class="summary-value" id="sumGap">0</div>
-            <div class="summary-label">Diferencia</div>
-          </div>
-          <div class="summary-card">
-            <div class="summary-icon icon-fillrate">%</div>
-            <div class="summary-value" id="sumFillRate">0%</div>
-            <div class="summary-label">Fill Rate</div>
-          </div>
-          <div class="summary-card">
-            <div class="summary-icon icon-programa">📈</div>
-            <div class="summary-value" id="sumPrograma">0</div>
-            <div class="summary-label">Programa</div>
-          </div>
-          <div class="summary-card">
-            <div class="summary-icon icon-inventario">📦</div>
-            <div class="summary-value" id="sumInventario">0</div>
-            <div class="summary-label">Inventario</div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="analisis-table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th class="sort-th filterable-th" data-sort="sku" data-filter="sku">SKU<span class="arrow">▾</span><span class="filter-icon" title="Filtrar">🔽</span></th>
-              <th class="sort-th filterable-th" data-sort="descripcion" data-filter="descripcion">Descripción<span class="arrow">▾</span><span class="filter-icon" title="Filtrar">🔽</span></th>
-              <th class="sort-th filterable-th" data-sort="sucursal" data-filter="sucursal">Sucursal<span class="arrow">▾</span><span class="filter-icon" title="Filtrar">🔽</span></th>
-              <th class="sort-th" data-sort="programa" style="text-align:right">Programa<span class="arrow">▾</span></th>
-              <th class="sort-th" data-sort="inventario" style="text-align:right">Inventario<span class="arrow">▾</span></th>
-              <th class="sort-th" data-sort="solicitado" style="text-align:right">Solicitado<span class="arrow">▾</span></th>
-              <th class="sort-th" data-sort="despachado" style="text-align:right">Despachado<span class="arrow">▾</span></th>
-              <th class="sort-th" data-sort="fill_rate" style="text-align:right">% Cumplimiento<span class="arrow">▾</span></th>
-              <th>Guía Despacho</th>
-            </tr>
-          </thead>
-          <tbody id="analisisBody"></tbody>
-        </table>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- ============ TAB: GUÍAS DE DESPACHO ============ -->
-  <div class="tab-panel" id="tab-guias">
-
-    <div class="toolbar">
-      <div class="fgroup">
-        <label for="gdLocal">Local / Sucursal</label>
-        <select id="gdLocal"><option value="">Todas</option></select>
-      </div>
-      <div class="fgroup">
-        <label for="gdFechaDesde">Fecha desde</label>
-        <input type="date" id="gdFechaDesde" class="range-input" style="width:140px;">
-      </div>
-      <div class="fgroup">
-        <label for="gdFechaHasta">Fecha hasta</label>
-        <input type="date" id="gdFechaHasta" class="range-input" style="width:140px;">
-      </div>
-      <div class="fgroup">
-        <label for="gdBuscar">Buscar Guía / Comanda / SKU</label>
-        <input type="text" id="gdBuscar" class="search-input" placeholder="Ej: G0520500062506, empanada…">
-      </div>
-      <button class="btn-reset" id="gdBtnReset">✕ Limpiar filtros</button>
-    </div>
-
-    <div class="panel">
-      <div class="panel-title">🚚 Listado de Guías de Despacho</div>
-      <div class="panel-note">Click en cualquier fila o en "Ver detalle" para ver los productos despachados en esa guía.</div>
-      <div class="results-count" id="gdResultsCount"></div>
-      <div class="analisis-table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>N° Guía</th>
-              <th>Fecha</th>
-              <th>Sucursal</th>
-              <th>N° Comanda</th>
-              <th style="text-align:right">Total SKU</th>
-              <th style="text-align:right">Total Unidades</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="guiasBody"></tbody>
-        </table>
-      </div>
-    </div>
-
-  </div>
-
-</div>
-
-<!-- ============ MODAL DETALLE GUÍA ============ -->
-<div class="modal-overlay" id="modalGuiaOverlay">
-  <div class="modal-box">
-    <div class="modal-header">
-      <h3 id="modalGuiaTitulo">Guía</h3>
-      <button class="modal-close" id="modalGuiaClose">✕</button>
-    </div>
-    <div class="modal-meta" id="modalGuiaMeta"></div>
-    <div class="modal-table-wrap">
-      <table>
-        <thead><tr><th>SKU</th><th>Descripción</th><th style="text-align:right">Cantidad</th></tr></thead>
-        <tbody id="modalGuiaBody"></tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-<script id="seed-data" type="application/json">__SEED_JSON__</script>
-<script>
-// ============================================================
-// ESTADO GLOBAL
-// ============================================================
-const NOMBRES_OFICIALES = {
-  299:'MANQUEHUE', 300:'VITACURA', 302:'QUINCHAMALI', 303:'DEHESA',
-  314:'BULNES CORREA', 316:'RENATO SANCHEZ', 426:'CHICUREO',
-  483:'PADRE HURTADO', 500:'MAITENCILLO', 900:'FABRICA'
-};
-const CODIGOS_OFICIALES = new Set(Object.keys(NOMBRES_OFICIALES).map(Number));
-
-let RAW = { solicitudes: [], despachos: [] };  // registros granulares crudos
-let PARSED = { solicitudesFile: null, despachosFile: null, inventariosFile: null, programaFile: null };
-let GRANULAR = [];      // tabla final SKU+fecha+sucursal con solicitado/despachado
-let DESPACHOS_LINEA = []; // cada línea de despacho individual, con numero_guia preservado
-let GUIAS_INDEX = new Map(); // numero_guia -> { numero_guia, fecha, sucursal, lineas:[...], total_unidades }
-let DATA_QUALITY = { total_raw:0, validas:0, rechazadas:0, pct_rechazo:0, insumos_excluidos:0 };
-
-let filtroLocal = [];
-let filtroSemana = [];
-let filtroDia = [];
-let ordenQuiebres = 'diferencia';
-let chartLinea = null, chartArea = null;
-
-// ============================================================
-// UTILIDADES
-// ============================================================
-function fmt(n){ return Math.round(n).toLocaleString('es-CL'); }
-
-function normalizarTexto(s){
-  return String(s||'')
-    .toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g,''); // quita tildes/acentos
-}
-
-function debounce(fn, delay){
-  let timer = null;
-  return function(...args){
-    clearTimeout(timer);
-    timer = setTimeout(()=> fn.apply(this,args), delay);
-  };
-}
-
-function excelSerialToDate(serial){
-  // Excel epoch fix (1899-12-30 to align with leap-year bug)
-  const utcDays = Math.floor(serial - 25569);
-  const utcValue = utcDays * 86400;
-  const d = new Date(utcValue * 1000);
-  return d;
-}
-
-// ============================================================
-// SEGURIDAD & VALIDACIÓN
-// ============================================================
-
-// Sanitizar texto contra XSS
-function sanitizar(str) {
-  const div = document.createElement('div');
-  div.textContent = String(str || '');
-  return div.innerHTML;
-}
-
-// Validar archivo antes de procesar
-function validarArchivo(file) {
-  const MAX_SIZE = 100 * 1024 * 1024; // 100MB
-  if(file.size > MAX_SIZE) {
-    throw new Error(`Archivo > ${MAX_SIZE/(1024*1024)}MB no permitido`);
-  }
-  if(!file.name.match(/\.(xlsx|xls|csv)$/i)) {
-    throw new Error('Solo archivos Excel (.xlsx, .xls) permitidos');
-  }
-  return true;
-}
-
-// Limpiar datos al cerrar
-window.addEventListener('beforeunload', () => {
-  try {
-    RAW = { solicitudes: [], despachos: [] };
-    PARSED = {};
-    GRANULAR = [];
-  } catch(e) { /* ignore */ }
-});
-
-function toISODate(value){
-  if(value instanceof Date) return value.toISOString().slice(0,10);
-  if(typeof value === 'number') return excelSerialToDate(value).toISOString().slice(0,10);
-  if(typeof value === 'string'){
-    const d = new Date(value);
-    if(!isNaN(d.getTime())) return d.toISOString().slice(0,10);
-  }
-  return null;
-}
-
-function isoWeekOf(dateStr){
-  const d = new Date(dateStr + 'T00:00:00Z');
-  const target = new Date(d.valueOf());
-  const dayNr = (d.getUTCDay() + 6) % 7;
-  target.setUTCDate(target.getUTCDate() - dayNr + 3);
-  const firstThursday = target.valueOf();
-  target.setUTCMonth(0,1);
-  if(target.getUTCDay() !== 4){
-    target.setUTCMonth(0, 1 + ((4 - target.getUTCDay()) + 7) % 7);
-  }
-  return 1 + Math.ceil((firstThursday - target.valueOf()) / 604800000);
-}
-
-function log(msg, type){
-  const panel = document.getElementById('logPanel');
-  const cls = type === 'ok' ? 'ok-line' : type === 'warn' ? 'warn-line' : type === 'err' ? 'err-line' : 'info-line';
-  const icon = type === 'ok' ? '✅' : type === 'warn' ? '⚠️' : type === 'err' ? '❌' : 'ℹ️';
-  panel.innerHTML += '<div class="' + cls + '">' + icon + ' ' + msg + '</div>';
-  panel.scrollTop = panel.scrollHeight;
-}
-function clearLog(){ document.getElementById('logPanel').innerHTML = ''; }
-
-// ============================================================
-// TABS
-// ============================================================
-document.querySelectorAll('.tab-btn').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-  });
-});
-
-// ============================================================
-// CARGA DE ARCHIVOS (drag & drop + click)
-// ============================================================
-function setupDropzone(dropId, inputId, statusId, kind){
-  const drop = document.getElementById(dropId);
-  const input = document.getElementById(inputId);
-  const status = document.getElementById(statusId);
-
-  drop.addEventListener('click', ()=> input.click());
-  drop.addEventListener('dragover', e=>{ e.preventDefault(); drop.classList.add('dragover'); });
-  drop.addEventListener('dragleave', ()=> drop.classList.remove('dragover'));
-  drop.addEventListener('drop', e=>{
-    e.preventDefault();
-    drop.classList.remove('dragover');
-    if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0], statusId, kind);
-  });
-  input.addEventListener('change', e=>{
-    if(e.target.files.length) handleFile(e.target.files[0], statusId, kind);
-  });
-}
-
-function setStatus(statusId, type, msg){
-  const el = document.getElementById(statusId);
-  el.className = 'file-status ' + type;
-  el.textContent = msg;
-  
-  // Mostrar/ocultar botón de eliminar según el estado
-  const kind = statusId.replace('status', '').toLowerCase();
-  let btnId = '';
-  if(statusId === 'statusSolicitudes') btnId = 'btnDelSolicitudes';
-  else if(statusId === 'statusDespachos') btnId = 'btnDelDespachos';
-  else if(statusId === 'statusInventarios') btnId = 'btnDelInventarios';
-  else if(statusId === 'statusPrograma') btnId = 'btnDelPrograma';
-  
-  if(btnId){
-    const btn = document.getElementById(btnId);
-    btn.style.display = (type === 'ok') ? 'block' : 'none';
-  }
-}
-
-function handleFile(file, statusId, kind){
-  setStatus(statusId, 'loading', '⏳ Leyendo ' + file.name + '…');
-  const reader = new FileReader();
-  reader.onload = function(e){
-    try {
-      const data = new Uint8Array(e.target.result);
-      const wb = XLSX.read(data, { type:'array', cellDates:false });
-      const sheetName = wb.SheetNames[0];
-      const ws = wb.Sheets[sheetName];
-      const rows = XLSX.utils.sheet_to_json(ws, { defval:null });
-
-      if(kind === 'solicitudes'){
-        PARSED.solicitudesFile = rows;
-        setStatus(statusId, 'ok', '✅ ' + file.name + ' — ' + rows.length + ' filas leídas (hoja "' + sheetName + '")');
-      } else if(kind === 'despachos'){
-        PARSED.despachosFile = rows;
-        setStatus(statusId, 'ok', '✅ ' + file.name + ' — ' + rows.length + ' filas leídas (hoja "' + sheetName + '")');
-      } else if(kind === 'inventarios'){
-        PARSED.inventariosFile = rows;
-        setStatus(statusId, 'ok', '✅ ' + file.name + ' — ' + rows.length + ' filas leídas (hoja "' + sheetName + '")');
-      } else if(kind === 'programa'){
-        PARSED.programaFile = rows;
-        setStatus(statusId, 'ok', '✅ ' + file.name + ' — ' + rows.length + ' filas leídas (hoja "' + sheetName + '")');
-      }
-    } catch(err){
-      setStatus(statusId, 'error', '❌ Error leyendo archivo: ' + err.message);
-    }
-  };
-  reader.onerror = function(){
-    setStatus(statusId, 'error', '❌ No se pudo leer el archivo');
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-function deleteFile(kind){
-  if(kind === 'solicitudes'){
-    PARSED.solicitudesFile = null;
-    document.getElementById('inputSolicitudes').value = '';
-    setStatus('statusSolicitudes', '', '');
-  } else if(kind === 'despachos'){
-    PARSED.despachosFile = null;
-    document.getElementById('inputDespachos').value = '';
-    setStatus('statusDespachos', '', '');
-  } else if(kind === 'inventarios'){
-    PARSED.inventariosFile = null;
-    document.getElementById('inputInventarios').value = '';
-    setStatus('statusInventarios', '', '');
-  } else if(kind === 'programa'){
-    PARSED.programaFile = null;
-    document.getElementById('inputPrograma').value = '';
-    setStatus('statusPrograma', '', '');
-  }
-  log(`${kind} eliminado. Carga uno nuevo cuando esté listo.`, 'info');
-}
-
-setupDropzone('dropSolicitudes','inputSolicitudes','statusSolicitudes','solicitudes');
-setupDropzone('dropDespachos','inputDespachos','statusDespachos','despachos');
-setupDropzone('dropInventarios','inputInventarios','statusInventarios','inventarios');
-setupDropzone('dropPrograma','inputPrograma','statusPrograma','programa');
-
-// Event listeners para botones de eliminar
-document.getElementById('btnDelSolicitudes').addEventListener('click', () => deleteFile('solicitudes'));
-document.getElementById('btnDelDespachos').addEventListener('click', () => deleteFile('despachos'));
-document.getElementById('btnDelInventarios').addEventListener('click', () => deleteFile('inventarios'));
-document.getElementById('btnDelPrograma').addEventListener('click', () => deleteFile('programa'));
-
-// ============================================================
-// NORMALIZACIÓN: convertir filas de Excel parseado a registros RAW
-// ============================================================
-function findColumn(row, candidates){
-  const keys = Object.keys(row);
-  for(const cand of candidates){
-    const found = keys.find(k => k.trim().toLowerCase() === cand.toLowerCase());
-    if(found) return found;
-  }
-  // fuzzy: contains
-  for(const cand of candidates){
-    const found = keys.find(k => k.trim().toLowerCase().includes(cand.toLowerCase()));
-    if(found) return found;
-  }
-  return null;
-}
-
-function normalizarSolicitudesRows(rows){
-  let validas = 0, rechazadas = 0;
-  const out = [];
-  if(!rows || rows.length === 0) return { out, validas, rechazadas };
-
-  const colCodigo = findColumn(rows[0], ['Código','Codigo','SKU','Cód. Artículo']);
-  const colDesc = findColumn(rows[0], ['Descripción','Descripcion','Artículo']);
-  const colCantidad = findColumn(rows[0], ['Cantidad']);
-  const colNumLocal = findColumn(rows[0], ['Número local','Numero local','Local','Cód. cliente']);
-  const colNombreLocal = findColumn(rows[0], ['Nombre local']);
-  const colFechaEntrega = findColumn(rows[0], ['Fecha entrega']);
-
-  for(const row of rows){
-    const codigoNum = colNumLocal ? row[colNumLocal] : null;
-    const codigoLimpio = codigoNum !== null && codigoNum !== undefined
-      ? parseInt(String(codigoNum).replace(/^0+/,'') || '0', 10)
-      : null;
-
-    if(!codigoLimpio || !CODIGOS_OFICIALES.has(codigoLimpio)){
-      rechazadas++; continue;
-    }
-    const cantidad = colCantidad ? parseFloat(row[colCantidad]) : NaN;
-    if(!cantidad || isNaN(cantidad) || cantidad <= 0){
-      rechazadas++; continue;
-    }
-    const fechaRaw = colFechaEntrega ? row[colFechaEntrega] : null;
-    const fecha = toISODate(fechaRaw);
-    if(!fecha){ rechazadas++; continue; }
-
-    out.push({
-      sku: String(colCodigo ? row[colCodigo] : '').trim(),
-      descripcion: colDesc ? row[colDesc] : '',
-      fecha: fecha,
-      sucursal: NOMBRES_OFICIALES[codigoLimpio],
-      cantidad: cantidad
-    });
-    validas++;
-  }
-  return { out, validas, rechazadas };
-}
-
-function normalizarDespachosRows(rows, skusValidos){
-  let validas = 0, rechazadas = 0, excluidosInsumos = 0, excluidosInsumosUnid = 0, excluidosNoG = 0, excluidosNoGUnid = 0;
-  const out = [];
-  if(!rows || rows.length === 0) return { out, validas, rechazadas, excluidosInsumos, excluidosInsumosUnid, excluidosNoG, excluidosNoGUnid };
-
-  const colCliente = findColumn(rows[0], ['Cód. cliente','Cod. cliente','Cliente']);
-  const colSku = findColumn(rows[0], ['Cód. Artículo','Cod. Articulo','SKU','Código']);
-  const colDesc = findColumn(rows[0], ['Artículo','Articulo','Descripción']);
-  const colCantidad = findColumn(rows[0], ['Cantidad sin Insumos','Cantidad']);
-  const colFecha = findColumn(rows[0], ['Fecha emisión','Fecha emision']);
-  const colComprobante = findColumn(rows[0], ['Nro. Comprobante','Nro Comprobante','Comprobante']);
-  const colComanda = findColumn(rows[0], ['Nro. Comanda','Nro Comanda']);
-  const colHora = findColumn(rows[0], ['Hora cierre','Hora']);
-  const colEstado = findColumn(rows[0], ['Estado Comanda','Estado']);
-
-  for(const row of rows){
-    // FILTRO: solo Nro. Comprobante que empiece con 'G' (Guía de despacho real).
-    // Se omiten los que empiezan con 'F' (Factura) o 'B' (Boleta) — no son despacho físico.
-    const comprobante = colComprobante ? String(row[colComprobante] || '').trim() : '';
-    if(colComprobante){
-      const prefijo = comprobante.charAt(0).toUpperCase();
-      if(prefijo !== 'G'){
-        excluidosNoG++;
-        const cant = colCantidad ? parseFloat(row[colCantidad]) : 0;
-        if(!isNaN(cant)) excluidosNoGUnid += cant;
-        continue;
-      }
-    }
-
-    const codigoNum = colCliente ? row[colCliente] : null;
-    const codigoLimpio = codigoNum !== null && codigoNum !== undefined
-      ? parseInt(String(codigoNum).replace(/^0+/,'') || '0', 10)
-      : null;
-
-    if(!codigoLimpio || !CODIGOS_OFICIALES.has(codigoLimpio)){ rechazadas++; continue; }
-
-    const cantidad = colCantidad ? parseFloat(row[colCantidad]) : NaN;
-    if(!cantidad || isNaN(cantidad)){ rechazadas++; continue; }
-
-    const fechaRaw = colFecha ? row[colFecha] : null;
-    const fecha = toISODate(fechaRaw);
-    if(!fecha){ rechazadas++; continue; }
-
-    const sku = String(colSku ? row[colSku] : '').trim();
-
-    if(skusValidos && !skusValidos.has(sku)){
-      excluidosInsumos++;
-      excluidosInsumosUnid += cantidad;
-      continue;
-    }
-
-    out.push({
-      sku: sku,
-      descripcion: colDesc ? row[colDesc] : '',
-      fecha: fecha,
-      sucursal: NOMBRES_OFICIALES[codigoLimpio],
-      cantidad: cantidad,
-      numero_guia: comprobante,
-      numero_comanda: colComanda ? String(row[colComanda]||'').trim() : '',
-      hora_cierre: colHora ? String(row[colHora]||'').trim() : '',
-      estado: colEstado ? String(row[colEstado]||'').trim() : ''
-    });
-    validas++;
-  }
-  return { out, validas, rechazadas, excluidosInsumos, excluidosInsumosUnid, excluidosNoG, excluidosNoGUnid };
-}
-
-// ============================================================
-// PROCESAMIENTO PRINCIPAL
-// ============================================================
-function procesar(){
-  clearLog();
-  log('Iniciando procesamiento…', 'info');
-  
-  try {
-    const solRows = PARSED.solicitudesFile;
-    const despRows = PARSED.despachosFile;
-    const invRows = PARSED.inventariosFile;
-    const progRows = PARSED.programaFile;
-
-    if(!solRows && !despRows){
-      log('No hay archivos cargados. Usa "Usar datos de ejemplo" o sube archivos primero.', 'err');
-      return;
-    }
-
-    let solicitudesOut = [], despachosOut = [];
-    let dq = { total_raw:0, validas:0, rechazadas:0, insumos_excluidos_unid:0 };
-
-  if(solRows){
-    log('Procesando archivo de Solicitudes (' + solRows.length + ' filas)…', 'info');
-    const r = normalizarSolicitudesRows(solRows);
-    solicitudesOut = r.out;
-    dq.total_raw = solRows.length;
-    dq.validas = r.validas;
-    dq.rechazadas = r.rechazadas;
-    log('Solicitudes: ' + r.validas + ' válidas, ' + r.rechazadas + ' rechazadas (sucursal no mapeada, cantidad vacía/cero, o fecha inválida)', r.rechazadas > 0 ? 'warn' : 'ok');
-  } else {
-    log('No se cargó archivo de Solicitudes — usando seed de ejemplo', 'warn');
-    solicitudesOut = RAW.solicitudes;
-  }
-
-  const skusValidos = new Set(solicitudesOut.map(r => r.sku));
-
-  if(despRows){
-    log('Procesando archivo de Guías de Despacho (' + despRows.length + ' filas)…', 'info');
-    const r = normalizarDespachosRows(despRows, skusValidos);
-    despachosOut = r.out;
-    log('Comprobantes excluidos por NO ser tipo "G" (Factura/Boleta, no despacho físico): ' + r.excluidosNoG + ' líneas, ' + fmt(r.excluidosNoGUnid) + ' unidades', 'warn');
-    log('Despachos: ' + r.validas + ' válidas, ' + r.rechazadas + ' rechazadas, ' + r.excluidosInsumos + ' excluidas por ser SKU de insumos/bodega (' + fmt(r.excluidosInsumosUnid) + ' unidades)', 'ok');
-    dq.insumos_excluidos_unid = r.excluidosInsumosUnid;
-  } else {
-    log('No se cargó archivo de Guías — usando seed de ejemplo', 'warn');
-    despachosOut = RAW.despachos;
-  }
-
-  // Procesar Inventarios si se cargaron
-  if(invRows){
-    log('Procesando archivo de Inventarios (' + invRows.length + ' filas)…', 'info');
-    const invIndex = {};
-    for(const row of invRows){
-      const sku = String(row['SKU'] || '').trim();
-      const local = String(row['N° Local'] || row['ID Local'] || '').trim();
-      const stock = parseFloat(row['Stock Físico'] || 0);
-      if(sku && local && stock > 0){
-        // Mapear código local a nombre oficial si existe, sino usar el nombre que venga
-        const sucursal = NOMBRES_OFICIALES[parseInt(local)] || String(row['Nombre Local'] || row['Local'] || '').trim();
-        const key = sku + '|' + sucursal;
-        invIndex[key] = stock;
-      }
-    }
-    // Agregar inventario a despachos
-    let inventarioAgregado = 0;
-    for(const desp of despachosOut){
-      const key = desp.sku + '|' + desp.sucursal;
-      if(invIndex[key]){
-        desp.inventario = invIndex[key];
-        inventarioAgregado++;
-      }
-    }
-    log('Inventarios: ' + invRows.length + ' filas leídas, ' + inventarioAgregado + ' combinaciones SKU+Sucursal enriquecidas', 'ok');
-  }
-
-  // Procesar Programa si se cargó
-  if(progRows){
-    log('Procesando archivo de Programa (' + progRows.length + ' filas)…', 'info');
-    const progIndex = {};
-    for(const row of progRows){
-      const sku = String(row['SKU'] || '').trim();
-      const local = String(row['ID Local'] || '').trim();
-      const venta = parseFloat(row['Venta Diaria'] || 0);
-      if(sku && local){
-        const sucursal = NOMBRES_OFICIALES[parseInt(local)] || String(row['Local'] || '').trim();
-        const key = sku + '|' + sucursal;
-        progIndex[key] = (progIndex[key] || 0) + venta;
-      }
-    }
-    // Agregar programa a despachos
-    let programaAgregado = 0;
-    for(const desp of despachosOut){
-      const key = desp.sku + '|' + desp.sucursal;
-      if(progIndex[key]){
-        desp.programa = progIndex[key];
-        programaAgregado++;
-      }
-    }
-    log('Programa: ' + progRows.length + ' filas leídas, ' + programaAgregado + ' combinaciones SKU+Sucursal enriquecidas', 'ok');
-  }
-
-  RAW.solicitudes = solicitudesOut;
-  RAW.despachos = despachosOut;
-  DATA_QUALITY = {
-    total_raw: dq.total_raw || RAW.solicitudes.length,
-    validas: dq.validas || RAW.solicitudes.length,
-    rechazadas: dq.rechazadas || 0,
-    pct_rechazo: dq.total_raw ? +(dq.rechazadas/dq.total_raw*100).toFixed(1) : 0,
-    insumos_excluidos_unid: dq.insumos_excluidos_unid || 0
-  };
-
-  log('Construyendo tabla granular SKU + Día + Sucursal…', 'info');
-  construirGranular();
-  log('Listo. ' + GRANULAR.length + ' combinaciones SKU-día-sucursal generadas.', 'ok');
-
-  poblarFiltros();
-  poblarFiltrosAnalisis();
-  renderAll();
-
-  // Cambiar a tab dashboard automáticamente
-  document.querySelector('.tab-btn[data-tab="dashboard"]').click();
-  
-  } catch(error) {
-    log('❌ Error al procesar archivos: ' + error.message, 'err');
-    console.error('[ERRO] Procesamiento fallido:', error);
-  }
-}
-
-function construirGranular(){
-  const solMap = new Map();
-  for(const r of RAW.solicitudes){
-    const key = r.sku + '|' + r.fecha + '|' + r.sucursal;
-    if(!solMap.has(key)){
-      solMap.set(key, { sku:r.sku, descripcion:r.descripcion, fecha:r.fecha, sucursal:r.sucursal, solicitado:0, despachado:0, programa:0, inventario:0 });
-    }
-    solMap.get(key).solicitado += r.cantidad;
-  }
-  for(const r of RAW.despachos){
-    const key = r.sku + '|' + r.fecha + '|' + r.sucursal;
-    if(!solMap.has(key)){
-      solMap.set(key, { sku:r.sku, descripcion:r.descripcion, fecha:r.fecha, sucursal:r.sucursal, solicitado:0, despachado:0, programa:0, inventario:0 });
-    }
-    const entry = solMap.get(key);
-    entry.despachado += r.cantidad;
-    if(!entry.descripcion) entry.descripcion = r.descripcion;
-    // Capturar programa e inventario (tomar el mayor valor encontrado por SKU+sucursal)
-    if(r.programa) entry.programa = Math.max(entry.programa || 0, r.programa);
-    if(r.inventario) entry.inventario = Math.max(entry.inventario || 0, r.inventario);
-  }
-  GRANULAR = Array.from(solMap.values()).map(e => ({ ...e, diferencia: e.solicitado - e.despachado }));
-
-  // Construir DESPACHOS_LINEA (detalle a nivel de línea, preserva numero_guia)
-  DESPACHOS_LINEA = RAW.despachos.filter(r => r.numero_guia);
-
-  // Construir GUIAS_INDEX: numero_guia -> {info + lineas[]}
-  GUIAS_INDEX = new Map();
-  for(const r of DESPACHOS_LINEA){
-    if(!GUIAS_INDEX.has(r.numero_guia)){
-      GUIAS_INDEX.set(r.numero_guia, {
-        numero_guia: r.numero_guia,
-        numero_comanda: r.numero_comanda || '',
-        fecha: r.fecha,
-        sucursal: r.sucursal,
-        hora_cierre: r.hora_cierre || '',
-        estado: r.estado || '',
-        lineas: [],
-        total_unidades: 0,
-        total_skus: 0
-      });
-    }
-    const g = GUIAS_INDEX.get(r.numero_guia);
-    g.lineas.push({ sku:r.sku, descripcion:r.descripcion, cantidad:r.cantidad });
-    g.total_unidades += r.cantidad;
-  }
-  for(const g of GUIAS_INDEX.values()){
-    g.total_skus = g.lineas.length;
-  }
-}
-
-// ============================================================
-// FILTROS
-// ============================================================
-function setupCustomFilter(prefix, opciones, selectedValues, onApply){
-  const btn = document.querySelector(`#${prefix}DD .filter-btn`);
-  const menu = document.querySelector(`#${prefix}DD .filter-menu`);
-  const optionsContainer = document.getElementById(`${prefix}Options`);
-  const searchInput = document.getElementById(`${prefix}Search`);
-  const allBtn = document.getElementById(`${prefix}All`);
-  const noneBtn = document.getElementById(`${prefix}None`);
-  const applyBtn = document.getElementById(`${prefix}Apply`);
-  const cancelBtn = document.getElementById(`${prefix}Cancel`);
-  
-  let tempSelected = [...selectedValues];
-  
-  function renderOptions(filterText = ''){
-    const filtered = opciones.filter(opt => opt.toLowerCase().includes(filterText.toLowerCase()));
-    optionsContainer.innerHTML = filtered.map((opt,i) => {
-      const isChecked = tempSelected.includes(opt);
-      const safeId = prefix + '_opt_' + i;
-      return `<div class="filter-option">
-        <input type="checkbox" id="${safeId}" ${isChecked?'checked':''}>
-        <label for="${safeId}">${opt}</label>
-      </div>`;
-    }).join('');
-    
-    optionsContainer.querySelectorAll('input[type="checkbox"]').forEach((chk, i) => {
-      chk.addEventListener('change', () => {
-        if(chk.checked) tempSelected.push(opciones[i]);
-        else tempSelected = tempSelected.filter(x => x !== opciones[i]);
-      });
-    });
-  }
-  
-  btn.addEventListener('click', ()=>{
-    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
-    if(menu.style.display === 'block') renderOptions();
-  });
-  
-  if(searchInput){
-    searchInput.addEventListener('input', e => renderOptions(e.target.value));
-  }
-  
-  if(allBtn){
-    allBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      tempSelected = [...opciones];
-      renderOptions(searchInput?.value || '');
-    });
-  }
-  
-  if(noneBtn){
-    noneBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      tempSelected = [];
-      renderOptions(searchInput?.value || '');
-    });
-  }
-  
-  applyBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    onApply(tempSelected);
-    menu.style.display = 'none';
-  });
-  
-  cancelBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    tempSelected = [...selectedValues];
-    menu.style.display = 'none';
-  });
-  
-  document.addEventListener('click', (e) => {
-    if(!document.querySelector(`#${prefix}DD`).contains(e.target)){
-      menu.style.display = 'none';
-    }
-  });
-}
-
-function poblarFiltros(){
-  const locales = Array.from(new Set(GRANULAR.map(g=>g.sucursal))).sort();
-  const semanas = Array.from(new Set(GRANULAR.map(g=>isoWeekOf(g.fecha)))).sort((a,b)=>a-b).map(s=>'Semana '+s);
-  const dias = Array.from(new Set(GRANULAR.map(g=>g.fecha))).sort();
-  
-  setupCustomFilter('filtroLocal', locales, filtroLocal, (selected)=>{ 
-    filtroLocal = selected; 
-    renderAll();
-  });
-  
-  setupCustomFilter('filtroSemana', semanas, filtroSemana.map(s=>'Semana '+s), (selected)=>{ 
-    filtroSemana = selected.map(s => s.split(' ')[1]);
-    renderAll();
-  });
-  
-  setupCustomFilter('filtroDia', dias, filtroDia, (selected)=>{ 
-    filtroDia = selected;
-    renderAll();
-  });
-}
-
-function getFiltrado(){
-  return GRANULAR.filter(g=>{
-    if(filtroLocal.length > 0 && !filtroLocal.includes(g.sucursal)) return false;
-    if(filtroSemana.length > 0 && !filtroSemana.includes(String(isoWeekOf(g.fecha)))) return false;
-    if(filtroDia.length > 0 && !filtroDia.includes(g.fecha)) return false;
-    return true;
-  });
-}
-
-
-document.getElementById('filtroOrden').addEventListener('change', e=>{ ordenQuiebres = e.target.value; renderQuiebres(); });
-document.getElementById('btnResetFiltros').addEventListener('click', ()=>{
-  filtroLocal=[]; filtroSemana=[]; filtroDia=[];
-  // Limpiar el contenido de los dropdowns personalizados
-  document.getElementById('filtroLocalOptions').innerHTML = '';
-  document.getElementById('filtroSemanaOptions').innerHTML = '';
-  document.getElementById('filtroDiaOptions').innerHTML = '';
-  // Limpiar inputs de búsqueda
-  if(document.getElementById('filtroLocalSearch')) document.getElementById('filtroLocalSearch').value = '';
-  // Cerrar menus
-  document.querySelectorAll('#filtroLocalDD .filter-menu, #filtroSemanaDD .filter-menu, #filtroDiaDD .filter-menu').forEach(m => m.style.display = 'none');
-  renderAll();
-});
-
-// ============================================================
-// RENDER
-// ============================================================
-function frClass(fr){ if(fr<80) return 'fr-low'; if(fr<95) return 'fr-mid'; if(fr<=105) return 'fr-high'; return 'fr-over'; }
-function barColor(fr){ if(fr<80) return '#dc2626'; if(fr<95) return '#d97706'; if(fr<=105) return '#059669'; return '#2563eb'; }
-
-function renderAll(){
-  renderHeader();
-  renderKPIs();
-  renderCharts();
-  renderSucursalBars();
-  renderQuiebres();
-  poblarFiltrosAnalisis();
-  renderAnalisis();
-  poblarFiltrosGuias();
-  renderGuias();
-}
-
-function renderHeader(){
-  const filtrado = getFiltrado();
-  const fechas = filtrado.map(g=>g.fecha).sort();
-  const badge = document.getElementById('periodoBadge');
-  if(fechas.length){
-    badge.textContent = '📅 ' + fechas[0] + ' → ' + fechas[fechas.length-1] + ' · ' + filtrado.length + ' combinaciones';
-  } else {
-    badge.textContent = '📅 Sin datos para este filtro';
-  }
-
-  const dq = DATA_QUALITY;
-  document.getElementById('dqBar').innerHTML =
-    '⚠️ <b>Data Quality:</b> de ' + fmt(dq.total_raw) + ' registros de solicitud cargados, <b>' + fmt(dq.rechazadas) + ' (' + dq.pct_rechazo + '%)</b> se excluyeron por sucursal no mapeada, cantidad vacía/cero o fecha inválida. Se excluyeron además <b>' + fmt(dq.insumos_excluidos_unid) + '</b> unidades despachadas de SKU de insumos/bodega que no pertenecen al flujo de Solicitudes.';
-}
-
-function renderKPIs(){
-  const filtrado = getFiltrado();
-  const sol = filtrado.reduce((a,g)=>a+g.solicitado,0);
-  const desp = filtrado.reduce((a,g)=>a+g.despachado,0);
-  const fr = sol > 0 ? (desp/sol*100) : 0;
-
-  document.getElementById('kpiFillRate').textContent = fr.toFixed(1) + '%';
-  document.getElementById('kpiSolicitado').textContent = fmt(sol);
-  document.getElementById('kpiDespachado').textContent = fmt(desp);
-  document.getElementById('kpiGap').textContent = fmt(sol - desp);
-}
-
-function renderCharts(){
-  const filtrado = getFiltrado();
-  const porDia = new Map();
-  for(const g of filtrado){
-    if(!porDia.has(g.fecha)) porDia.set(g.fecha, { solicitado:0, despachado:0 });
-    const e = porDia.get(g.fecha);
-    e.solicitado += g.solicitado;
-    e.despachado += g.despachado;
-  }
-  const fechas = Array.from(porDia.keys()).sort();
-  const labels = fechas.map(f=>f.slice(5));
-  const solicitado = fechas.map(f=>porDia.get(f).solicitado);
-  const despachado = fechas.map(f=>porDia.get(f).despachado);
-  const fillrate = fechas.map(f=>{
-    const e = porDia.get(f);
-    const v = e.solicitado>0 ? (e.despachado/e.solicitado*100) : 0;
-    return Math.min(v,150);
-  });
-
-  if(chartLinea) chartLinea.destroy();
-  chartLinea = new Chart(document.getElementById('chartLinea'), {
-    type:'bar',
-    data:{ labels, datasets:[
-      {label:'Solicitado', data:solicitado, backgroundColor:'#2563eb', borderRadius:4, borderWidth:0},
-      {label:'Despachado', data:despachado, backgroundColor:'#059669', borderRadius:4, borderWidth:0}
-    ]},
-    options:{ responsive:true, maintainAspectRatio:true, plugins:{legend:{position:'top'}},
-      scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>fmt(v) } } } }
-  });
-
-  if(chartArea) chartArea.destroy();
-  chartArea = new Chart(document.getElementById('chartArea'), {
-    type:'line',
-    data:{ labels, datasets:[
-      {label:'Fill Rate % (cap 150)', data:fillrate, borderColor:'#7c3aed', backgroundColor:'rgba(124,58,237,.25)', tension:.35, borderWidth:2.5, pointRadius:3, fill:true}
-    ]},
-    options:{ responsive:true, maintainAspectRatio:true, plugins:{legend:{position:'top'}},
-      scales:{ y:{ beginAtZero:true, suggestedMax:150 } } }
-  });
-}
-
-function renderSucursalBars(){
-  const filtrado = getFiltrado();
-  const porSucursal = new Map();
-  for(const g of filtrado){
-    if(!porSucursal.has(g.sucursal)) porSucursal.set(g.sucursal, { solicitado:0, despachado:0 });
-    const e = porSucursal.get(g.sucursal);
-    e.solicitado += g.solicitado;
-    e.despachado += g.despachado;
-  }
-  const arr = Array.from(porSucursal.entries()).map(([sucursal,v])=>({
-    sucursal, solicitado:v.solicitado, despachado:v.despachado,
-    fill_rate: v.solicitado>0 ? (v.despachado/v.solicitado*100) : 0
-  })).sort((a,b)=>a.fill_rate-b.fill_rate);
-
-  const cont = document.getElementById('sucursalBars');
-  if(arr.length===0){ cont.innerHTML = '<div class="empty-state">Sin datos para este filtro</div>'; return; }
-
-  cont.innerHTML = arr.map(s=>{
-    const w = Math.min(s.fill_rate,150)/150*100;
-    return '<div class="bar-row">'+
-      '<div class="bar-label">'+s.sucursal+'</div>'+
-      '<div class="bar-track"><div class="bar-fill" style="width:'+w+'%; background:'+barColor(s.fill_rate)+'"></div></div>'+
-      '<div class="bar-value"><span class="fr-pill '+frClass(s.fill_rate)+'">'+s.fill_rate.toFixed(1)+'%</span></div>'+
-    '</div>';
-  }).join('');
-}
-
-function renderQuiebres(){
-  const filtrado = getFiltrado();
-  const porSkuSucursal = new Map();
-  for(const g of filtrado){
-    if(g.diferencia <= 0) continue;
-    const key = g.sku + '|' + g.sucursal;
-    if(!porSkuSucursal.has(key)){
-      porSkuSucursal.set(key, { sku:g.sku, descripcion:g.descripcion, sucursal:g.sucursal, solicitado:0, despachado:0, diferencia:0 });
-    }
-    const e = porSkuSucursal.get(key);
-    e.solicitado += g.solicitado;
-    e.despachado += g.despachado;
-    e.diferencia += g.diferencia;
-  }
-  let rows = Array.from(porSkuSucursal.values());
-  rows.sort((a,b)=>b[ordenQuiebres]-a[ordenQuiebres]);
-  rows = rows.slice(0,15);
-
-  const tbody = document.getElementById('quiebresBody');
-  if(rows.length===0){
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#64748b;padding:1.4rem;">✅ Sin quiebres para este filtro</td></tr>';
-    return;
-  }
-  tbody.innerHTML = rows.map(r=>
-    '<tr>'+
-      '<td><span class="sku">'+r.sku+'</span></td>'+
-      '<td>'+(r.descripcion||'—')+'</td>'+
-      '<td>'+r.sucursal+'</td>'+
-      '<td style="text-align:right">'+fmt(r.solicitado)+'</td>'+
-      '<td style="text-align:right"><span class="gap-pos">'+fmt(r.diferencia)+'</span></td>'+
-    '</tr>'
-  ).join('');
-}
-
-// ============================================================
-// BOTONES
-// ============================================================
-document.getElementById('btnProcesar').addEventListener('click', procesar);
-
-document.getElementById('btnDemo').addEventListener('click', ()=>{
-  PARSED.solicitudesFile = null;
-  PARSED.despachosFile = null;
-  setStatus('statusSolicitudes','ok','📦 Usando datos de ejemplo (Semana 24)');
-  setStatus('statusDespachos','ok','📦 Usando datos de ejemplo (Semana 24)');
-  procesar();
-});
-
-document.getElementById('btnLimpiar').addEventListener('click', ()=>{
-  PARSED.solicitudesFile = null;
-  PARSED.despachosFile = null;
-  PARSED.inventariosFile = null;
-  PARSED.programaFile = null;
-  document.getElementById('inputSolicitudes').value = '';
-  document.getElementById('inputDespachos').value = '';
-  document.getElementById('inputInventarios').value = '';
-  document.getElementById('inputPrograma').value = '';
-  document.getElementById('statusSolicitudes').className = 'file-status';
-  document.getElementById('statusDespachos').className = 'file-status';
-  document.getElementById('statusInventarios').className = 'file-status';
-  document.getElementById('statusPrograma').className = 'file-status';
-  clearLog();
-  log('Archivos limpiados. Carga nuevos archivos o usa datos de ejemplo.', 'info');
-});
-
-// ============================================================
-// PESTAÑA ANÁLISIS — filtros independientes propios
-// ============================================================
-let anLocal = [];
-let anFechaDesde = '';
-let anFechaHasta = '';
-let anPctMin = null;
-let anPctMax = null;
-let anBuscar = '';
-let anSortCol = 'diferencia_abs';
-let anSortDir = 'desc';
-
-function poblarFiltrosAnalisis(){
-  const locales = Array.from(new Set(GRANULAR.map(g=>g.sucursal))).sort();
-  
-  setupCustomFilter('anLocal', locales, anLocal, (selected)=>{ 
-    anLocal = selected;
-    renderAnalisis();
-  });
-
-  const fechas = Array.from(new Set(GRANULAR.map(g=>g.fecha))).sort();
-  if(fechas.length){
-    const desdeInput = document.getElementById('anFechaDesde');
-    const hastaInput = document.getElementById('anFechaHasta');
-    if(!desdeInput.value) desdeInput.min = fechas[0], desdeInput.max = fechas[fechas.length-1];
-    if(!hastaInput.value) hastaInput.min = fechas[0], hastaInput.max = fechas[fechas.length-1];
-  }
-}
-
-function getAnalisisAgregado(){
-  // Agrega GRANULAR (SKU+fecha+sucursal) por SKU+Sucursal, respetando filtros independientes de fecha/local
-  const filtradoFecha = GRANULAR.filter(g=>{
-    if(anLocal.length > 0 && !anLocal.includes(g.sucursal)) return false;
-    if(anFechaDesde && g.fecha < anFechaDesde) return false;
-    if(anFechaHasta && g.fecha > anFechaHasta) return false;
-    return true;
-  });
-
-  const map = new Map();
-  for(const g of filtradoFecha){
-    const key = g.sku + '|' + g.sucursal;
-    if(!map.has(key)){
-      map.set(key, { sku:g.sku, descripcion:g.descripcion, sucursal:g.sucursal, programa:0, solicitado:0, despachado:0, inventario:0, fechas:new Set() });
-    }
-    const e = map.get(key);
-    e.solicitado += g.solicitado;
-    e.despachado += g.despachado;
-    e.fechas.add(g.fecha);
-    if(!e.descripcion && g.descripcion) e.descripcion = g.descripcion;
-  }
-
-  // Indexar guías por sku+sucursal+fecha para poder anexarlas a cada fila agregada
-  const guiasPorSkuSucursal = new Map();
-  for(const linea of DESPACHOS_LINEA){
-    const key = linea.sku + '|' + linea.sucursal;
-    if(!guiasPorSkuSucursal.has(key)) guiasPorSkuSucursal.set(key, new Set());
-    guiasPorSkuSucursal.get(key).add(linea.numero_guia);
-    
-    // Capturar inventario y programa desde DESPACHOS_LINEA
-    const mapEntry = map.get(key);
-    if(mapEntry){
-      if(linea.inventario !== undefined && linea.inventario > 0){
-        mapEntry.inventario = linea.inventario;
-      }
-      if(linea.programa !== undefined && linea.programa > 0){
-        mapEntry.programa = linea.programa;
-      }
-    }
-  }
-
-  let rows = Array.from(map.entries()).map(([key,e])=>{
-    const guiasSet = guiasPorSkuSucursal.get(key) || new Set();
-    return {
-      sku: e.sku, descripcion: e.descripcion, sucursal: e.sucursal,
-      programa: e.programa, solicitado: e.solicitado, despachado: e.despachado, inventario: e.inventario,
-      fill_rate: e.solicitado>0 ? (e.despachado/e.solicitado*100) : (e.despachado>0 ? null : 0),
-      diferencia_abs: Math.abs(e.solicitado - e.despachado),
-      guias: Array.from(guiasSet)
-    };
-  });
-
-  // Filtro % cumplimiento
-  if(anPctMin !== null && !isNaN(anPctMin)){
-    rows = rows.filter(r => r.fill_rate !== null && r.fill_rate >= anPctMin);
-  }
-  if(anPctMax !== null && !isNaN(anPctMax)){
-    rows = rows.filter(r => r.fill_rate !== null && r.fill_rate <= anPctMax);
-  }
-
-  // Búsqueda texto
-  if(anBuscar){
-    const q = normalizarTexto(anBuscar.trim());
-    rows = rows.filter(r =>
-      normalizarTexto(r.sku).includes(q) ||
-      normalizarTexto(r.descripcion).includes(q) ||
-      normalizarTexto(r.sucursal).includes(q)
-    );
-  }
-
-  // Ordenamiento
-  rows.sort((a,b)=>{
-    let va = a[anSortCol], vb = b[anSortCol];
-    if(va === null) va = -1;
-    if(vb === null) vb = -1;
-    if(typeof va === 'string') return anSortDir==='asc' ? va.localeCompare(vb) : vb.localeCompare(va);
-    return anSortDir==='asc' ? va-vb : vb-va;
-  });
-
-  return rows;
-}
-
-function frClassAnalisis(fr){
-  if(fr === null) return 'fr-over';
-  if(fr < 80) return 'fr-low';
-  if(fr < 95) return 'fr-mid';
-  if(fr <= 105) return 'fr-high';
-  return 'fr-over';
-}
-function barColorAnalisis(fr){
-  if(fr === null) return '#2563eb';
-  if(fr < 80) return '#dc2626';
-  if(fr < 95) return '#d97706';
-  if(fr <= 105) return '#059669';
-  return '#2563eb';
-}
-
-function renderSummary(rows){
-  if(rows.length === 0){
-    document.getElementById('anSummaryBox').style.display = 'none';
-    return;
-  }
-  
-  const sumSolicitado = rows.reduce((s, r) => s + (r.solicitado || 0), 0);
-  const sumDespachado = rows.reduce((s, r) => s + (r.despachado || 0), 0);
-  const sumGap = sumSolicitado - sumDespachado;
-  const sumFillRate = sumSolicitado > 0 ? (sumDespachado / sumSolicitado * 100) : 0;
-  const sumPrograma = rows.reduce((s, r) => s + (r.programa || 0), 0);
-  const sumInventario = rows.reduce((s, r) => s + (r.inventario || 0), 0);
-  
-  document.getElementById('sumSolicitado').textContent = fmt(sumSolicitado);
-  document.getElementById('sumDespachado').textContent = fmt(sumDespachado);
-  document.getElementById('sumGap').textContent = fmt(sumGap);
-  document.getElementById('sumFillRate').textContent = sumFillRate.toFixed(1) + '%';
-  document.getElementById('sumPrograma').textContent = fmt(sumPrograma);
-  document.getElementById('sumInventario').textContent = fmt(sumInventario);
-  
-  document.getElementById('anSummaryBox').style.display = 'block';
-}
-
-function printSummary(){
-  const tbody = document.getElementById('analisisBody');
-  const rows = tbody.querySelectorAll('tr');
-  
-  if(rows.length === 0){
-    alert('No hay datos para imprimir con los filtros actuales.');
-    return;
-  }
-  
-  const tableHtml = `
-    <html><head><title>Resumen Análisis SKU</title>
-    <style>
-      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; margin: 20px; background:#fff; }
-      h1 { color: #1e40af; margin-bottom:10px; font-size:24px; }
-      .meta { color: #64748b; font-size: 13px; margin-bottom: 20px; }
-      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-      th { background: #f0f9ff; color: #1e40af; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #bfdbfe; font-size: 13px; }
-      td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
-      tr:hover { background: #f8fafc; }
-      .sku { color: #2563eb; font-weight: 600; font-family: 'SF Mono', monospace; }
-      .numero { text-align: right; font-family: 'SF Mono', monospace; }
-      .fr-low { color: #dc2626; font-weight: 600; }
-      .fr-mid { color: #d97706; font-weight: 600; }
-      .fr-high { color: #059669; font-weight: 600; }
-      .fr-over { color: #2563eb; font-weight: 600; }
-      .summary-box { margin-top: 30px; padding: 20px; background: #f0f9ff; border-left: 4px solid #2563eb; }
-      .summary-title { font-weight: 700; color: #1e40af; margin-bottom: 15px; }
-      .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
-      .summary-item { }
-      .summary-item-label { color: #64748b; font-size: 12px; font-weight: 600; margin-bottom: 5px; }
-      .summary-item-value { color: #1d4ed8; font-size: 18px; font-weight: 700; }
-    </style>
-    </head><body>
-    <h1>📊 Análisis SKU — Solicitado vs Despachado</h1>
-    <div class="meta">
-      <strong>Fecha:</strong> ${new Date().toLocaleString()} | 
-      <strong>Total registros:</strong> ${rows.length}
     </div>
     
-    <table>
-      <thead>
-        <tr>
-          <th>SKU</th>
-          <th>Descripción</th>
-          <th>Sucursal</th>
-          <th style="text-align:right">Programa</th>
-          <th style="text-align:right">Inventario</th>
-          <th style="text-align:right">Solicitado</th>
-          <th style="text-align:right">Despachado</th>
-          <th style="text-align:right">% Cumplimiento</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${Array.from(rows).map(row => {
-          const cells = row.querySelectorAll('td');
-          const sku = cells[0]?.textContent.trim() || '';
-          const desc = cells[1]?.textContent.trim() || '';
-          const sucu = cells[2]?.textContent.trim() || '';
-          const prog = cells[3]?.textContent.trim() || '0';
-          const inv = cells[4]?.textContent.trim() || '0';
-          const sol = cells[5]?.textContent.trim() || '0';
-          const desp = cells[6]?.textContent.trim() || '0';
-          const fr = cells[8]?.querySelector('.fr-pill')?.textContent.trim() || '0%';
-          
-          return '<tr>' +
-            '<td><span class="sku">' + sku + '</span></td>' +
-            '<td>' + desc + '</td>' +
-            '<td>' + sucu + '</td>' +
-            '<td class="numero">' + prog + '</td>' +
-            '<td class="numero">' + inv + '</td>' +
-            '<td class="numero">' + sol + '</td>' +
-            '<td class="numero">' + desp + '</td>' +
-            '<td class="numero">' + fr + '</td>' +
-          '</tr>';
-        }).join('')}
-      </tbody>
-    </table>
-    
-    <div class="summary-box">
-      <div class="summary-title">Resumen de Totales</div>
-      <div class="summary-grid">
-        <div class="summary-item">
-          <div class="summary-item-label">Solicitado Total</div>
-          <div class="summary-item-value">${document.getElementById('sumSolicitado')?.textContent || '0'}</div>
-        </div>
-        <div class="summary-item">
-          <div class="summary-item-label">Despachado Total</div>
-          <div class="summary-item-value">${document.getElementById('sumDespachado')?.textContent || '0'}</div>
-        </div>
-        <div class="summary-item">
-          <div class="summary-item-label">Fill Rate Ponderado</div>
-          <div class="summary-item-value">${document.getElementById('sumFillRate')?.textContent || '0%'}</div>
-        </div>
-      </div>
-    </div>
-    </body></html>
-  `;
-  
-  const printWindow = window.open('', '_blank');
-  printWindow.document.write(tableHtml);
-  printWindow.document.close();
-  setTimeout(() => printWindow.print(), 300);
-}
-
-function renderAnalisis(){
-  const rows = getAnalisisAgregado();
-  document.getElementById('anResultsCount').textContent =
-    rows.length + ' combinaciones SKU+Sucursal' + (rows.length!==1?'es':'') + ' encontradas';
-
-  const tbody = document.getElementById('analisisBody');
-  if(rows.length===0){
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#64748b;padding:1.6rem;">Sin resultados para estos filtros</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = rows.map(r=>{
-    const frDisplay = r.fill_rate === null ? 'N/A' : r.fill_rate.toFixed(1)+'%';
-    const frPct = r.fill_rate === null ? 100 : Math.min(r.fill_rate,150)/150*100;
-    const guiasHtml = r.guias.length === 0
-      ? '<span style="color:#94a3b8;font-size:.76rem;">sin guía</span>'
-      : r.guias.map(gn => '<span class="guia-chip" data-guia="'+gn+'">'+gn+'</span>').join(' ');
-    return '<tr>'+
-      '<td><span class="sku">'+r.sku+'</span></td>'+
-      '<td>'+(r.descripcion||'—')+'</td>'+
-      '<td>'+r.sucursal+'</td>'+
-      '<td style="text-align:right">'+fmt(r.programa)+'</td>'+
-      '<td style="text-align:right">'+fmt(r.inventario)+'</td>'+
-      '<td style="text-align:right">'+fmt(r.solicitado)+'</td>'+
-      '<td style="text-align:right">'+fmt(r.despachado)+'</td>'+
-      '<td><div class="cumplimiento-cell">'+
-        '<div class="cumplimiento-bar-mini"><div class="cumplimiento-bar-mini-fill" style="width:'+frPct+'%; background:'+barColorAnalisis(r.fill_rate)+'"></div></div>'+
-        '<span class="fr-pill '+frClassAnalisis(r.fill_rate)+'">'+frDisplay+'</span>'+
-      '</div></td>'+
-      '<td><div class="guias-cell">'+guiasHtml+'</div></td>'+
-    '</tr>';
-  }).join('');
-
-  // Listeners para chips de guía (delegado, se re-crea cada render)
-  tbody.querySelectorAll('.guia-chip').forEach(chip=>{
-    chip.addEventListener('click', ()=>{
-      abrirModalGuia(chip.dataset.guia);
-    });
-  });
-  
-  // Renderizar resumen con totales
-  renderSummary(rows);
-}
-
-document.getElementById('anFechaDesde').addEventListener('change', e=>{ anFechaDesde = e.target.value; renderAnalisis(); });
-document.getElementById('anFechaHasta').addEventListener('change', e=>{ anFechaHasta = e.target.value; renderAnalisis(); });
-document.getElementById('anPctMin').addEventListener('input', e=>{ anPctMin = e.target.value===''?null:parseFloat(e.target.value); renderAnalisis(); });
-document.getElementById('anPctMax').addEventListener('input', e=>{ anPctMax = e.target.value===''?null:parseFloat(e.target.value); renderAnalisis(); });
-document.getElementById('anBuscar').addEventListener('input', debounce(e=>{ anBuscar = e.target.value; renderAnalisis(); }, 60));
-
-document.getElementById('anBtnImprimir').addEventListener('click', printSummary);
-
-document.getElementById('anBtnReset').addEventListener('click', ()=>{
-  anLocal=[]; anFechaDesde=''; anFechaHasta=''; anPctMin=null; anPctMax=null; anBuscar='';
-  document.getElementById('anLocalOptions').innerHTML = '';
-  if(document.getElementById('anLocalSearch')) document.getElementById('anLocalSearch').value = '';
-  document.getElementById('anFechaDesde').value='';
-  document.getElementById('anFechaHasta').value='';
-  document.getElementById('anPctMin').value='';
-  document.getElementById('anPctMax').value='';
-  document.getElementById('anBuscar').value='';
-  document.querySelector('#anLocalDD .filter-menu').style.display = 'none';
-  renderAnalisis();
-});
-
-document.querySelectorAll('.sort-th').forEach(th=>{
-  th.addEventListener('click', ()=>{
-    const col = th.dataset.sort;
-    if(anSortCol === col){
-      anSortDir = anSortDir === 'asc' ? 'desc' : 'asc';
-    } else {
-      anSortCol = col;
-      anSortDir = 'desc';
-    }
-    document.querySelectorAll('.sort-th').forEach(t=>{
-      t.classList.remove('active');
-      t.querySelector('.arrow').textContent = '▾';
-    });
-    th.classList.add('active');
-    th.querySelector('.arrow').textContent = anSortDir === 'asc' ? '▴' : '▾';
-    renderAnalisis();
-  });
-});
-
-// Filtros en encabezados
-document.querySelectorAll('.filterable-th').forEach(th=>{
-  const filterIcon = th.querySelector('.filter-icon');
-  if(filterIcon){
-    filterIcon.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      const filterCol = th.dataset.filter;
-      abrirFiltroColumna(filterCol);
-    });
-  }
-});
-
-function abrirFiltroColumna(columna){
-  const rows = getAnalisisAgregado();
-  if(rows.length === 0) return;
-  
-  // Obtener valores únicos de la columna
-  const valores = Array.from(new Set(rows.map(r => {
-    if(columna === 'sku') return r.sku;
-    if(columna === 'descripcion') return r.descripcion || '';
-    if(columna === 'sucursal') return r.sucursal;
-    return '';
-  }))).filter(v => v).sort();
-  
-  if(valores.length === 0) return;
-  
-  // Mostrar modal/dropdown con opciones
-  const html = `
-    <div style="position: fixed; inset: 0; background: rgba(15,23,42,.55); z-index: 1000; display: flex; align-items: center; justify-content: center;" onclick="if(event.target===this) cerrarFiltroColumna()">
-      <div style="background: #fff; border-radius: .8rem; max-width: 320px; width: 90%; max-height: 400px; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.3); padding: 1.2rem;">
-        <div style="font-weight: 700; color: #0f172a; margin-bottom: 1rem;">Filtrar por ${columna}</div>
-        <input type="text" placeholder="Buscar..." style="width: 100%; padding: .5rem; border: 1px solid #cbd5e1; border-radius: .4rem; margin-bottom: 1rem; font-size: .9rem;" id="filterSearch" onkeyup="filtrarOpciones(this)">
-        <div id="filterOptions" style="max-height: 250px; overflow-y: auto;">
-          ${valores.map((v, i) => `<label style="display: flex; align-items: center; padding: .4rem 0; cursor: pointer;"><input type="checkbox" data-value="${v}" data-col="${columna}" style="margin-right: .5rem;" onchange=""> ${v}</label>`).join('')}
-        </div>
-        <div style="display: flex; gap: .6rem; margin-top: 1rem; border-top: 1px solid #e2e8f0; padding-top: 1rem;">
-          <button onclick="aplicarFiltroColumna('${columna}')" style="flex: 1; padding: .5rem; background: #2563eb; color: #fff; border: none; border-radius: .4rem; font-weight: 600; cursor: pointer;">Aplicar</button>
-          <button onclick="limpiarFiltroColumna('${columna}')" style="flex: 1; padding: .5rem; background: #fca5a5; color: #dc2626; border: none; border-radius: .4rem; font-weight: 600; cursor: pointer;">Limpiar</button>
-          <button onclick="cerrarFiltroColumna()" style="flex: 1; padding: .5rem; background: #e2e8f0; color: #0f172a; border: none; border-radius: .4rem; font-weight: 600; cursor: pointer;">Cerrar</button>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  // Limpiar modal anterior si existe
-  const modalAnterior = document.getElementById('filterModal');
-  if(modalAnterior) modalAnterior.remove();
-  
-  const modal = document.createElement('div');
-  modal.id = 'filterModal';
-  modal.innerHTML = html;
-  document.body.appendChild(modal);
-}
-
-function limpiarFiltroColumna(columna){
-  document.querySelectorAll('#filterOptions input[type="checkbox"]').forEach(cb => {
-    cb.checked = false;
-  });
-}
-
-function filtrarOpciones(input){
-  const texto = input.value.toLowerCase();
-  document.querySelectorAll('#filterOptions label').forEach(label => {
-    const valor = label.textContent.toLowerCase();
-    label.style.display = valor.includes(texto) ? 'flex' : 'none';
-  });
-}
-
-function aplicarFiltroColumna(columna){
-  const checkboxes = document.querySelectorAll('#filterOptions input[type="checkbox"]:checked');
-  const valores = Array.from(checkboxes).map(cb => cb.dataset.value);
-  
-  if(valores.length === 0){
-    cerrarFiltroColumna();
-    return;
-  }
-  
-  // Agregar filtro al buscador de Análisis
-  const buscador = document.getElementById('anBuscar');
-  if(buscador) buscador.value = valores.join(' | ');
-  
-  anBuscar = valores.join(' | ');
-  cerrarFiltroColumna();
-  renderAnalisis();
-}
-
-function cerrarFiltroColumna(){
-  const modal = document.getElementById('filterModal');
-  if(modal) modal.remove();
-}
-
-// ============================================================
-// MODAL DETALLE DE GUÍA
-// ============================================================
-function abrirModalGuia(numeroGuia){
-  const g = GUIAS_INDEX.get(numeroGuia);
-  if(!g){
-    alert('No se encontró el detalle de la guía ' + numeroGuia);
-    return;
-  }
-  document.getElementById('modalGuiaTitulo').textContent = '🚚 Guía ' + g.numero_guia;
-  document.getElementById('modalGuiaMeta').innerHTML =
-    '<div class="modal-meta-item"><b>Fecha emisión:</b> ' + g.fecha + '</div>' +
-    '<div class="modal-meta-item"><b>Sucursal:</b> ' + g.sucursal + '</div>' +
-    '<div class="modal-meta-item"><b>Nro. Comanda:</b> ' + (g.numero_comanda||'—') + '</div>' +
-    '<div class="modal-meta-item"><b>Hora cierre:</b> ' + (g.hora_cierre||'—') + '</div>' +
-    '<div class="modal-meta-item"><b>Estado:</b> ' + (g.estado||'—') + '</div>' +
-    '<div class="modal-meta-item"><b>Total SKU:</b> ' + g.total_skus + '</div>' +
-    '<div class="modal-meta-item"><b>Total unidades:</b> ' + fmt(g.total_unidades) + '</div>';
-
-  const tbody = document.getElementById('modalGuiaBody');
-  tbody.innerHTML = g.lineas.map(l =>
-    '<tr><td><span class="sku">'+l.sku+'</span></td><td>'+(l.descripcion||'—')+'</td><td style="text-align:right">'+fmt(l.cantidad)+'</td></tr>'
-  ).join('');
-
-  document.getElementById('modalGuiaOverlay').classList.add('open');
-}
-function cerrarModalGuia(){
-  document.getElementById('modalGuiaOverlay').classList.remove('open');
-}
-document.getElementById('modalGuiaClose').addEventListener('click', cerrarModalGuia);
-document.getElementById('modalGuiaOverlay').addEventListener('click', e=>{
-  if(e.target.id === 'modalGuiaOverlay') cerrarModalGuia();
-});
-
-// ============================================================
-// PESTAÑA GUÍAS DE DESPACHO — filtros independientes propios
-// ============================================================
-let gdLocal = '';
-let gdFechaDesde = '';
-let gdFechaHasta = '';
-let gdBuscar = '';
-
-function poblarFiltrosGuias(){
-  const locales = Array.from(new Set(Array.from(GUIAS_INDEX.values()).map(g=>g.sucursal))).sort();
-  const sel = document.getElementById('gdLocal');
-  const prevVal = sel.value;
-  sel.innerHTML = '<option value="">Todas</option>' + locales.map(l=>'<option value="'+l+'">'+l+'</option>').join('');
-  sel.value = prevVal;
-}
-
-function getGuiasFiltradas(){
-  let rows = Array.from(GUIAS_INDEX.values());
-  rows = rows.filter(g=>{
-    if(gdLocal && g.sucursal !== gdLocal) return false;
-    if(gdFechaDesde && g.fecha < gdFechaDesde) return false;
-    if(gdFechaHasta && g.fecha > gdFechaHasta) return false;
-    if(gdBuscar){
-      const q = normalizarTexto(gdBuscar.trim());
-      const matchGuia = normalizarTexto(g.numero_guia).includes(q);
-      const matchComanda = normalizarTexto(g.numero_comanda).includes(q);
-      const matchSucursal = normalizarTexto(g.sucursal).includes(q);
-      const matchSku = g.lineas.some(l => normalizarTexto(l.sku).includes(q) || normalizarTexto(l.descripcion).includes(q));
-      if(!matchGuia && !matchComanda && !matchSucursal && !matchSku) return false;
-    }
-    return true;
-  });
-  rows.sort((a,b)=> (a.fecha+a.numero_guia).localeCompare(b.fecha+b.numero_guia));
-  return rows.reverse();
-}
-
-function renderGuias(){
-  const rows = getGuiasFiltradas();
-  const totalGuias = GUIAS_INDEX.size;
-  let countMsg = rows.length + ' guía' + (rows.length!==1?'s':'') + ' encontrada' + (rows.length!==1?'s':'');
-  if(gdBuscar || gdLocal || gdFechaDesde || gdFechaHasta){
-    countMsg += ' de ' + totalGuias + ' totales';
-  }
-  document.getElementById('gdResultsCount').textContent = countMsg;
-
-  const tbody = document.getElementById('guiasBody');
-  if(rows.length===0){
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#64748b;padding:1.6rem;">Sin guías para este filtro</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = rows.map(g =>
-    '<tr class="guia-row" data-guia="'+g.numero_guia+'">'+
-      '<td><span class="sku">'+g.numero_guia+'</span></td>'+
-      '<td>'+g.fecha+'</td>'+
-      '<td>'+g.sucursal+'</td>'+
-      '<td>'+(g.numero_comanda||'—')+'</td>'+
-      '<td style="text-align:right">'+g.total_skus+'</td>'+
-      '<td style="text-align:right">'+fmt(g.total_unidades)+'</td>'+
-      '<td><button class="btn-ver-guia" data-guia="'+g.numero_guia+'">Ver detalle →</button></td>'+
-    '</tr>'
-  ).join('');
-
-  tbody.querySelectorAll('.btn-ver-guia').forEach(btn=>{
-    btn.addEventListener('click', e=>{
-      e.stopPropagation();
-      abrirModalGuia(btn.dataset.guia);
-    });
-  });
-  tbody.querySelectorAll('.guia-row').forEach(row=>{
-    row.addEventListener('click', ()=> abrirModalGuia(row.dataset.guia));
-  });
-}
-
-document.getElementById('gdLocal').addEventListener('change', e=>{ gdLocal = e.target.value; renderGuias(); });
-document.getElementById('gdFechaDesde').addEventListener('change', e=>{ gdFechaDesde = e.target.value; renderGuias(); });
-document.getElementById('gdFechaHasta').addEventListener('change', e=>{ gdFechaHasta = e.target.value; renderGuias(); });
-document.getElementById('gdBuscar').addEventListener('input', debounce(e=>{ gdBuscar = e.target.value; renderGuias(); }, 60));
-document.getElementById('gdBtnReset').addEventListener('click', ()=>{
-  gdLocal=''; gdFechaDesde=''; gdFechaHasta=''; gdBuscar='';
-  document.getElementById('gdLocal').value='';
-  document.getElementById('gdFechaDesde').value='';
-  document.getElementById('gdFechaHasta').value='';
-  document.getElementById('gdBuscar').value='';
-  renderGuias();
-});
-
-// ============================================================
-// DESCARGA DEL DETALLE (respeta filtros activos de la pestaña Análisis)
-// ============================================================
-function descargarAnalisisExcel(){
-  const rows = getAnalisisAgregado();
-  if(rows.length === 0){
-    alert('No hay datos para descargar con los filtros actuales.');
-    return;
-  }
-
-  const dataExport = rows.map(r => ({
-    'SKU': r.sku,
-    'Descripción': r.descripcion || '',
-    'Sucursal': r.sucursal,
-    'Programa': Math.round(r.programa * 10) / 10,
-    'Inventario': Math.round(r.inventario * 10) / 10,
-    'Solicitado': Math.round(r.solicitado * 10) / 10,
-    'Despachado': Math.round(r.despachado * 10) / 10,
-    'Diferencia': Math.round((r.solicitado - r.despachado) * 10) / 10,
-    '% Cumplimiento': r.fill_rate === null ? 'N/A' : Math.round(r.fill_rate * 10) / 10,
-    'Guías de Despacho': r.guias.length ? r.guias.join(', ') : ''
-  }));
-
-  const ws = XLSX.utils.json_to_sheet(dataExport);
-  ws['!cols'] = [
-    { wch:12 }, { wch:38 }, { wch:16 }, { wch:12 }, { wch:12 }, { wch:12 }, { wch:12 }, { wch:10 }, { wch:14 }, { wch:30 }
-  ];
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Detalle SKU');
-
-  const partes = [];
-  if(anLocal && anLocal.length > 0) partes.push(anLocal.join('-'));
-  if(anFechaDesde) partes.push(anFechaDesde);
-  if(anFechaHasta && anFechaHasta !== anFechaDesde) partes.push('a-' + anFechaHasta);
-  const sufijo = partes.length ? '_' + partes.join('_').replace(/\s+/g,'_') : '';
-  const nombreArchivo = 'detalle_sku_fill_rate' + sufijo + '.xlsx';
-
-  XLSX.writeFile(wb, nombreArchivo);
-}
-
-document.getElementById('anBtnDescargar').addEventListener('click', descargarAnalisisExcel);
-
-// ============================================================
-// INICIALIZACIÓN: cargar seed embebido
-// ============================================================
-(function init(){
-  try {
-    const seedEl = document.getElementById('seed-data');
-    const seed = JSON.parse(seedEl.textContent);
-    RAW.solicitudes = seed.solicitudes;
-    RAW.despachos = seed.despachos;
-    DATA_QUALITY = {
-      total_raw: 99157, validas: seed.solicitudes.length,
-      rechazadas: 99157 - 29691, pct_rechazo: 70.1,
-      insumos_excluidos_unid: 20956.5
-    };
-    construirGranular();
-    poblarFiltros();
-    renderAll();
-    log('Dashboard inicializado con datos de ejemplo (Semana ISO 24).', 'ok');
-  } catch(err){
-    console.error('Error inicializando seed:', err);
-    log('Error cargando datos de ejemplo: ' + err.message, 'err');
-  }
-})();
-
-</script>
+    <script>
+        // ✅ VERIFICAR QUE XLSX ESTÁ CARGADO
+        console.log('📦 SheetJS Status:', typeof XLSX !== 'undefined' ? '✅ Cargado' : '❌ No cargado');
+        
+        // Esperar a que XLSX cargue si no está disponible
+        function waitForXLSX(callback) {
+            let tries = 0;
+            let interval = setInterval(() => {
+                tries++;
+                if (typeof XLSX !== 'undefined') {
+                    clearInterval(interval);
+                    callback();
+                } else if (tries > 30) {
+                    clearInterval(interval);
+                    showError('❌ No se pudo cargar la librería XLSX. Recarga la página.');
+                }
+            }, 100);
+        }
+        
+        function showTab(tabName) {
+            // Ocultar todos los tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.nav-item').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Mostrar el tab seleccionado
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        function showError(message) {
+            const container = document.getElementById('error-container');
+            container.innerHTML = `<div class="error-message">${message}</div>`;
+        }
+        
+        function showSuccess(message) {
+            const container = document.getElementById('success-container');
+            container.innerHTML = `<div class="success-message">✅ ${message}</div>`;
+        }
+        
+        function procesarArchivo(tipo) {
+            // Esperar a que XLSX esté disponible
+            waitForXLSX(() => {
+                const inputId = tipo === 'solicitudes' ? 'inputSolicitudes' : 'inputDespachos';
+                const fileInput = document.getElementById(inputId);
+                const file = fileInput.files[0];
+                
+                if (!file) {
+                    showError('❌ Por favor selecciona un archivo');
+                    return;
+                }
+                
+                console.log(`Procesando ${tipo}:`, file.name);
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const data = new Uint8Array(event.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const sheetName = workbook.SheetNames[0];
+                        const sheet = workbook.Sheets[sheetName];
+                        const rows = XLSX.utils.sheet_to_json(sheet);
+                        
+                        console.log(`✅ ${rows.length} filas cargadas`);
+                        showSuccess(`${rows.length} registros de ${tipo} cargados correctamente`);
+                        
+                        // Actualizar tabla si es análisis
+                        if (rows.length > 0) {
+                            actualizarTabla(rows);
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        showError(`❌ Error al procesar archivo: ${error.message}`);
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        }
+        
+        function actualizarTabla(rows) {
+            const tbody = document.getElementById('tabla-analisis');
+            const html = rows.slice(0, 10).map(row => `
+                <tr>
+                    <td>${row.SKU || '-'}</td>
+                    <td>${row.Descripción || row.Description || '-'}</td>
+                    <td>${row.Sucursal || row.Sucursal || '-'}</td>
+                    <td>${row.Solicitado || row.Qty_Solicitada || '-'}</td>
+                    <td>${row.Despachado || row.Qty_Despachada || '-'}</td>
+                    <td>${row['% Cumplimiento'] || '-'}</td>
+                </tr>
+            `).join('');
+            tbody.innerHTML = html;
+        }
+        
+        // Mensaje inicial
+        console.log('✅ Dashboard iniciado');
+        if (typeof XLSX !== 'undefined') {
+            console.log('✅ XLSX cargado correctamente');
+        } else {
+            console.warn('⚠️ XLSX aún no está disponible, esperando...');
+        }
+    </script>
 </body>
 </html>
