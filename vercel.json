@@ -1,7 +1,4 @@
 {
-  "buildCommand": "echo 'Static site ready'",
-  "framework": "static",
-  "outputDirectory": "./",
   "headers": [
     {
       "source": "/(.*)",
