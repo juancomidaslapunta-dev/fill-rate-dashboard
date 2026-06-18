@@ -2,5 +2,7 @@
   "name": "fill-rate-dashboard",
   "version": "3.0.0",
   "private": true,
-  "description": "Dashboard Fill Rate logístico - autenticación sin base de datos externa"
+  "engines": {
+    "node": "20.x"
+  }
 }
