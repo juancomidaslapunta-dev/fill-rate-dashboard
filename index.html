@@ -366,6 +366,33 @@ tbody tr:hover { background:#f8fafc; }
       <button onclick="generarContrasena()" style="padding:10px 18px; background:#667eea; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px; font-weight:600;">Generar Contraseña</button>
       <div id="passwordGenerated" style="margin-top:12px;"></div>
     </div>
+
+    <!-- EDITOR DE USUARIOS (genera JSON para pegar en Vercel) -->
+    <div style="margin-bottom:20px; padding-bottom:20px; border-bottom:2px solid #e0e0e0;">
+      <h3 style="font-size:15px; margin-bottom:10px; color:#333;">✏️ Editor de Usuarios</h3>
+      <div style="background:#fff3e0; border:1px solid #ff9800; border-radius:6px; padding:12px; font-size:12px; color:#e65100; margin-bottom:12px;">
+        ⚠️ Los cambios se aplican actualizando la variable <code>FILLRATE_USERS</code> en Vercel → Settings → Environment Variables, luego Redeploy.
+      </div>
+      <button onclick="cargarEditorUsuarios()" style="padding:10px 18px; background:#667eea; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px; font-weight:600;">📂 Cargar editor de usuarios</button>
+    </div>
+
+    <!-- SECCIÓN JSON OUTPUT (visible tras cargar editor) -->
+    <div id="jsonEditorSection" style="display:none; padding-bottom:20px;">
+      <h3 style="font-size:15px; margin-bottom:10px; color:#333;">📋 JSON para copiar en Vercel</h3>
+      <div style="background:#f5f5f5; border:1px solid #ddd; border-radius:4px; padding:10px; font-family:monospace; font-size:11px; word-break:break-all; max-height:120px; overflow-y:auto; margin-bottom:10px;">
+        <span id="jsonOutput"></span>
+      </div>
+      <button onclick="copiarJson()" style="padding:8px 16px; background:#4caf50; color:white; border:none; border-radius:4px; cursor:pointer; font-size:12px; font-weight:600;">📋 Copiar JSON</button>
+      <div style="margin-top:10px; font-size:12px; color:#555;">
+        <strong>Pasos para aplicar cambios:</strong><br>
+        1. Copia el JSON<br>
+        2. Vercel → tu proyecto → Settings → Environment Variables<br>
+        3. Busca <code>FILLRATE_USERS</code> (o créala si no existe)<br>
+        4. Pega el JSON como valor<br>
+        5. Guardar → Deployments → Redeploy
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -2231,245 +2258,256 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
 
 </script>
 
-<!-- ============ CLIENTE DE AUTENTICACIÓN (vía API/Backend con base de datos central) ============ -->
+<!-- ============ CLIENTE DE AUTENTICACIÓN v3 (api/auth.js, sin Redis) ============ -->
 <script>
 (function(){
   let currentUser = null;
   let currentRole = null;
 
-  async function apiFetch(url, options){
-    options = options || {};
-    options.credentials = 'same-origin'; // enviar/recibir la cookie de sesión httpOnly
-    options.headers = Object.assign({ 'Content-Type': 'application/json' }, options.headers || {});
-    const resp = await fetch(url, options);
+  // ── helpers ────────────────────────────────────────────────────────────────
+  async function api(action, body) {
+    const opts = {
+      method: body ? 'POST' : 'GET',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' }
+    };
+    if (body) opts.body = JSON.stringify(Object.assign({ action }, body));
+    else {
+      // GET con action como query param
+      const resp = await fetch('/api/auth?action=' + action, opts);
+      return parseResp(resp);
+    }
+    const resp = await fetch('/api/auth', opts);
+    return parseResp(resp);
+  }
+
+  async function parseResp(resp) {
     let data = null;
-    try { data = await resp.json(); } catch(e) { data = null; }
+    try { data = await resp.json(); } catch(e) {}
     if (!resp.ok) {
-      let msg = (data && data.error) ? data.error : ('Error ' + resp.status);
-      if (data && data.detalle) msg += ' (' + data.detalle + ')';
+      let msg = (data && data.error) || ('Error ' + resp.status);
+      if (data && data.detalle) msg += ': ' + data.detalle;
       throw new Error(msg);
     }
     return data;
   }
 
-  function mostrarDashboard(username, role){
-    currentUser = username;
-    currentRole = role;
-
+  // ── ui ─────────────────────────────────────────────────────────────────────
+  function mostrarDashboard(username, role) {
+    currentUser = username; currentRole = role;
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('sessionBar').style.display = 'flex';
     document.getElementById('mainDashboardContainer').style.display = 'block';
-
-    const roleLabel = role === 'admin' ? '🛡️ ADMIN' : (role === 'editor' ? '✏️ EDITOR' : '👁️ LECTOR');
-    document.getElementById('sessionUserLabel').textContent = username + ' (' + roleLabel + ')';
-    document.getElementById('adminPanelBtn').style.display = (role === 'admin') ? 'inline-block' : 'none';
+    const lbl = role === 'admin' ? '🛡️ ADMIN' : role === 'editor' ? '✏️ EDITOR' : '👁️ LECTOR';
+    document.getElementById('sessionUserLabel').textContent = username + ' (' + lbl + ')';
+    document.getElementById('adminPanelBtn').style.display = role === 'admin' ? 'inline-block' : 'none';
   }
 
-  function mostrarLogin(){
-    currentUser = null;
-    currentRole = null;
+  function mostrarLogin() {
+    currentUser = null; currentRole = null;
     document.getElementById('mainDashboardContainer').style.display = 'none';
     document.getElementById('sessionBar').style.display = 'none';
     document.getElementById('adminModalOverlay').style.display = 'none';
     document.getElementById('loginScreen').style.display = 'flex';
   }
 
-  // Al cargar la página, preguntar al backend si ya hay una sesión activa
-  // (la cookie httpOnly viaja sola con la petición). Esto reemplaza la
-  // dependencia de localStorage: la sesión vive en el servidor, no en el navegador.
-  async function verificarSesionAlCargar(){
+  // ── boot: verificar sesión activa ──────────────────────────────────────────
+  async function boot() {
     try {
-      const data = await apiFetch('/api/session', { method: 'GET' });
-      if (data && data.authenticated) {
-        mostrarDashboard(data.username, data.role);
-      } else {
-        mostrarLogin();
-      }
-    } catch (e) {
-      console.warn('No se pudo verificar la sesión (¿backend no desplegado aún?):', e.message);
+      const d = await api('session');
+      if (d && d.authenticated) mostrarDashboard(d.username, d.role);
+      else mostrarLogin();
+    } catch(e) {
+      console.warn('boot session check:', e.message);
       mostrarLogin();
     }
   }
 
-  window.loginUsuario = async function(e){
+  // ── login / logout ─────────────────────────────────────────────────────────
+  window.loginUsuario = async function(e) {
     e.preventDefault();
     const user = document.getElementById('loginUser').value.trim();
     const pass = document.getElementById('loginPass').value;
-    const errorDiv = document.getElementById('loginError');
-    errorDiv.textContent = '';
-
+    const err  = document.getElementById('loginError');
+    err.textContent = '';
     try {
-      const data = await apiFetch('/api/login', {
-        method: 'POST',
-        body: JSON.stringify({ username: user, password: pass })
-      });
+      const d = await api('login', { username: user, password: pass });
       document.getElementById('loginUser').value = '';
       document.getElementById('loginPass').value = '';
-      mostrarDashboard(data.username, data.role);
-    } catch (err) {
-      errorDiv.textContent = '❌ ' + err.message;
-    }
+      mostrarDashboard(d.username, d.role);
+    } catch(e) { err.textContent = '❌ ' + e.message; }
   };
 
-  window.logoutUsuario = async function(){
-    try {
-      await apiFetch('/api/logout', { method: 'POST' });
-    } catch (e) {
-      console.warn('Error cerrando sesión en el servidor:', e.message);
-    }
+  window.logoutUsuario = async function() {
+    try { await api('logout', {}); } catch(e) {}
     mostrarLogin();
   };
 
-  window.abrirPanelAdmin = async function(){
+  // ── panel admin ────────────────────────────────────────────────────────────
+  window.abrirPanelAdmin = async function() {
     if (currentRole !== 'admin') return;
-    try {
-      await renderUsersTable();
-      await updateChangePassSelect();
-      document.getElementById('adminModalOverlay').style.display = 'flex';
-    } catch (err) {
-      showAdminMessage('❌ ' + err.message, 'error');
-    }
+    await refreshAdminPanel();
+    document.getElementById('adminModalOverlay').style.display = 'flex';
   };
 
-  window.cerrarPanelAdmin = function(){
+  window.cerrarPanelAdmin = function() {
     document.getElementById('adminModalOverlay').style.display = 'none';
   };
 
-  window.crearUsuario = async function(){
+  async function refreshAdminPanel() {
+    try {
+      const d = await api('list_users', {});
+      renderTabla(d.usuarios || []);
+      renderSelect(d.usuarios || []);
+    } catch(e) { showAdminMsg('❌ ' + e.message, 'error'); }
+  }
+
+  function renderTabla(lista) {
+    const tb = document.getElementById('usersTableBody');
+    tb.innerHTML = lista.map(u => `
+      <tr>
+        <td style="padding:10px;border-bottom:1px solid #e0e0e0"><strong>${u.username}</strong></td>
+        <td style="padding:10px;border-bottom:1px solid #e0e0e0">${u.role}</td>
+        <td style="padding:10px;border-bottom:1px solid #e0e0e0;color:#999;font-size:12px">Ver panel Vercel</td>
+        <td style="padding:10px;border-bottom:1px solid #e0e0e0">–</td>
+        <td style="padding:10px;border-bottom:1px solid #e0e0e0">–</td>
+      </tr>`).join('');
+  }
+
+  function renderSelect(lista) {
+    const s = document.getElementById('changePassUser');
+    s.innerHTML = '<option value="">-- Selecciona usuario --</option>' +
+      lista.map(u => `<option value="${u.username}">${u.username} (${u.role})</option>`).join('');
+  }
+
+  // ── gestión de usuarios: generador de JSON ─────────────────────────────────
+  // Sin Redis, los cambios se hacen actualizando FILLRATE_USERS en Vercel.
+  // El panel genera el JSON nuevo y el admin lo pega en Vercel Settings.
+
+  let usersLocal = {}; // copia local para edición
+
+  window.cargarEditorUsuarios = async function() {
+    try {
+      const d = await api('generate_users_json', {});
+      usersLocal = JSON.parse(d.json);
+      renderEditorTabla();
+      document.getElementById('jsonEditorSection').style.display = 'block';
+    } catch(e) { showAdminMsg('❌ ' + e.message, 'error'); }
+  };
+
+  function sha256Client(str) {
+    // SHA-256 en el cliente (para preview — el hash real lo recalcula el server al verificar)
+    // Usamos SubtleCrypto nativo del navegador
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(str))
+      .then(buf => Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join(''));
+  }
+
+  window.crearUsuario = async function() {
     const user = document.getElementById('newUser').value.trim();
     const pass = document.getElementById('newPass').value;
     const role = document.getElementById('newRole').value;
+    if (!user || !pass) { showAdminMsg('❌ Usuario y contraseña requeridos', 'error'); return; }
+    if (!/^[a-zA-Z0-9_.-]{3,32}$/.test(user)) { showAdminMsg('❌ Usuario inválido (solo letras, números, ._-)', 'error'); return; }
+    if (pass.length < 6) { showAdminMsg('❌ Contraseña mínimo 6 caracteres', 'error'); return; }
+    if (usersLocal[user]) { showAdminMsg('❌ Usuario ya existe', 'error'); return; }
 
-    try {
-      await apiFetch('/api/users', {
-        method: 'POST',
-        body: JSON.stringify({ username: user, password: pass, role: role })
-      });
-      document.getElementById('newUser').value = '';
-      document.getElementById('newPass').value = '';
-      showAdminMessage('✅ Usuario "' + user + '" creado como ' + role + '. Ya puede iniciar sesión desde cualquier computador.', 'success');
-      await renderUsersTable();
-      await updateChangePassSelect();
-    } catch (err) {
-      showAdminMessage('❌ ' + err.message, 'error');
-    }
+    const hash = await sha256Client(pass);
+    usersLocal[user] = { hash, role };
+    document.getElementById('newUser').value = '';
+    document.getElementById('newPass').value = '';
+    renderEditorTabla();
+    actualizarJsonOutput();
+    showAdminMsg('✅ Usuario "' + user + '" agregado. Copia el JSON de abajo y pégalo en Vercel → Environment Variables → FILLRATE_USERS, luego Redeploy.', 'success');
   };
 
-  window.cambiarRolUsuario = async function(user, newRole){
-    try {
-      await apiFetch('/api/users', {
-        method: 'PATCH',
-        body: JSON.stringify({ username: user, role: newRole })
-      });
-      showAdminMessage('✅ Rol de "' + user + '" cambiado a ' + newRole, 'success');
-    } catch (err) {
-      showAdminMessage('❌ ' + err.message, 'error');
-    } finally {
-      await renderUsersTable();
-      await updateChangePassSelect();
-    }
-  };
-
-  window.eliminarUsuario = async function(user){
-    if (!confirm('⚠️ ¿Seguro que quieres eliminar a "' + user + '"?')) return;
-    try {
-      await apiFetch('/api/users', {
-        method: 'DELETE',
-        body: JSON.stringify({ username: user })
-      });
-      showAdminMessage('✅ Usuario "' + user + '" eliminado', 'success');
-    } catch (err) {
-      showAdminMessage('❌ ' + err.message, 'error');
-    } finally {
-      await renderUsersTable();
-      await updateChangePassSelect();
-    }
-  };
-
-  window.cambiarContrasena = async function(){
+  window.cambiarContrasena = async function() {
     const user = document.getElementById('changePassUser').value;
-    const newPass = document.getElementById('newPassword').value;
+    const pass = document.getElementById('newPassword').value;
+    if (!user) { showAdminMsg('❌ Selecciona usuario', 'error'); return; }
+    if (!pass || pass.length < 6) { showAdminMsg('❌ Mínimo 6 caracteres', 'error'); return; }
 
-    if (!user) { showAdminMessage('❌ Selecciona un usuario', 'error'); return; }
-
-    try {
-      await apiFetch('/api/users', {
-        method: 'PATCH',
-        body: JSON.stringify({ username: user, password: newPass })
-      });
-      document.getElementById('newPassword').value = '';
-      showAdminMessage('✅ Contraseña de "' + user + '" actualizada. El cambio aplica en cualquier computador.', 'success');
-    } catch (err) {
-      showAdminMessage('❌ ' + err.message, 'error');
+    if (!usersLocal[user]) {
+      // cargar si no está en memoria local aún
+      await cargarEditorUsuarios();
     }
+    const hash = await sha256Client(pass);
+    usersLocal[user].hash = hash;
+    document.getElementById('newPassword').value = '';
+    renderEditorTabla();
+    actualizarJsonOutput();
+    showAdminMsg('✅ Contraseña de "' + user + '" actualizada en el editor. Copia el JSON y pégalo en Vercel.', 'success');
   };
 
-  window.generarContrasena = function(){
+  window.eliminarUsuarioEditor = function(user) {
+    if (user === 'admin') { showAdminMsg('❌ No puedes eliminar admin', 'error'); return; }
+    if (!confirm('¿Eliminar "' + user + '"?')) return;
+    delete usersLocal[user];
+    renderEditorTabla();
+    actualizarJsonOutput();
+    showAdminMsg('✅ "' + user + '" eliminado del editor. Copia el JSON y pégalo en Vercel.', 'success');
+  };
+
+  window.cambiarRolEditor = function(user, role) {
+    if (!usersLocal[user]) return;
+    usersLocal[user].role = role;
+    actualizarJsonOutput();
+    showAdminMsg('✅ Rol actualizado. Copia el JSON y pégalo en Vercel.', 'success');
+  };
+
+  function renderEditorTabla() {
+    const tb = document.getElementById('usersTableBody');
+    tb.innerHTML = Object.entries(usersLocal).map(([user, d]) => `
+      <tr>
+        <td style="padding:10px;border-bottom:1px solid #e0e0e0"><strong>${user}</strong></td>
+        <td style="padding:10px;border-bottom:1px solid #e0e0e0">${d.role}</td>
+        <td style="padding:10px;border-bottom:1px solid #e0e0e0;color:#999;font-size:11px">••••••••</td>
+        <td style="padding:10px;border-bottom:1px solid #e0e0e0">
+          <select onchange="cambiarRolEditor('${user}',this.value)" style="padding:5px;font-size:12px">
+            <option value="${d.role}" selected>${d.role}</option>
+            <option value="lector">lector</option>
+            <option value="editor">editor</option>
+            <option value="admin">admin</option>
+          </select>
+        </td>
+        <td style="padding:10px;border-bottom:1px solid #e0e0e0">
+          ${user !== 'admin' ? `<button onclick="eliminarUsuarioEditor('${user}')" style="padding:5px 10px;background:#f44336;color:white;border:none;border-radius:4px;cursor:pointer;font-size:11px">🗑️</button>` : '<span style="color:#999;font-size:11px">Protegido</span>'}
+        </td>
+      </tr>`).join('');
+  }
+
+  function actualizarJsonOutput() {
+    const el = document.getElementById('jsonOutput');
+    if (el) el.textContent = JSON.stringify(usersLocal);
+  }
+
+  window.copiarJson = function() {
+    const txt = document.getElementById('jsonOutput').textContent;
+    navigator.clipboard.writeText(txt).then(() => showAdminMsg('✅ JSON copiado al portapapeles', 'success'));
+  };
+
+  window.generarContrasena = function() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
-    let pass = '';
-    for (let i = 0; i < 12; i++) pass += chars[Math.floor(Math.random() * chars.length)];
-
+    let p = '';
+    for (let i = 0; i < 12; i++) p += chars[Math.floor(Math.random() * chars.length)];
     document.getElementById('passwordGenerated').innerHTML =
-      '<div style="background:#f0f0f0; padding:12px; border-radius:4px; font-family:monospace; font-size:13px; word-break:break-all;">' +
-      '<strong>Contraseña generada:</strong><br>' + pass + '<br>' +
-      '<button onclick="navigator.clipboard.writeText(\'' + pass + '\').then(()=>alert(\'✅ Copiado\'))" style="margin-top:8px; padding:6px 12px; background:#667eea; color:white; border:none; border-radius:4px; cursor:pointer; font-size:12px;">📋 Copiar</button>' +
-      '</div>';
-
-    const select = document.getElementById('changePassUser');
-    if (select && select.value) {
-      document.getElementById('newPassword').value = pass;
-    }
+      `<div style="background:#f0f0f0;padding:12px;border-radius:4px;font-family:monospace;font-size:13px;word-break:break-all">
+        <strong>Contraseña generada:</strong><br>${p}<br>
+        <button onclick="navigator.clipboard.writeText('${p}').then(()=>alert('✅ Copiado'))" style="margin-top:8px;padding:6px 12px;background:#667eea;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px">📋 Copiar</button>
+      </div>`;
+    const s = document.getElementById('changePassUser');
+    if (s && s.value) document.getElementById('newPassword').value = p;
   };
 
-  async function renderUsersTable(){
-    const tbody = document.getElementById('usersTableBody');
-    const data = await apiFetch('/api/users', { method: 'GET' });
-    const lista = data.usuarios || [];
-
-    let html = '';
-    for (const u of lista) {
-      const role = u.role;
-      html += '<tr>' +
-        '<td style="padding:10px; border-bottom:1px solid #e0e0e0;"><strong>' + u.username + '</strong></td>' +
-        '<td style="padding:10px; border-bottom:1px solid #e0e0e0;">' + role + '</td>' +
-        '<td style="padding:10px; border-bottom:1px solid #e0e0e0; color:#999; font-size:12px;">Protegida (hash seguro). Usa "Cambiar Contraseña" para asignar una nueva.</td>' +
-        '<td style="padding:10px; border-bottom:1px solid #e0e0e0;">' +
-          '<select onchange="cambiarRolUsuario(\'' + u.username + '\', this.value)" style="padding:5px; font-size:12px;">' +
-            '<option value="' + role + '" selected>' + role + '</option>' +
-            '<option value="lector">lector</option>' +
-            '<option value="editor">editor</option>' +
-            '<option value="admin">admin</option>' +
-          '</select>' +
-        '</td>' +
-        '<td style="padding:10px; border-bottom:1px solid #e0e0e0;">' +
-          (u.username !== 'admin' ? '<button onclick="eliminarUsuario(\'' + u.username + '\')" style="padding:5px 10px; background:#f44336; color:white; border:none; border-radius:4px; cursor:pointer; font-size:11px;">🗑️ Eliminar</button>' : '<span style="color:#999; font-size:12px;">Protegido</span>') +
-        '</td>' +
-      '</tr>';
-    }
-    tbody.innerHTML = html;
-  }
-
-  async function updateChangePassSelect(){
-    const select = document.getElementById('changePassUser');
-    const data = await apiFetch('/api/users', { method: 'GET' });
-    const lista = data.usuarios || [];
-    select.innerHTML = '<option value="">-- Selecciona un usuario --</option>';
-    for (const u of lista) {
-      select.innerHTML += '<option value="' + u.username + '">' + u.username + ' (' + u.role + ')</option>';
-    }
-  }
-
-  function showAdminMessage(msg, type){
-    const div = document.getElementById('adminMessages');
+  function showAdminMsg(msg, type) {
+    const d = document.getElementById('adminMessages');
     const bg = type === 'success' ? '#e8f5e9' : '#ffebee';
-    const border = type === 'success' ? '#4caf50' : '#f44336';
-    const color = type === 'success' ? '#2e7d32' : '#c62828';
-    div.innerHTML = '<div style="background:' + bg + '; border:1px solid ' + border + '; color:' + color + '; padding:10px; border-radius:4px; margin-bottom:12px; font-size:13px;">' + msg + '</div>';
-    setTimeout(() => { div.innerHTML = ''; }, 4000);
+    const br = type === 'success' ? '#4caf50' : '#f44336';
+    const c  = type === 'success' ? '#2e7d32' : '#c62828';
+    d.innerHTML = `<div style="background:${bg};border:1px solid ${br};color:${c};padding:10px;border-radius:4px;margin-bottom:12px;font-size:13px">${msg}</div>`;
+    setTimeout(() => { d.innerHTML = ''; }, 6000);
   }
 
-  console.log('✅ Cliente de autenticación cargado (backend centralizado vía API + base de datos)');
-  verificarSesionAlCargar();
+  boot();
 })();
 </script>
 </body>
