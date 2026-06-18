@@ -1,4 +1,10 @@
 {
+  "buildCommand": "echo 'build ok'",
+  "outputDirectory": ".",
+  "rewrites": [
+    { "source": "/api/auth", "destination": "/api/auth.js" },
+    { "source": "/api/auth/:path*", "destination": "/api/auth.js" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
