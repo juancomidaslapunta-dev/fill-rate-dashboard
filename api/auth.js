@@ -16,6 +16,26 @@ function generarToken() {
   return crypto.randomBytes(32).toString('hex');
 }
 
+// Body parser manual — en Vercel sin framework, req.body puede ser undefined
+// si el runtime no inyecta los helpers automáticamente.
+async function parseBody(req) {
+  // Si ya está parseado como objeto (helpers de Vercel activos), usarlo directamente
+  if (req.body && typeof req.body === 'object') return req.body;
+  // Si es string, intentar parsear como JSON
+  if (req.body && typeof req.body === 'string') {
+    try { return JSON.parse(req.body); } catch(e) { return {}; }
+  }
+  // Leer el stream crudo
+  return new Promise((resolve) => {
+    let data = '';
+    req.on('data', chunk => { data += chunk; });
+    req.on('end', () => {
+      try { resolve(JSON.parse(data)); } catch(e) { resolve({}); }
+    });
+    req.on('error', () => resolve({}));
+  });
+}
+
 // Sesiones en memoria del proceso serverless (se pierden al reciclar el container,
 // que ocurre cada ~5-10 min de inactividad → el usuario debe loguearse de nuevo).
 // Esto es CORRECTO para este caso de uso: sin Redis, sin base de datos.
@@ -68,16 +88,17 @@ function clearCookie(res) {
 // ── handler principal ─────────────────────────────────────────────────────────
 
 module.exports = async function handler(req, res) {
-  const action = (req.body && req.body.action) || req.query.action;
+  // Parsear body manualmente (Vercel sin framework puede no auto-parsear JSON)
+  const body = await parseBody(req);
+  const action = (body && body.action) || req.query.action;
 
-  // CORS para same-origin (no necesario, pero por si acaso)
   res.setHeader('Content-Type', 'application/json');
 
   try {
 
     // ── LOGIN ──────────────────────────────────────────────────────────────
     if (action === 'login') {
-      const { username, password } = req.body || {};
+      const { username, password } = body || {};
       if (!username || !password) {
         return res.status(400).json({ error: 'Usuario y contraseña requeridos' });
       }
