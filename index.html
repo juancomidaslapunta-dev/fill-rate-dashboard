@@ -2245,7 +2245,8 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
     let data = null;
     try { data = await resp.json(); } catch(e) { data = null; }
     if (!resp.ok) {
-      const msg = (data && data.error) ? data.error : ('Error ' + resp.status);
+      let msg = (data && data.error) ? data.error : ('Error ' + resp.status);
+      if (data && data.detalle) msg += ' (' + data.detalle + ')';
       throw new Error(msg);
     }
     return data;

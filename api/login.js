@@ -31,6 +31,6 @@ module.exports = async function handler(req, res) {
     res.status(200).json({ username: resultado.username, role: resultado.role });
   } catch (err) {
     console.error('Error en /api/login:', err);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    res.status(500).json({ error: 'Error interno del servidor', detalle: String(err && err.message || err) });
   }
 };
