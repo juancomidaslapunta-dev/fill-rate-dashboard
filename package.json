@@ -1,0 +1,13 @@
+{
+  "name": "fill-rate-dashboard",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Dashboard Fill Rate logístico con autenticación centralizada (Vercel KV + bcrypt)",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "@upstash/redis": "^1.34.3",
+    "bcryptjs": "^2.4.3"
+  }
+}

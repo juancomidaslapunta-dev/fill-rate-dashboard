@@ -2231,165 +2231,176 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
 
 </script>
 
-<!-- ============ SCRIPT DE AUTENTICACIÓN Y ADMINISTRACIÓN ============ -->
+<!-- ============ CLIENTE DE AUTENTICACIÓN (vía API/Backend con base de datos central) ============ -->
 <script>
 (function(){
-  const STORAGE_KEY = 'fillrate_users_db';
-
-  // BASE DE DATOS DE USUARIOS — persistida en localStorage para que sobreviva
-  // recargas de página y se comparta entre pestañas del mismo navegador.
-  function cargarUsuarios(){
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
-          return parsed;
-        }
-      }
-    } catch(e) {
-      console.error('Error leyendo usuarios de localStorage:', e);
-    }
-    // Valores por defecto si no hay nada guardado o el storage está corrupto
-    return {
-      'admin':  { pass: btoa('123456'), role: 'admin' },
-      'editor': { pass: btoa('123456'), role: 'editor' },
-      'lector': { pass: btoa('123456'), role: 'lector' }
-    };
-  }
-
-  function guardarUsuarios(){
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
-    } catch(e) {
-      console.error('Error guardando usuarios en localStorage:', e);
-      showAdminMessage('⚠️ No se pudo guardar el cambio (almacenamiento del navegador no disponible)', 'error');
-    }
-  }
-
-  let users = cargarUsuarios();
-  // Asegurar que la cuenta admin nunca desaparezca por datos antiguos corruptos
-  if (!users['admin']) {
-    users['admin'] = { pass: btoa('123456'), role: 'admin' };
-    guardarUsuarios();
-  }
-
   let currentUser = null;
   let currentRole = null;
-  let passwordsVisibles = {};
 
-  window.loginUsuario = function(e){
-    e.preventDefault();
-    // Releer por si otra pestaña creó/cambió usuarios desde el último login
-    users = cargarUsuarios();
-
-    const user = document.getElementById('loginUser').value.trim();
-    const pass = document.getElementById('loginPass').value;
-    const errorDiv = document.getElementById('loginError');
-
-    if (users[user] && btoa(pass) === users[user].pass) {
-      currentUser = user;
-      currentRole = users[user].role;
-
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('sessionBar').style.display = 'flex';
-      document.getElementById('mainDashboardContainer').style.display = 'block';
-
-      const roleLabel = currentRole === 'admin' ? '🛡️ ADMIN' : (currentRole === 'editor' ? '✏️ EDITOR' : '👁️ LECTOR');
-      document.getElementById('sessionUserLabel').textContent = user + ' (' + roleLabel + ')';
-
-      document.getElementById('adminPanelBtn').style.display = (currentRole === 'admin') ? 'inline-block' : 'none';
-
-      document.getElementById('loginUser').value = '';
-      document.getElementById('loginPass').value = '';
-      errorDiv.textContent = '';
-    } else {
-      errorDiv.textContent = '❌ Usuario o contraseña incorrectos';
+  async function apiFetch(url, options){
+    options = options || {};
+    options.credentials = 'same-origin'; // enviar/recibir la cookie de sesión httpOnly
+    options.headers = Object.assign({ 'Content-Type': 'application/json' }, options.headers || {});
+    const resp = await fetch(url, options);
+    let data = null;
+    try { data = await resp.json(); } catch(e) { data = null; }
+    if (!resp.ok) {
+      const msg = (data && data.error) ? data.error : ('Error ' + resp.status);
+      throw new Error(msg);
     }
-  };
+    return data;
+  }
 
-  window.logoutUsuario = function(){
+  function mostrarDashboard(username, role){
+    currentUser = username;
+    currentRole = role;
+
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('sessionBar').style.display = 'flex';
+    document.getElementById('mainDashboardContainer').style.display = 'block';
+
+    const roleLabel = role === 'admin' ? '🛡️ ADMIN' : (role === 'editor' ? '✏️ EDITOR' : '👁️ LECTOR');
+    document.getElementById('sessionUserLabel').textContent = username + ' (' + roleLabel + ')';
+    document.getElementById('adminPanelBtn').style.display = (role === 'admin') ? 'inline-block' : 'none';
+  }
+
+  function mostrarLogin(){
     currentUser = null;
     currentRole = null;
-    passwordsVisibles = {};
     document.getElementById('mainDashboardContainer').style.display = 'none';
     document.getElementById('sessionBar').style.display = 'none';
     document.getElementById('adminModalOverlay').style.display = 'none';
     document.getElementById('loginScreen').style.display = 'flex';
+  }
+
+  // Al cargar la página, preguntar al backend si ya hay una sesión activa
+  // (la cookie httpOnly viaja sola con la petición). Esto reemplaza la
+  // dependencia de localStorage: la sesión vive en el servidor, no en el navegador.
+  async function verificarSesionAlCargar(){
+    try {
+      const data = await apiFetch('/api/session', { method: 'GET' });
+      if (data && data.authenticated) {
+        mostrarDashboard(data.username, data.role);
+      } else {
+        mostrarLogin();
+      }
+    } catch (e) {
+      console.warn('No se pudo verificar la sesión (¿backend no desplegado aún?):', e.message);
+      mostrarLogin();
+    }
+  }
+
+  window.loginUsuario = async function(e){
+    e.preventDefault();
+    const user = document.getElementById('loginUser').value.trim();
+    const pass = document.getElementById('loginPass').value;
+    const errorDiv = document.getElementById('loginError');
+    errorDiv.textContent = '';
+
+    try {
+      const data = await apiFetch('/api/login', {
+        method: 'POST',
+        body: JSON.stringify({ username: user, password: pass })
+      });
+      document.getElementById('loginUser').value = '';
+      document.getElementById('loginPass').value = '';
+      mostrarDashboard(data.username, data.role);
+    } catch (err) {
+      errorDiv.textContent = '❌ ' + err.message;
+    }
   };
 
-  window.abrirPanelAdmin = function(){
+  window.logoutUsuario = async function(){
+    try {
+      await apiFetch('/api/logout', { method: 'POST' });
+    } catch (e) {
+      console.warn('Error cerrando sesión en el servidor:', e.message);
+    }
+    mostrarLogin();
+  };
+
+  window.abrirPanelAdmin = async function(){
     if (currentRole !== 'admin') return;
-    users = cargarUsuarios();
-    renderUsersTable();
-    updateChangePassSelect();
-    document.getElementById('adminModalOverlay').style.display = 'flex';
+    try {
+      await renderUsersTable();
+      await updateChangePassSelect();
+      document.getElementById('adminModalOverlay').style.display = 'flex';
+    } catch (err) {
+      showAdminMessage('❌ ' + err.message, 'error');
+    }
   };
 
   window.cerrarPanelAdmin = function(){
     document.getElementById('adminModalOverlay').style.display = 'none';
   };
 
-  window.crearUsuario = function(){
+  window.crearUsuario = async function(){
     const user = document.getElementById('newUser').value.trim();
     const pass = document.getElementById('newPass').value;
     const role = document.getElementById('newRole').value;
 
-    if (!user) return showAdminMessage('❌ Ingresa un nombre de usuario', 'error');
-    if (!/^[a-zA-Z0-9_.-]+$/.test(user)) return showAdminMessage('❌ El usuario solo puede tener letras, números, punto, guion y guion bajo', 'error');
-    if (!pass || pass.length < 6) return showAdminMessage('❌ La contraseña debe tener al menos 6 caracteres', 'error');
-    if (users[user]) return showAdminMessage('❌ El usuario ya existe', 'error');
-
-    users[user] = { pass: btoa(pass), role: role };
-    guardarUsuarios();
-
-    document.getElementById('newUser').value = '';
-    document.getElementById('newPass').value = '';
-
-    showAdminMessage('✅ Usuario "' + user + '" creado como ' + role + '. Ya puede iniciar sesión.', 'success');
-    renderUsersTable();
-    updateChangePassSelect();
+    try {
+      await apiFetch('/api/users', {
+        method: 'POST',
+        body: JSON.stringify({ username: user, password: pass, role: role })
+      });
+      document.getElementById('newUser').value = '';
+      document.getElementById('newPass').value = '';
+      showAdminMessage('✅ Usuario "' + user + '" creado como ' + role + '. Ya puede iniciar sesión desde cualquier computador.', 'success');
+      await renderUsersTable();
+      await updateChangePassSelect();
+    } catch (err) {
+      showAdminMessage('❌ ' + err.message, 'error');
+    }
   };
 
-  window.cambiarRolUsuario = function(user, newRole){
-    if (user === 'admin' && newRole !== 'admin') {
-      showAdminMessage('❌ No puedes quitarle el rol de administrador a "admin"', 'error');
-      renderUsersTable();
-      return;
+  window.cambiarRolUsuario = async function(user, newRole){
+    try {
+      await apiFetch('/api/users', {
+        method: 'PATCH',
+        body: JSON.stringify({ username: user, role: newRole })
+      });
+      showAdminMessage('✅ Rol de "' + user + '" cambiado a ' + newRole, 'success');
+    } catch (err) {
+      showAdminMessage('❌ ' + err.message, 'error');
+    } finally {
+      await renderUsersTable();
+      await updateChangePassSelect();
     }
-    users[user].role = newRole;
-    guardarUsuarios();
-    showAdminMessage('✅ Rol de "' + user + '" cambiado a ' + newRole, 'success');
-    renderUsersTable();
-    updateChangePassSelect();
   };
 
-  window.eliminarUsuario = function(user){
-    if (user === 'admin') {
-      showAdminMessage('❌ No puedes eliminar la cuenta administrador', 'error');
-      return;
-    }
-    if (confirm('⚠️ ¿Seguro que quieres eliminar a "' + user + '"?')) {
-      delete users[user];
-      guardarUsuarios();
+  window.eliminarUsuario = async function(user){
+    if (!confirm('⚠️ ¿Seguro que quieres eliminar a "' + user + '"?')) return;
+    try {
+      await apiFetch('/api/users', {
+        method: 'DELETE',
+        body: JSON.stringify({ username: user })
+      });
       showAdminMessage('✅ Usuario "' + user + '" eliminado', 'success');
-      renderUsersTable();
-      updateChangePassSelect();
+    } catch (err) {
+      showAdminMessage('❌ ' + err.message, 'error');
+    } finally {
+      await renderUsersTable();
+      await updateChangePassSelect();
     }
   };
 
-  window.cambiarContrasena = function(){
+  window.cambiarContrasena = async function(){
     const user = document.getElementById('changePassUser').value;
     const newPass = document.getElementById('newPassword').value;
 
-    if (!user) return showAdminMessage('❌ Selecciona un usuario', 'error');
-    if (!newPass || newPass.length < 6) return showAdminMessage('❌ La contraseña debe tener al menos 6 caracteres', 'error');
+    if (!user) { showAdminMessage('❌ Selecciona un usuario', 'error'); return; }
 
-    users[user].pass = btoa(newPass);
-    guardarUsuarios();
-    document.getElementById('newPassword').value = '';
-    showAdminMessage('✅ Contraseña de "' + user + '" actualizada', 'success');
-    renderUsersTable();
+    try {
+      await apiFetch('/api/users', {
+        method: 'PATCH',
+        body: JSON.stringify({ username: user, password: newPass })
+      });
+      document.getElementById('newPassword').value = '';
+      showAdminMessage('✅ Contraseña de "' + user + '" actualizada. El cambio aplica en cualquier computador.', 'success');
+    } catch (err) {
+      showAdminMessage('❌ ' + err.message, 'error');
+    }
   };
 
   window.generarContrasena = function(){
@@ -2403,39 +2414,26 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
       '<button onclick="navigator.clipboard.writeText(\'' + pass + '\').then(()=>alert(\'✅ Copiado\'))" style="margin-top:8px; padding:6px 12px; background:#667eea; color:white; border:none; border-radius:4px; cursor:pointer; font-size:12px;">📋 Copiar</button>' +
       '</div>';
 
-    // Sugerencia rápida: si hay un usuario seleccionado en "Cambiar Contraseña", precargar el campo
     const select = document.getElementById('changePassUser');
     if (select && select.value) {
       document.getElementById('newPassword').value = pass;
     }
   };
 
-  window.togglePasswordVisible = function(user){
-    passwordsVisibles[user] = !passwordsVisibles[user];
-    renderUsersTable();
-  };
-
-  function renderUsersTable(){
+  async function renderUsersTable(){
     const tbody = document.getElementById('usersTableBody');
+    const data = await apiFetch('/api/users', { method: 'GET' });
+    const lista = data.usuarios || [];
+
     let html = '';
-    for (let user in users) {
-      const role = users[user].role;
-      const visible = !!passwordsVisibles[user];
-      let plainPass = '';
-      try { plainPass = atob(users[user].pass); } catch(e) { plainPass = '(no se pudo decodificar)'; }
-
-      const passCellHtml = visible
-        ? '<code style="background:#f5f5f5; padding:3px 6px; border-radius:3px;">' + plainPass + '</code> ' +
-          '<button onclick="togglePasswordVisible(\'' + user + '\')" title="Ocultar" style="background:none; border:none; cursor:pointer; font-size:13px;">🙈</button>'
-        : '<span style="color:#999;">••••••••</span> ' +
-          '<button onclick="togglePasswordVisible(\'' + user + '\')" title="Ver contraseña" style="background:none; border:none; cursor:pointer; font-size:13px;">👁️</button>';
-
+    for (const u of lista) {
+      const role = u.role;
       html += '<tr>' +
-        '<td style="padding:10px; border-bottom:1px solid #e0e0e0;"><strong>' + user + '</strong></td>' +
+        '<td style="padding:10px; border-bottom:1px solid #e0e0e0;"><strong>' + u.username + '</strong></td>' +
         '<td style="padding:10px; border-bottom:1px solid #e0e0e0;">' + role + '</td>' +
-        '<td style="padding:10px; border-bottom:1px solid #e0e0e0; white-space:nowrap;">' + passCellHtml + '</td>' +
+        '<td style="padding:10px; border-bottom:1px solid #e0e0e0; color:#999; font-size:12px;">Protegida (hash seguro). Usa "Cambiar Contraseña" para asignar una nueva.</td>' +
         '<td style="padding:10px; border-bottom:1px solid #e0e0e0;">' +
-          '<select onchange="cambiarRolUsuario(\'' + user + '\', this.value)" style="padding:5px; font-size:12px;">' +
+          '<select onchange="cambiarRolUsuario(\'' + u.username + '\', this.value)" style="padding:5px; font-size:12px;">' +
             '<option value="' + role + '" selected>' + role + '</option>' +
             '<option value="lector">lector</option>' +
             '<option value="editor">editor</option>' +
@@ -2443,18 +2441,20 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
           '</select>' +
         '</td>' +
         '<td style="padding:10px; border-bottom:1px solid #e0e0e0;">' +
-          (user !== 'admin' ? '<button onclick="eliminarUsuario(\'' + user + '\')" style="padding:5px 10px; background:#f44336; color:white; border:none; border-radius:4px; cursor:pointer; font-size:11px;">🗑️ Eliminar</button>' : '<span style="color:#999; font-size:12px;">Protegido</span>') +
+          (u.username !== 'admin' ? '<button onclick="eliminarUsuario(\'' + u.username + '\')" style="padding:5px 10px; background:#f44336; color:white; border:none; border-radius:4px; cursor:pointer; font-size:11px;">🗑️ Eliminar</button>' : '<span style="color:#999; font-size:12px;">Protegido</span>') +
         '</td>' +
       '</tr>';
     }
     tbody.innerHTML = html;
   }
 
-  function updateChangePassSelect(){
+  async function updateChangePassSelect(){
     const select = document.getElementById('changePassUser');
+    const data = await apiFetch('/api/users', { method: 'GET' });
+    const lista = data.usuarios || [];
     select.innerHTML = '<option value="">-- Selecciona un usuario --</option>';
-    for (let user in users) {
-      select.innerHTML += '<option value="' + user + '">' + user + ' (' + users[user].role + ')</option>';
+    for (const u of lista) {
+      select.innerHTML += '<option value="' + u.username + '">' + u.username + ' (' + u.role + ')</option>';
     }
   }
 
@@ -2467,7 +2467,8 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
     setTimeout(() => { div.innerHTML = ''; }, 4000);
   }
 
-  console.log('✅ Sistema de autenticación cargado sobre el dashboard real (persistencia: localStorage)');
+  console.log('✅ Cliente de autenticación cargado (backend centralizado vía API + base de datos)');
+  verificarSesionAlCargar();
 })();
 </script>
 </body>
