@@ -46,11 +46,11 @@ const SESSIONS = {};
 function cargarUsuarios() {
   const raw = process.env.FILLRATE_USERS;
   if (!raw) {
-    // Usuarios por defecto si la variable no está configurada
+    // Usuarios por defecto si la variable no está configurada: todos con 123456
     return {
-      admin:  { hash: sha256('admin123'),  role: 'admin' },
-      editor: { hash: sha256('editor123'), role: 'editor' },
-      lector: { hash: sha256('lector123'), role: 'lector' }
+      admin:  { hash: '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', role: 'admin' },
+      editor: { hash: '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', role: 'editor' },
+      lector: { hash: '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', role: 'lector' }
     };
   }
   try {
