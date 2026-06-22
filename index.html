@@ -812,17 +812,17 @@ const NOMBRES_OFICIALES = {
 const CODIGOS_OFICIALES = new Set(Object.keys(NOMBRES_OFICIALES).map(Number));
 
 let RAW = { solicitudes: [], despachos: [] };  // registros granulares crudos
-let PARSED = { solicitudesFile: null, despachosFile: null, inventariosFile: null, programaFile: null };
+var PARSED = { solicitudesFile: null, despachosFile: null, inventariosFile: null, programaFile: null };
 let GRANULAR = [];      // tabla final SKU+fecha+sucursal con solicitado/despachado
 let DESPACHOS_LINEA = []; // cada línea de despacho individual, con numero_guia preservado
 let GUIAS_INDEX = new Map(); // numero_guia -> { numero_guia, fecha, sucursal, lineas:[...], total_unidades }
-let DATA_QUALITY = { total_raw:0, validas:0, rechazadas:0, pct_rechazo:0, insumos_excluidos:0 };
+var DATA_QUALITY = { total_raw:0, validas:0, rechazadas:0, pct_rechazo:0, insumos_excluidos:0 };
 
-let filtroLocal = [];
-let filtroSemana = [];
-let filtroDia = [];
-let ordenQuiebres = 'diferencia';
-let chartLinea = null, chartArea = null;
+var filtroLocal = [];
+var filtroSemana = [];
+var filtroDia = [];
+var ordenQuiebres = 'diferencia';
+var chartLinea = null, chartArea = null;
 
 // ============================================================
 // UTILIDADES
@@ -1622,7 +1622,7 @@ let currentRole = null;
 
 document.getElementById('btnProcesar').addEventListener('click', procesar);
 
-document.getElementById('btnGuardarDatos').addEventListener('click', guardarDatos);
+document.getElementById('btnGuardarDatos').addEventListener('click', () => window.guardarDatos && window.guardarDatos());
 
 document.getElementById('btnDemo').addEventListener('click', ()=>{
   PARSED.solicitudesFile = null;
@@ -1652,14 +1652,14 @@ document.getElementById('btnLimpiar').addEventListener('click', ()=>{
 // ============================================================
 // PESTAÑA ANÁLISIS — filtros independientes propios
 // ============================================================
-let anLocal = [];
-let anFechaDesde = '';
-let anFechaHasta = '';
-let anPctMin = null;
-let anPctMax = null;
-let anBuscar = '';
-let anSortCol = 'diferencia_abs';
-let anSortDir = 'desc';
+var anLocal = [];
+var anFechaDesde = '';
+var anFechaHasta = '';
+var anPctMin = null;
+var anPctMax = null;
+var anBuscar = '';
+var anSortCol = 'diferencia_abs';
+var anSortDir = 'desc';
 
 function poblarFiltrosAnalisis(){
   const locales = Array.from(new Set(GRANULAR.map(g=>g.sucursal))).sort();
@@ -2114,10 +2114,10 @@ document.getElementById('modalGuiaOverlay').addEventListener('click', e=>{
 // ============================================================
 // PESTAÑA GUÍAS DE DESPACHO — filtros independientes propios
 // ============================================================
-let gdLocal = '';
-let gdFechaDesde = '';
-let gdFechaHasta = '';
-let gdBuscar = '';
+var gdLocal = '';
+var gdFechaDesde = '';
+var gdFechaHasta = '';
+var gdBuscar = '';
 
 function poblarFiltrosGuias(){
   const locales = Array.from(new Set(Array.from(GUIAS_INDEX.values()).map(g=>g.sucursal))).sort();
