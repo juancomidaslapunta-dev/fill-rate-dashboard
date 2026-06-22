@@ -1620,52 +1620,6 @@ function renderQuiebres(){
 let currentUser = null;
 let currentRole = null;
 
-// ============================================================
-// GUARDAR DATOS COMPARTIDOS
-// ============================================================
-
-async function guardarDatos() {
-  if (window.currentRole !== 'admin') {
-    alert('❌ Solo admin puede guardar datos compartidos');
-    return;
-  }
-  if (!PARSED.solicitudesFile && !PARSED.despachosFile) {
-    alert('❌ No hay datos procesados. Procesa archivos primero.');
-    return;
-  }
-  
-  const btn = document.getElementById('btnGuardarDatos');
-  btn.disabled = true;
-  btn.textContent = '⏳ Guardando...';
-  
-  try {
-    const dataToSave = {
-      solicitudes: PARSED.solicitudesFile || [],
-      despachos: PARSED.despachosFile || [],
-      inventarios: PARSED.inventariosFile || [],
-      programa: PARSED.programaFile || [],
-      processed_at: new Date().toISOString(),
-      processed_by: window.currentUser
-    };
-    
-    const ok = await saveSharedData(dataToSave);
-    if (ok) {
-      btn.textContent = '✅ Datos guardados';
-      setTimeout(() => {
-        btn.textContent = '💾 Guardar datos compartidos';
-        btn.disabled = false;
-      }, 2000);
-      log('✅ Datos guardados en GitHub. Todos los usuarios verán esta información.', 'ok');
-    } else {
-      throw new Error('No se pudo guardar');
-    }
-  } catch (e) {
-    btn.textContent = '❌ Error';
-    btn.disabled = false;
-    log('❌ Error guardando: ' + e.message, 'err');
-  }
-}
-
 document.getElementById('btnProcesar').addEventListener('click', procesar);
 
 document.getElementById('btnGuardarDatos').addEventListener('click', guardarDatos);
@@ -2718,6 +2672,49 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
     d.innerHTML = `<div style="background:${bg};border:1px solid ${br};color:${c};padding:10px;border-radius:4px;margin-bottom:12px;font-size:13px">${msg}</div>`;
     setTimeout(() => { d.innerHTML = ''; }, 6000);
   }
+
+  // Exportar guardarDatos como función global
+  window.guardarDatos = async function() {
+    if (currentRole !== 'admin') {
+      alert('❌ Solo admin puede guardar datos compartidos');
+      return;
+    }
+    if (!PARSED.solicitudesFile && !PARSED.despachosFile) {
+      alert('❌ No hay datos procesados. Procesa archivos primero.');
+      return;
+    }
+    
+    const btn = document.getElementById('btnGuardarDatos');
+    btn.disabled = true;
+    btn.textContent = '⏳ Guardando...';
+    
+    try {
+      const dataToSave = {
+        solicitudes: PARSED.solicitudesFile || [],
+        despachos: PARSED.despachosFile || [],
+        inventarios: PARSED.inventariosFile || [],
+        programa: PARSED.programaFile || [],
+        processed_at: new Date().toISOString(),
+        processed_by: currentUser
+      };
+      
+      const ok = await saveSharedData(dataToSave);
+      if (ok) {
+        btn.textContent = '✅ Datos guardados';
+        setTimeout(() => {
+          btn.textContent = '💾 Guardar datos compartidos';
+          btn.disabled = false;
+        }, 2000);
+        log('✅ Datos guardados en GitHub. Todos los usuarios verán esta información.', 'ok');
+      } else {
+        throw new Error('No se pudo guardar');
+      }
+    } catch (e) {
+      btn.textContent = '❌ Error';
+      btn.disabled = false;
+      log('❌ Error guardando: ' + e.message, 'err');
+    }
+  };
 
   boot();
 })();
