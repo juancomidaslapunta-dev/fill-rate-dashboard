@@ -2315,12 +2315,81 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
   async function boot() {
     try {
       const d = await api('session');
-      if (d && d.authenticated) mostrarDashboard(d.username, d.role);
-      else mostrarLogin();
+      if (d && d.authenticated) {
+        mostrarDashboard(d.username, d.role);
+        // Inicializar BroadcastChannel para todos los usuarios autenticados
+        initBroadcastChannel();
+      } else {
+        mostrarLogin();
+      }
     } catch(e) {
       console.warn('boot session check:', e.message);
       mostrarLogin();
     }
+  }
+
+  // ── sincronización multi-ventana (BroadcastChannel) ──────────────────────────
+  let bc = null;
+  let usersCache = null;
+  let lastUsersSync = 0;
+
+  function initBroadcastChannel() {
+    try {
+      bc = new BroadcastChannel('fillrate_dashboard');
+      bc.onmessage = (evt) => {
+        const msg = evt.data || {};
+        console.log('[BroadcastChannel] recibido:', msg.type);
+        if (msg.type === 'users_updated') {
+          usersCache = msg.data;
+          if (document.getElementById('adminModalOverlay').style.display === 'flex') {
+            refreshAdminPanel(); // refrescar si el modal está abierto
+          }
+        } else if (msg.type === 'logout') {
+          if (currentUser === msg.username) {
+            mostrarLogin();
+          }
+        }
+      };
+      console.log('✅ BroadcastChannel inicializado');
+    } catch(e) {
+      console.warn('⚠️ BroadcastChannel no disponible:', e.message);
+    }
+  }
+
+  function broadcastMessage(msg) {
+    if (bc) {
+      try { bc.postMessage(msg); } catch(e) { console.warn('broadcast error:', e); }
+    }
+  }
+
+  // ── polling periódico para detectar cambios en usuarios ──────────────────────
+  async function syncUsersIfChanged() {
+    if (currentRole !== 'admin' || document.getElementById('adminModalOverlay').style.display !== 'flex') {
+      return; // solo polling si admin y modal abierto
+    }
+    try {
+      const d = await api('list_users', {});
+      const now = JSON.stringify(d.usuarios || []);
+      const cached = JSON.stringify(usersCache || []);
+      if (now !== cached) {
+        usersCache = d.usuarios;
+        refreshAdminPanel();
+        broadcastMessage({ type: 'users_updated', data: usersCache });
+      }
+    } catch(e) {
+      console.warn('sync users error:', e.message);
+    }
+  }
+
+  // Iniciar polling cada 8 segundos cuando admin abre panel
+  let pollInterval = null;
+  function startPolling() {
+    if (pollInterval) return;
+    console.log('🔄 Iniciando polling de usuarios...');
+    pollInterval = setInterval(syncUsersIfChanged, 8000);
+  }
+  function stopPolling() {
+    if (pollInterval) { clearInterval(pollInterval); pollInterval = null; console.log('⏸️ Polling detenido'); }
   }
 
   // ── login / logout ─────────────────────────────────────────────────────────
@@ -2340,17 +2409,22 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
 
   window.logoutUsuario = async function() {
     try { await api('logout', {}); } catch(e) {}
+    stopPolling();
+    broadcastMessage({ type: 'logout', username: currentUser });
     mostrarLogin();
   };
 
   // ── panel admin ────────────────────────────────────────────────────────────
   window.abrirPanelAdmin = async function() {
     if (currentRole !== 'admin') return;
+    initBroadcastChannel(); // inicializar canal de broadcast
     await refreshAdminPanel();
+    startPolling(); // comenzar a sincronizar cada 8s
     document.getElementById('adminModalOverlay').style.display = 'flex';
   };
 
   window.cerrarPanelAdmin = function() {
+    stopPolling(); // detener polling al cerrar
     document.getElementById('adminModalOverlay').style.display = 'none';
   };
 
@@ -2368,9 +2442,20 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
       <tr>
         <td style="padding:10px;border-bottom:1px solid #e0e0e0"><strong>${u.username}</strong></td>
         <td style="padding:10px;border-bottom:1px solid #e0e0e0">${u.role}</td>
-        <td style="padding:10px;border-bottom:1px solid #e0e0e0;color:#999;font-size:12px">Ver panel Vercel</td>
-        <td style="padding:10px;border-bottom:1px solid #e0e0e0">–</td>
-        <td style="padding:10px;border-bottom:1px solid #e0e0e0">–</td>
+        <td style="padding:10px;border-bottom:1px solid #e0e0e0;">
+          <button onclick="resetPasswordUser('${u.username}')" style="background:#4CAF50; color:white; border:none; padding:4px 8px; border-radius:3px; font-size:12px; cursor:pointer;">🔐 Reset</button>
+        </td>
+        <td style="padding:10px;border-bottom:1px solid #e0e0e0;">
+          <select onchange="cambiarRolUsuario('${u.username}', this.value)" style="font-size:12px; padding:4px; border-radius:3px;">
+            <option value="${u.role}">${u.role}</option>
+            ${u.role !== 'lector' ? '<option value="lector">👁️ Lector</option>' : ''}
+            ${u.role !== 'editor' ? '<option value="editor">✏️ Editor</option>' : ''}
+            ${u.role !== 'admin' && u.username !== 'admin' ? '<option value="admin">🛡️ Admin</option>' : ''}
+          </select>
+        </td>
+        <td style="padding:10px;border-bottom:1px solid #e0e0e0;">
+          ${u.username !== 'admin' ? `<button onclick="eliminarUsuario('${u.username}')" style="background:#f44336; color:white; border:none; padding:4px 8px; border-radius:3px; font-size:12px; cursor:pointer;">🗑️ Eliminar</button>` : '–'}
+        </td>
       </tr>`).join('');
   }
 
@@ -2409,15 +2494,53 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
     if (!user || !pass) { showAdminMsg('❌ Usuario y contraseña requeridos', 'error'); return; }
     if (!/^[a-zA-Z0-9_.-]{3,32}$/.test(user)) { showAdminMsg('❌ Usuario inválido (solo letras, números, ._-)', 'error'); return; }
     if (pass.length < 6) { showAdminMsg('❌ Contraseña mínimo 6 caracteres', 'error'); return; }
-    if (usersLocal[user]) { showAdminMsg('❌ Usuario ya existe', 'error'); return; }
+    
+    try {
+      const d = await api('create_user', { username: user, password: pass, role });
+      document.getElementById('newUser').value = '';
+      document.getElementById('newPass').value = '';
+      showAdminMsg('✅ ' + d.message, 'success');
+      // Refrescar tabla después de 2 segundos (permite que Vercel redepliegue)
+      setTimeout(() => refreshAdminPanel(), 2000);
+      broadcastMessage({ type: 'users_updated', data: null }); // notificar otras tabs
+    } catch(e) { showAdminMsg('❌ ' + e.message, 'error'); }
+  };
 
-    const hash = await sha256Client(pass);
-    usersLocal[user] = { hash, role };
-    document.getElementById('newUser').value = '';
-    document.getElementById('newPass').value = '';
-    renderEditorTabla();
-    actualizarJsonOutput();
-    showAdminMsg('✅ Usuario "' + user + '" agregado. Copia el JSON de abajo y pégalo en Vercel → Environment Variables → FILLRATE_USERS, luego Redeploy.', 'success');
+  // ── funciones de gestión de usuarios (Reset, Cambiar rol, Eliminar) ──────────
+  window.resetPasswordUser = async function(username) {
+    const newPass = prompt('Nueva contraseña para ' + username + ':', '');
+    if (!newPass) return;
+    if (newPass.length < 6) { showAdminMsg('❌ Mínimo 6 caracteres', 'error'); return; }
+    if (!confirm('¿Reset contraseña de ' + username + '?')) return;
+    
+    try {
+      const d = await api('change_password', { username, password: newPass });
+      showAdminMsg('✅ ' + d.message, 'success');
+      setTimeout(() => refreshAdminPanel(), 2000);
+      broadcastMessage({ type: 'users_updated', data: null });
+    } catch(e) { showAdminMsg('❌ ' + e.message, 'error'); }
+  };
+
+  window.cambiarRolUsuario = async function(username, nuevoRol) {
+    if (!nuevoRol || nuevoRol === '') return; // no hacer nada si cancela
+    try {
+      const d = await api('change_role', { username, role: nuevoRol });
+      showAdminMsg('✅ ' + d.message, 'success');
+      setTimeout(() => refreshAdminPanel(), 2000);
+      broadcastMessage({ type: 'users_updated', data: null });
+    } catch(e) { showAdminMsg('❌ ' + e.message, 'error'); }
+  };
+
+  window.eliminarUsuario = async function(username) {
+    if (username === 'admin') { showAdminMsg('❌ No puedes eliminar admin', 'error'); return; }
+    if (!confirm('¿Eliminar usuario "' + username + '"? Esta acción es irreversible.')) return;
+    
+    try {
+      const d = await api('delete_user', { username });
+      showAdminMsg('✅ ' + d.message, 'success');
+      setTimeout(() => refreshAdminPanel(), 2000);
+      broadcastMessage({ type: 'users_updated', data: null });
+    } catch(e) { showAdminMsg('❌ ' + e.message, 'error'); }
   };
 
   window.cambiarContrasena = async function() {
