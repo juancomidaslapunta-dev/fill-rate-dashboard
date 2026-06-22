@@ -18,5 +18,9 @@
   "Pia_test": {
     "hash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
     "role": "editor"
+  },
+  "test_sync_demo": {
+    "hash": "db9f57e3dab2c039c93c6c0c7687f1f6b32d24f00c4d527f406e67a5145e8e3c",
+    "role": "lector"
   }
 }
