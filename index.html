@@ -484,6 +484,7 @@ tbody tr:hover { background:#f8fafc; }
         <button class="btn btn-primary" id="btnProcesar">🔄 Procesar y Calcular Fill Rate</button>
         <button class="btn btn-secondary" id="btnDemo">📦 Usar datos de ejemplo (Semana 24)</button>
         <button class="btn btn-secondary" id="btnLimpiar">🗑️ Limpiar todo</button>
+        <button class="btn btn-primary" id="btnGuardarDatos" style="display:none; background:#27ae60;">💾 Guardar datos compartidos</button>
       </div>
       <div class="log-panel" id="logPanel"><span class="info-line">Esperando archivos…</span></div>
     </div>
@@ -1280,6 +1281,9 @@ function procesar(){
   poblarFiltrosAnalisis();
   renderAll();
 
+  // Mostrar botón "Guardar datos compartidos" después de procesar
+  document.getElementById('btnGuardarDatos').style.display = 'inline-block';
+
   // Cambiar a tab dashboard automáticamente
   document.querySelector('.tab-btn[data-tab="dashboard"]').click();
   
@@ -1611,9 +1615,54 @@ function renderQuiebres(){
 }
 
 // ============================================================
-// BOTONES
+// GUARDAR DATOS COMPARTIDOS
 // ============================================================
+
+async function guardarDatos() {
+  if (currentRole !== 'admin') {
+    alert('❌ Solo admin puede guardar datos compartidos');
+    return;
+  }
+  if (!PARSED.solicitudesFile && !PARSED.despachosFile) {
+    alert('❌ No hay datos procesados. Procesa archivos primero.');
+    return;
+  }
+  
+  const btn = document.getElementById('btnGuardarDatos');
+  btn.disabled = true;
+  btn.textContent = '⏳ Guardando...';
+  
+  try {
+    const dataToSave = {
+      solicitudes: PARSED.solicitudesFile || [],
+      despachos: PARSED.despachosFile || [],
+      inventarios: PARSED.inventariosFile || [],
+      programa: PARSED.programaFile || [],
+      processed_at: new Date().toISOString(),
+      processed_by: currentUser
+    };
+    
+    const ok = await saveSharedData(dataToSave);
+    if (ok) {
+      btn.textContent = '✅ Datos guardados';
+      setTimeout(() => {
+        btn.textContent = '💾 Guardar datos compartidos';
+        btn.disabled = false;
+      }, 2000);
+      log('✅ Datos guardados en GitHub. Todos los usuarios verán esta información.', 'ok');
+    } else {
+      throw new Error('No se pudo guardar');
+    }
+  } catch (e) {
+    btn.textContent = '❌ Error';
+    btn.disabled = false;
+    log('❌ Error guardando: ' + e.message, 'err');
+  }
+}
+
 document.getElementById('btnProcesar').addEventListener('click', procesar);
+
+document.getElementById('btnGuardarDatos').addEventListener('click', guardarDatos);
 
 document.getElementById('btnDemo').addEventListener('click', ()=>{
   PARSED.solicitudesFile = null;
@@ -2319,12 +2368,41 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
         mostrarDashboard(d.username, d.role);
         // Inicializar BroadcastChannel para todos los usuarios autenticados
         initBroadcastChannel();
+        // Cargar datos compartidos desde GitHub
+        await loadSharedData();
       } else {
         mostrarLogin();
       }
     } catch(e) {
       console.warn('boot session check:', e.message);
       mostrarLogin();
+    }
+  }
+
+  // ── datos compartidos entre usuarios (GitHub) ───────────────────────────────
+  let sharedDataCache = null;
+
+  async function loadSharedData() {
+    try {
+      const d = await api('load_data', {});
+      sharedDataCache = d.data || null;
+      console.log('✅ Datos compartidos cargados:', sharedDataCache ? Object.keys(sharedDataCache).join(', ') : 'vacío');
+    } catch(e) {
+      console.warn('⚠️ Error cargando datos compartidos:', e.message);
+      sharedDataCache = null;
+    }
+  }
+
+  async function saveSharedData(data) {
+    try {
+      const d = await api('save_data', { data });
+      console.log('✅ Datos guardados en GitHub:', d.message);
+      sharedDataCache = data; // actualizar caché local
+      broadcastMessage({ type: 'data_updated', data }); // notificar otras tabs
+      return true;
+    } catch(e) {
+      console.error('❌ Error guardando datos:', e.message);
+      return false;
     }
   }
 
@@ -2344,6 +2422,10 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
           if (document.getElementById('adminModalOverlay').style.display === 'flex') {
             refreshAdminPanel(); // refrescar si el modal está abierto
           }
+        } else if (msg.type === 'data_updated') {
+          sharedDataCache = msg.data;
+          console.log('🔄 Datos compartidos actualizados desde otra tab');
+          // Opcionalmente: refrescar gráficos/tablas
         } else if (msg.type === 'logout') {
           if (currentUser === msg.username) {
             mostrarLogin();
