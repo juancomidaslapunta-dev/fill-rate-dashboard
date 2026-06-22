@@ -813,7 +813,7 @@ const CODIGOS_OFICIALES = new Set(Object.keys(NOMBRES_OFICIALES).map(Number));
 
 let RAW = { solicitudes: [], despachos: [] };  // registros granulares crudos
 var PARSED = { solicitudesFile: null, despachosFile: null, inventariosFile: null, programaFile: null };
-let GRANULAR = [];      // tabla final SKU+fecha+sucursal con solicitado/despachado
+var GRANULAR = [];      // tabla final SKU+fecha+sucursal con solicitado/despachado
 let DESPACHOS_LINEA = []; // cada línea de despacho individual, con numero_guia preservado
 let GUIAS_INDEX = new Map(); // numero_guia -> { numero_guia, fecha, sucursal, lineas:[...], total_unidades }
 var DATA_QUALITY = { total_raw:0, validas:0, rechazadas:0, pct_rechazo:0, insumos_excluidos:0 };
@@ -2346,8 +2346,19 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
   async function loadSharedData() {
     try {
       const d = await api('load_data', {});
-      sharedDataCache = d.data || null;
-      console.log('✅ Datos compartidos cargados:', sharedDataCache ? Object.keys(sharedDataCache).join(', ') : 'vacío');
+      const raw = d.data || null;
+      if (raw && raw.granular && raw.granular.length > 0) {
+        // Expandir keys compactas → GRANULAR
+        GRANULAR = raw.granular.map(r => ({
+          sku: r.s, descripcion: r.d, fecha: r.f,
+          sucursal: r.u, solicitado: r.q, despachado: r.e, diferencia: r.x
+        }));
+        sharedDataCache = raw;
+        console.log('✅ Datos compartidos cargados: ' + GRANULAR.length + ' registros GRANULAR');
+      } else {
+        sharedDataCache = null;
+        console.log('⚠️ Sin datos compartidos aún');
+      }
     } catch(e) {
       console.warn('⚠️ Error cargando datos compartidos:', e.message);
       sharedDataCache = null;
@@ -2689,11 +2700,16 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
     btn.textContent = '⏳ Guardando...';
     
     try {
+      if (!GRANULAR || GRANULAR.length === 0) {
+        throw new Error('No hay datos procesados (GRANULAR vacío). Procesa los archivos primero.');
+      }
+      // Comprimir keys para reducir payload: sku,desc,fecha,suc,sol,des,dif
+      const granularCompact = GRANULAR.map(r => ({
+        s: r.sku, d: r.descripcion, f: r.fecha,
+        u: r.sucursal, q: r.solicitado, e: r.despachado, x: r.diferencia
+      }));
       const dataToSave = {
-        solicitudes: PARSED.solicitudesFile || [],
-        despachos: PARSED.despachosFile || [],
-        inventarios: PARSED.inventariosFile || [],
-        programa: PARSED.programaFile || [],
+        granular: granularCompact,
         processed_at: new Date().toISOString(),
         processed_by: currentUser
       };
