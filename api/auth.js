@@ -252,6 +252,82 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true, message: 'Usuario eliminado. Vercel redesplegará en ~30 segundos.' });
     }
 
+    // CARGAR DATOS COMPARTIDOS (todos los usuarios autenticados)
+    if (action === 'load_data') {
+      try {
+        const repo  = process.env.GITHUB_REPO || 'juancomidaslapunta-dev/fill-rate-dashboard';
+        const token = process.env.GITHUB_TOKEN;
+        const getResp = await fetch(`https://api.github.com/repos/${repo}/contents/data.json`, {
+          headers: {
+            Authorization: `token ${token}`,
+            Accept: 'application/vnd.github+json'
+          }
+        });
+        if (!getResp.ok) {
+          return res.status(200).json({ data: null, message: 'Sin datos compartidos aún' });
+        }
+        const fileData = await getResp.json();
+        const decoded = Buffer.from(fileData.content, 'base64').toString('utf8');
+        const data = JSON.parse(decoded);
+        return res.status(200).json({ data, timestamp: fileData.updated_at });
+      } catch(e) {
+        return res.status(200).json({ data: null, error: e.message });
+      }
+    }
+
+    // GUARDAR DATOS COMPARTIDOS (solo admin)
+    if (action === 'save_data') {
+      if (sesion.role !== 'admin') {
+        return res.status(403).json({ error: 'Solo admin puede guardar datos' });
+      }
+      const { data } = body || {};
+      if (!data) {
+        return res.status(400).json({ error: 'data requerido en body' });
+      }
+      try {
+        const token = process.env.GITHUB_TOKEN;
+        const repo  = process.env.GITHUB_REPO || 'juancomidaslapunta-dev/fill-rate-dashboard';
+        const content = JSON.stringify(data, null, 2);
+        const encoded = Buffer.from(content).toString('base64');
+
+        // Obtener SHA actual
+        const getResp = await fetch(`https://api.github.com/repos/${repo}/contents/data.json`, {
+          headers: {
+            Authorization: `token ${token}`,
+            Accept: 'application/vnd.github+json'
+          }
+        });
+        let sha = null;
+        if (getResp.ok) {
+          const fileData = await getResp.json();
+          sha = fileData.sha;
+        }
+
+        // Guardar archivo
+        const body_put = {
+          message: 'chore: actualizar datos compartidos desde dashboard',
+          content: encoded,
+          ...(sha ? { sha } : {})
+        };
+        const putResp = await fetch(`https://api.github.com/repos/${repo}/contents/data.json`, {
+          method: 'PUT',
+          headers: {
+            Authorization: `token ${token}`,
+            Accept: 'application/vnd.github+json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body_put)
+        });
+        if (!putResp.ok) {
+          const err = await putResp.json().catch(() => ({}));
+          throw new Error('GitHub API: ' + (err.message || putResp.status));
+        }
+        return res.status(200).json({ ok: true, message: 'Datos guardados. Vercel redesplegará en ~30 segundos.' });
+      } catch(e) {
+        return res.status(500).json({ error: 'Error guardando datos', detalle: e.message });
+      }
+    }
+
     return res.status(400).json({ error: 'Acción no reconocida: ' + action });
 
   } catch(err) {
