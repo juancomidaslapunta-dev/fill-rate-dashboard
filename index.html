@@ -1625,7 +1625,7 @@ let currentRole = null;
 // ============================================================
 
 async function guardarDatos() {
-  if (currentRole !== 'admin') {
+  if (window.currentRole !== 'admin') {
     alert('❌ Solo admin puede guardar datos compartidos');
     return;
   }
@@ -1645,7 +1645,7 @@ async function guardarDatos() {
       inventarios: PARSED.inventariosFile || [],
       programa: PARSED.programaFile || [],
       processed_at: new Date().toISOString(),
-      processed_by: currentUser
+      processed_by: window.currentUser
     };
     
     const ok = await saveSharedData(dataToSave);
@@ -2350,7 +2350,7 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
 
   // ── ui ─────────────────────────────────────────────────────────────────────
   function mostrarDashboard(username, role) {
-    currentUser = username; currentRole = role;
+    currentUser = username; currentRole = role; window.currentUser = username; window.currentRole = role;
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('sessionBar').style.display = 'flex';
     document.getElementById('mainDashboardContainer').style.display = 'block';
@@ -2360,7 +2360,7 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
   }
 
   function mostrarLogin() {
-    currentUser = null; currentRole = null;
+    currentUser = null; currentRole = null; window.currentUser = null; window.currentRole = null;
     document.getElementById('mainDashboardContainer').style.display = 'none';
     document.getElementById('sessionBar').style.display = 'none';
     document.getElementById('adminModalOverlay').style.display = 'none';
