@@ -1615,6 +1615,12 @@ function renderQuiebres(){
 }
 
 // ============================================================
+// VARIABLES GLOBALES DE AUTENTICACIÓN
+// ============================================================
+let currentUser = null;
+let currentRole = null;
+
+// ============================================================
 // GUARDAR DATOS COMPARTIDOS
 // ============================================================
 
@@ -2310,8 +2316,9 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
 <!-- ============ CLIENTE DE AUTENTICACIÓN v3 (api/auth.js, sin Redis) ============ -->
 <script>
 (function(){
-  let currentUser = null;
-  let currentRole = null;
+  // Variables globales declaradas arriba - no redeclarar aquí
+  // let currentUser = null;
+  // let currentRole = null;
 
   // ── helpers ────────────────────────────────────────────────────────────────
   async function api(action, body) {
