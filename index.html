@@ -2404,13 +2404,55 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
     }
   }
 
+  const SB_URL = 'https://xxoxowjkviqgijeyxhmn.supabase.co';
+  const SB_ANON = 'sb_publishable_EabkH196XSkpA9gWarjIDw_OxOP13iO';
+
   async function saveSharedData(data) {
     try {
-      const d = await api('save_data', { data });
+      // 1. Backend borra datos anteriores del usuario (requiere service_role)
+      const delResp = await api('delete_data', {});
+      if (delResp && delResp.error) throw new Error('DELETE: ' + delResp.error);
+
+      // 2. INSERT directo a Supabase desde browser en chunks — evita límite 4.5MB de Vercel
+      const uploadId = crypto.randomUUID();
+      const uploadedAt = data.processed_at || new Date().toISOString();
+      const rows = data.granular.map(r => ({
+        sku:         r.sku         || '',
+        descripcion: r.descripcion || '',
+        fecha:       (r.fecha      || '').substring(0, 10),
+        sucursal:    r.sucursal    || '',
+        solicitado:  Number(r.solicitado)  || 0,
+        despachado:  Number(r.despachado)  || 0,
+        diferencia:  Number(r.diferencia)  || 0,
+        upload_id:   uploadId,
+        uploaded_at: uploadedAt,
+        uploaded_by: currentUser
+      }));
+
+      const CHUNK = 500;
+      let inserted = 0;
+      for (let i = 0; i < rows.length; i += CHUNK) {
+        const ins = await fetch(SB_URL + '/rest/v1/kpi_fill_rate', {
+          method: 'POST',
+          headers: {
+            apikey: SB_ANON,
+            Authorization: 'Bearer ' + SB_ANON,
+            'Content-Type': 'application/json',
+            Prefer: 'return=minimal'
+          },
+          body: JSON.stringify(rows.slice(i, i + CHUNK))
+        });
+        if (!ins.ok) {
+          const err = await ins.text();
+          throw new Error('INSERT chunk ' + i + ': ' + err);
+        }
+        inserted += Math.min(CHUNK, rows.length - i);
+        log('ℹ️ Guardando... ' + inserted + '/' + rows.length + ' filas', 'info');
+      }
+
       sharedDataCache = data;
-      // Notificar otras tabs para que recarguen datos
       broadcastMessage({ type: 'data_updated' });
-      return { ok: true, message: d.message || 'Datos guardados' };
+      return { ok: true, message: rows.length + ' filas guardadas en Supabase' };
     } catch(e) {
       return { ok: false, error: e.message };
     }

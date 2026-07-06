@@ -276,6 +276,25 @@ module.exports = async function handler(req, res) {
     }
 
     // GUARDAR DATOS COMPARTIDOS (solo admin)
+    // ── delete_data — borra datos del usuario en kpi_fill_rate ───────────────
+    if (action === 'delete_data') {
+      if (!['admin','explorer','editor'].includes(sesion.role)) {
+        return res.status(403).json({ error: 'Sin permiso' });
+      }
+      try {
+        const sbUrl = process.env.SUPABASE_URL;
+        const sbKey = process.env.SUPABASE_SERVICE_KEY;
+        const hdrs  = { apikey: sbKey, Authorization: `Bearer ${sbKey}`, 'Content-Type': 'application/json', Accept: 'application/json' };
+        const del = await fetch(`${sbUrl}/rest/v1/kpi_fill_rate?uploaded_by=eq.${encodeURIComponent(sesion.username)}`, {
+          method: 'DELETE', headers: hdrs
+        });
+        if (!del.ok) throw new Error('DELETE: ' + await del.text());
+        return res.status(200).json({ ok: true });
+      } catch(e) {
+        return res.status(500).json({ error: e.message });
+      }
+    }
+
     if (action === 'save_data') {
       if (!['admin','explorer','editor'].includes(sesion.role)) {
         return res.status(403).json({ error: 'Solo Admin o Explorer puede guardar datos' });
