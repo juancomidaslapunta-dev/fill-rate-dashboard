@@ -2377,7 +2377,6 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
       const d = await api('load_data', {});
       const raw = d.data || null;
       if (raw && raw.granular && raw.granular.length > 0) {
-        // Supabase devuelve keys largas
         GRANULAR = raw.granular.map(r => ({
           sku:         r.sku         || '',
           descripcion: r.descripcion || '',
@@ -2387,37 +2386,21 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
           despachado:  Number(r.despachado)  || 0,
           diferencia:  Number(r.diferencia)  || 0
         }));
-        // Restaurar DESPACHOS_LINEA y DATA_QUALITY si existen
-        if (raw.despachos_linea && raw.despachos_linea.length > 0) {
-          DESPACHOS_LINEA = raw.despachos_linea;
-          GUIAS_INDEX = new Map();
-          for (const r of DESPACHOS_LINEA) {
-            if (!r.numero_guia) continue;
-            if (!GUIAS_INDEX.has(r.numero_guia)) {
-              GUIAS_INDEX.set(r.numero_guia, { numero_guia: r.numero_guia, numero_comanda: r.numero_comanda||'', fecha: r.fecha, sucursal: r.sucursal, lineas: [], total_unidades: 0 });
-            }
-            const g = GUIAS_INDEX.get(r.numero_guia);
-            g.lineas.push(r);
-            g.total_unidades += Number(r.despachado) || 0;
-          }
-        }
         if (raw.data_quality) DATA_QUALITY = raw.data_quality;
         sharedDataCache = raw;
-        console.log('✅ Supabase cargado: ' + GRANULAR.length + ' filas');
-        // Renderizar dashboard automáticamente
+        console.log('✅ Supabase: ' + GRANULAR.length + ' filas cargadas');
         poblarFiltros();
         poblarFiltrosAnalisis();
         renderAll();
       } else {
         sharedDataCache = null;
         const badge = document.getElementById('periodoBadge');
-        if (badge) badge.textContent = '📅 Sin datos — Admin/Explorer debe cargar archivos';
+        if (badge) badge.textContent = '📅 Sin datos — Admin debe cargar y guardar archivos';
       }
     } catch(e) {
       console.warn('⚠️ Error cargando datos:', e.message);
-      sharedDataCache = null;
       const badge = document.getElementById('periodoBadge');
-      if (badge) badge.textContent = '⚠️ Error conectando a Supabase';
+      if (badge) badge.textContent = '⚠️ Error: ' + e.message;
     }
   }
 
@@ -2761,11 +2744,10 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
         despachado: r.despachado, diferencia: r.diferencia
       }));
       const dataToSave = {
-        granular:        granularRows,
-        despachos_linea: DESPACHOS_LINEA || [],
-        data_quality:    DATA_QUALITY    || {},
-        processed_at:    new Date().toISOString(),
-        processed_by:    currentUser
+        granular:     granularRows,
+        data_quality: DATA_QUALITY || {},
+        processed_at: new Date().toISOString(),
+        processed_by: currentUser
       };
 
       const payloadKB = Math.round(JSON.stringify(dataToSave).length / 1024);

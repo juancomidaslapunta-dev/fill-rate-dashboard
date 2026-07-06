@@ -281,50 +281,85 @@ module.exports = async function handler(req, res) {
         return res.status(403).json({ error: 'Solo Admin o Explorer puede guardar datos' });
       }
       const { data } = body || {};
-      if (!data) {
-        return res.status(400).json({ error: 'data requerido en body' });
-      }
+      if (!data || !data.granular) return res.status(400).json({ error: 'data.granular requerido' });
       try {
-        const token = process.env.GITHUB_TOKEN;
-        const repo  = process.env.GITHUB_REPO || 'juancomidaslapunta-dev/fill-rate-dashboard';
-        const content = JSON.stringify(data, null, 2);
-        const encoded = Buffer.from(content).toString('base64');
+        const sbUrl  = process.env.SUPABASE_URL;
+        const sbKey  = process.env.SUPABASE_SERVICE_KEY;
+        const hdrs   = { apikey: sbKey, Authorization: `Bearer ${sbKey}`, 'Content-Type': 'application/json', Accept: 'application/json' };
 
-        // Obtener SHA actual
-        const getResp = await fetch(`https://api.github.com/repos/${repo}/contents/data.json`, {
-          headers: {
-            Authorization: `token ${token}`,
-            Accept: 'application/vnd.github+json'
-          }
-        });
-        let sha = null;
-        if (getResp.ok) {
-          const fileData = await getResp.json();
-          sha = fileData.sha;
+        // 1. Borrar granular anterior
+        const del = await fetch(`${sbUrl}/rest/v1/granular?id=gte.0`, { method: 'DELETE', headers: hdrs });
+        if (!del.ok) throw new Error('DELETE granular: ' + await del.text());
+
+        // 2. Insertar en chunks de 500
+        const rows = data.granular.map(r => ({
+          sku: r.sku||'', descripcion: r.descripcion||'', fecha: r.fecha||'',
+          sucursal: r.sucursal||'', solicitado: Number(r.solicitado)||0,
+          despachado: Number(r.despachado)||0, diferencia: Number(r.diferencia)||0,
+          processed_at: data.processed_at || new Date().toISOString(),
+          processed_by: data.processed_by || sesion.username
+        }));
+        const CHUNK = 500;
+        for (let i = 0; i < rows.length; i += CHUNK) {
+          const ins = await fetch(`${sbUrl}/rest/v1/granular`, {
+            method: 'POST', headers: { ...hdrs, Prefer: 'return=minimal' },
+            body: JSON.stringify(rows.slice(i, i + CHUNK))
+          });
+          if (!ins.ok) throw new Error('INSERT chunk ' + i + ': ' + await ins.text());
         }
 
-        // Guardar archivo
-        const body_put = {
-          message: 'chore: actualizar datos compartidos desde dashboard',
-          content: encoded,
-          ...(sha ? { sha } : {})
-        };
-        const putResp = await fetch(`https://api.github.com/repos/${repo}/contents/data.json`, {
-          method: 'PUT',
-          headers: {
-            Authorization: `token ${token}`,
-            Accept: 'application/vnd.github+json',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(body_put)
+        // 3. Guardar metadata en shared_meta
+        await fetch(`${sbUrl}/rest/v1/shared_meta?id=gte.0`, { method: 'DELETE', headers: hdrs });
+        await fetch(`${sbUrl}/rest/v1/shared_meta`, {
+          method: 'POST', headers: { ...hdrs, Prefer: 'return=minimal' },
+          body: JSON.stringify([{
+            data_quality:  JSON.stringify(data.data_quality || {}),
+            despachos_linea: '[]',
+            processed_at:  data.processed_at || new Date().toISOString(),
+            processed_by:  data.processed_by || sesion.username
+          }])
         });
-        if (!putResp.ok) {
-          const err = await putResp.json().catch(() => ({}));
-          throw new Error('GitHub API: ' + (err.message || putResp.status));
-        }
-        return res.status(200).json({ ok: true, message: 'Datos guardados. Vercel redesplegará en ~30 segundos.' });
+
+        return res.status(200).json({ ok: true, message: rows.length + ' filas guardadas en Supabase' });
       } catch(e) {
         return res.status(500).json({ error: 'Error guardando datos', detalle: e.message });
+      }
+    }
+
+    // ── load_data — Supabase ──────────────────────────────────────────────────
+    if (action === 'load_data') {
+      try {
+        const sbUrl  = process.env.SUPABASE_URL;
+        const sbKey  = process.env.SUPABASE_SERVICE_KEY;
+        const hdrs   = { apikey: sbKey, Authorization: `Bearer ${sbKey}`, Accept: 'application/json' };
+
+        let granUrl = `${sbUrl}/rest/v1/granular?select=*&order=fecha.asc&limit=100000`;
+        if (sesion.role === 'viewer_sucursal' && sesion.sucursal) {
+          granUrl = `${sbUrl}/rest/v1/granular?select=*&sucursal=eq.${encodeURIComponent(sesion.sucursal)}&order=fecha.asc&limit=100000`;
+        }
+
+        const [granResp, metaResp] = await Promise.all([
+          fetch(granUrl, { headers: hdrs }),
+          fetch(`${sbUrl}/rest/v1/shared_meta?select=*&order=id.desc&limit=1`, { headers: hdrs })
+        ]);
+        if (!granResp.ok) throw new Error('Supabase granular: ' + await granResp.text());
+
+        const rows = await granResp.json();
+        if (!rows || rows.length === 0) {
+          return res.status(200).json({ data: null, message: 'Sin datos en Supabase aún' });
+        }
+
+        let data_quality = {};
+        if (metaResp.ok) {
+          const meta = await metaResp.json();
+          if (meta && meta[0]) {
+            try { data_quality = JSON.parse(meta[0].data_quality || '{}'); } catch(e) {}
+          }
+        }
+
+        return res.status(200).json({ data: { granular: rows, data_quality }, timestamp: new Date().toISOString() });
+      } catch(e) {
+        return res.status(500).json({ error: 'Error cargando datos', detalle: e.message });
       }
     }
 
