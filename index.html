@@ -2422,29 +2422,70 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
   let lastUsersSync = 0;
 
   function initBroadcastChannel() {
+    // ── BroadcastChannel: misma máquina multi-tab ─────────────────────────────
     try {
       bc = new BroadcastChannel('fillrate_dashboard');
       bc.onmessage = (evt) => {
         const msg = evt.data || {};
-        console.log('[BroadcastChannel] recibido:', msg.type);
         if (msg.type === 'users_updated') {
           usersCache = msg.data;
-          if (document.getElementById('adminModalOverlay').style.display === 'flex') {
-            refreshAdminPanel(); // refrescar si el modal está abierto
-          }
+          if (document.getElementById('adminModalOverlay').style.display === 'flex') refreshAdminPanel();
         } else if (msg.type === 'data_updated') {
-          // Otro usuario actualizó datos — recargar desde Supabase y renderizar
-          loadSharedData();
-          console.log('🔄 Datos actualizados — recargando desde Supabase');
-        } else if (msg.type === 'logout') {
-          if (currentUser === msg.username) {
-            mostrarLogin();
-          }
+          loadSharedData(); // recargar desde Supabase
+        } else if (msg.type === 'logout' && currentUser === msg.username) {
+          mostrarLogin();
         }
       };
-      console.log('✅ BroadcastChannel inicializado');
+    } catch(e) { console.warn('BroadcastChannel no disponible:', e.message); }
+
+    // ── Supabase Realtime: distintas máquinas ─────────────────────────────────
+    initSupabaseRealtime();
+  }
+
+  function initSupabaseRealtime() {
+    try {
+      const SUPABASE_URL = 'https://xxoxowjkviqgijeyxhmn.supabase.co';
+      const SUPABASE_KEY = 'sb_publishable_EabkH196XSkpA9gWarjIDw_OxOP13iO';
+
+      // WebSocket directo a Supabase Realtime
+      const wsUrl = SUPABASE_URL.replace('https://', 'wss://') + '/realtime/v1/websocket?apikey=' + SUPABASE_KEY + '&vsn=1.0.0';
+      const ws = new WebSocket(wsUrl);
+      let heartbeat;
+
+      ws.onopen = () => {
+        console.log('✅ Supabase Realtime conectado');
+        // Suscribirse a cambios en kpi_fill_rate
+        ws.send(JSON.stringify({
+          topic: 'realtime:public:kpi_fill_rate',
+          event: 'phx_join',
+          payload: { config: { broadcast: { self: false }, presence: { key: '' }, postgres_changes: [{ event: '*', schema: 'public', table: 'kpi_fill_rate' }] } },
+          ref: '1'
+        }));
+        // Heartbeat cada 30s
+        heartbeat = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ topic: 'phoenix', event: 'heartbeat', payload: {}, ref: null }));
+        }, 30000);
+      };
+
+      ws.onmessage = (evt) => {
+        try {
+          const msg = JSON.parse(evt.data);
+          // Evento de cambio en tabla kpi_fill_rate
+          if (msg.event === 'postgres_changes' || (msg.payload && msg.payload.type === 'INSERT')) {
+            console.log('🔄 Realtime: datos actualizados → recargando dashboard');
+            loadSharedData();
+          }
+        } catch(e) {}
+      };
+
+      ws.onerror = (e) => console.warn('Supabase Realtime error:', e);
+      ws.onclose = () => {
+        clearInterval(heartbeat);
+        // Reconectar tras 10s si sesión activa
+        if (currentUser) setTimeout(initSupabaseRealtime, 10000);
+      };
     } catch(e) {
-      console.warn('⚠️ BroadcastChannel no disponible:', e.message);
+      console.warn('Supabase Realtime no disponible:', e.message);
     }
   }
 

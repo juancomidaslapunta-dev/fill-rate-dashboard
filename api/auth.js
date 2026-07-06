@@ -283,81 +283,70 @@ module.exports = async function handler(req, res) {
       const { data } = body || {};
       if (!data || !data.granular) return res.status(400).json({ error: 'data.granular requerido' });
       try {
-        const sbUrl  = process.env.SUPABASE_URL;
-        const sbKey  = process.env.SUPABASE_SERVICE_KEY;
-        const hdrs   = { apikey: sbKey, Authorization: `Bearer ${sbKey}`, 'Content-Type': 'application/json', Accept: 'application/json' };
+        const sbUrl = process.env.SUPABASE_URL;
+        const sbKey = process.env.SUPABASE_SERVICE_KEY;
+        const hdrs  = { apikey: sbKey, Authorization: `Bearer ${sbKey}`, 'Content-Type': 'application/json', Accept: 'application/json' };
+        const uploadId   = require('crypto').randomUUID();
+        const uploadedAt = data.processed_at || new Date().toISOString();
+        const uploadedBy = data.processed_by || sesion.username;
 
-        // 1. Borrar granular anterior
-        const del = await fetch(`${sbUrl}/rest/v1/granular?id=gte.0`, { method: 'DELETE', headers: hdrs });
-        if (!del.ok) throw new Error('DELETE granular: ' + await del.text());
+        // 1. Borrar datos anteriores del mismo usuario (upload más reciente reemplaza)
+        await fetch(`${sbUrl}/rest/v1/kpi_fill_rate?uploaded_by=eq.${encodeURIComponent(uploadedBy)}`, {
+          method: 'DELETE', headers: hdrs
+        });
 
-        // 2. Insertar en chunks de 500
+        // 2. Insertar en chunks de 500 filas
         const rows = data.granular.map(r => ({
-          sku: r.sku||'', descripcion: r.descripcion||'', fecha: r.fecha||'',
-          sucursal: r.sucursal||'', solicitado: Number(r.solicitado)||0,
-          despachado: Number(r.despachado)||0, diferencia: Number(r.diferencia)||0,
-          processed_at: data.processed_at || new Date().toISOString(),
-          processed_by: data.processed_by || sesion.username
+          sku:         r.sku         || '',
+          descripcion: r.descripcion || '',
+          fecha:       (r.fecha      || '').substring(0, 10), // solo YYYY-MM-DD
+          sucursal:    r.sucursal    || '',
+          solicitado:  Number(r.solicitado)  || 0,
+          despachado:  Number(r.despachado)  || 0,
+          diferencia:  Number(r.diferencia)  || 0,
+          upload_id:   uploadId,
+          uploaded_at: uploadedAt,
+          uploaded_by: uploadedBy
         }));
+
         const CHUNK = 500;
         for (let i = 0; i < rows.length; i += CHUNK) {
-          const ins = await fetch(`${sbUrl}/rest/v1/granular`, {
-            method: 'POST', headers: { ...hdrs, Prefer: 'return=minimal' },
+          const ins = await fetch(`${sbUrl}/rest/v1/kpi_fill_rate`, {
+            method: 'POST',
+            headers: { ...hdrs, Prefer: 'return=minimal' },
             body: JSON.stringify(rows.slice(i, i + CHUNK))
           });
           if (!ins.ok) throw new Error('INSERT chunk ' + i + ': ' + await ins.text());
         }
 
-        // 3. Guardar metadata en shared_meta
-        await fetch(`${sbUrl}/rest/v1/shared_meta?id=gte.0`, { method: 'DELETE', headers: hdrs });
-        await fetch(`${sbUrl}/rest/v1/shared_meta`, {
-          method: 'POST', headers: { ...hdrs, Prefer: 'return=minimal' },
-          body: JSON.stringify([{
-            data_quality:  JSON.stringify(data.data_quality || {}),
-            despachos_linea: '[]',
-            processed_at:  data.processed_at || new Date().toISOString(),
-            processed_by:  data.processed_by || sesion.username
-          }])
-        });
-
-        return res.status(200).json({ ok: true, message: rows.length + ' filas guardadas en Supabase' });
+        return res.status(200).json({ ok: true, message: rows.length + ' filas guardadas', upload_id: uploadId });
       } catch(e) {
         return res.status(500).json({ error: 'Error guardando datos', detalle: e.message });
       }
     }
 
-    // ── load_data — Supabase ──────────────────────────────────────────────────
+    // ── load_data — kpi_fill_rate ─────────────────────────────────────────────
     if (action === 'load_data') {
       try {
-        const sbUrl  = process.env.SUPABASE_URL;
-        const sbKey  = process.env.SUPABASE_SERVICE_KEY;
-        const hdrs   = { apikey: sbKey, Authorization: `Bearer ${sbKey}`, Accept: 'application/json' };
+        const sbUrl = process.env.SUPABASE_URL;
+        const sbKey = process.env.SUPABASE_SERVICE_KEY;
+        const hdrs  = { apikey: sbKey, Authorization: `Bearer ${sbKey}`, Accept: 'application/json' };
 
-        let granUrl = `${sbUrl}/rest/v1/granular?select=*&order=fecha.asc&limit=100000`;
+        // Filtrar por sucursal si viewer_sucursal
+        let url = `${sbUrl}/rest/v1/kpi_fill_rate?select=sku,descripcion,fecha,sucursal,solicitado,despachado,diferencia&order=fecha.asc&limit=200000`;
         if (sesion.role === 'viewer_sucursal' && sesion.sucursal) {
-          granUrl = `${sbUrl}/rest/v1/granular?select=*&sucursal=eq.${encodeURIComponent(sesion.sucursal)}&order=fecha.asc&limit=100000`;
+          url += `&sucursal=eq.${encodeURIComponent(sesion.sucursal)}`;
         }
 
-        const [granResp, metaResp] = await Promise.all([
-          fetch(granUrl, { headers: hdrs }),
-          fetch(`${sbUrl}/rest/v1/shared_meta?select=*&order=id.desc&limit=1`, { headers: hdrs })
-        ]);
-        if (!granResp.ok) throw new Error('Supabase granular: ' + await granResp.text());
+        const resp = await fetch(url, { headers: hdrs });
+        if (!resp.ok) throw new Error('Supabase: ' + await resp.text());
 
-        const rows = await granResp.json();
+        const rows = await resp.json();
         if (!rows || rows.length === 0) {
-          return res.status(200).json({ data: null, message: 'Sin datos en Supabase aún' });
+          return res.status(200).json({ data: null, message: 'Sin datos aún' });
         }
 
-        let data_quality = {};
-        if (metaResp.ok) {
-          const meta = await metaResp.json();
-          if (meta && meta[0]) {
-            try { data_quality = JSON.parse(meta[0].data_quality || '{}'); } catch(e) {}
-          }
-        }
-
-        return res.status(200).json({ data: { granular: rows, data_quality }, timestamp: new Date().toISOString() });
+        return res.status(200).json({ data: { granular: rows }, timestamp: new Date().toISOString() });
       } catch(e) {
         return res.status(500).json({ error: 'Error cargando datos', detalle: e.message });
       }
