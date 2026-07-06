@@ -277,8 +277,8 @@ module.exports = async function handler(req, res) {
 
     // GUARDAR DATOS COMPARTIDOS (solo admin)
     if (action === 'save_data') {
-      if (sesion.role !== 'admin') {
-        return res.status(403).json({ error: 'Solo admin puede guardar datos' });
+      if (!['admin','explorer','editor'].includes(sesion.role)) {
+        return res.status(403).json({ error: 'Solo Admin o Explorer puede guardar datos' });
       }
       const { data } = body || {};
       if (!data) {

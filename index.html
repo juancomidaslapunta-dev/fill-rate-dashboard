@@ -1619,6 +1619,7 @@ function renderQuiebres(){
 // ============================================================
 let currentUser = null;
 let currentRole = null;
+let currentSucursal = null;
 
 document.getElementById('btnProcesar').addEventListener('click', procesar);
 
@@ -2303,18 +2304,43 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
   }
 
   // ── ui ─────────────────────────────────────────────────────────────────────
-  function mostrarDashboard(username, role) {
-    currentUser = username; currentRole = role; window.currentUser = username; window.currentRole = role;
+  function mostrarDashboard(username, role, sucursal) {
+    currentUser = username; currentRole = role; currentSucursal = sucursal || null;
+    window.currentUser = username; window.currentRole = role; window.currentSucursal = sucursal || null;
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('sessionBar').style.display = 'flex';
     document.getElementById('mainDashboardContainer').style.display = 'block';
-    const lbl = role === 'admin' ? '🛡️ ADMIN' : role === 'editor' ? '✏️ EDITOR' : '👁️ LECTOR';
-    document.getElementById('sessionUserLabel').textContent = username + ' (' + lbl + ')';
+
+    // Label rol
+    const lblMap = { admin:'🛡️ ADMIN', explorer:'🔍 EXPLORER', editor:'✏️ EDITOR', viewer_global:'👁️ VIEWER', viewer_sucursal:'👁️ '+(sucursal||'VIEWER'), lector:'👁️ LECTOR' };
+    document.getElementById('sessionUserLabel').textContent = username + ' (' + (lblMap[role]||role) + ')';
     document.getElementById('adminPanelBtn').style.display = role === 'admin' ? 'inline-block' : 'none';
+
+    // Permisos: quien puede cargar archivos
+    const puedeCargar = ['admin','explorer','editor'].includes(role);
+
+    // Tab "Importar Archivos" — solo admin y explorer/editor
+    const tabCarga = document.querySelector('.tab-btn[data-tab="carga"]');
+    if (tabCarga) tabCarga.style.display = puedeCargar ? '' : 'none';
+
+    // Dropzones y botones de carga — solo admin y explorer/editor
+    document.querySelectorAll('.dropzone').forEach(dz => {
+      dz.style.pointerEvents = puedeCargar ? '' : 'none';
+      dz.style.opacity       = puedeCargar ? '' : '0.4';
+    });
+    ['btnProcesar','btnDemo','btnLimpiar'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = puedeCargar ? '' : 'none';
+    });
+
+    // Botón guardar — admin Y explorer/editor pueden guardar a Supabase
+    const btnGuardar = document.getElementById('btnGuardarDatos');
+    if (btnGuardar) btnGuardar.style.display = puedeCargar ? '' : 'none';
   }
 
   function mostrarLogin() {
-    currentUser = null; currentRole = null; window.currentUser = null; window.currentRole = null;
+    currentUser = null; currentRole = null; currentSucursal = null;
+    window.currentUser = null; window.currentRole = null; window.currentSucursal = null;
     document.getElementById('mainDashboardContainer').style.display = 'none';
     document.getElementById('sessionBar').style.display = 'none';
     document.getElementById('adminModalOverlay').style.display = 'none';
@@ -2326,11 +2352,14 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
     try {
       const d = await api('session');
       if (d && d.authenticated) {
-        mostrarDashboard(d.username, d.role);
-        // Inicializar BroadcastChannel para todos los usuarios autenticados
+        mostrarDashboard(d.username, d.role, d.sucursal || null);
         initBroadcastChannel();
-        // Cargar datos compartidos desde GitHub
         await loadSharedData();
+        if (GRANULAR.length > 0) {
+          poblarFiltros();
+          poblarFiltrosAnalisis();
+          renderAll();
+        }
       } else {
         mostrarLogin();
       }
@@ -2348,33 +2377,59 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
       const d = await api('load_data', {});
       const raw = d.data || null;
       if (raw && raw.granular && raw.granular.length > 0) {
-        // Expandir keys compactas → GRANULAR
+        // Supabase devuelve keys largas
         GRANULAR = raw.granular.map(r => ({
-          sku: r.s, descripcion: r.d, fecha: r.f,
-          sucursal: r.u, solicitado: r.q, despachado: r.e, diferencia: r.x
+          sku:         r.sku         || '',
+          descripcion: r.descripcion || '',
+          fecha:       r.fecha       || '',
+          sucursal:    r.sucursal    || '',
+          solicitado:  Number(r.solicitado)  || 0,
+          despachado:  Number(r.despachado)  || 0,
+          diferencia:  Number(r.diferencia)  || 0
         }));
+        // Restaurar DESPACHOS_LINEA y DATA_QUALITY si existen
+        if (raw.despachos_linea && raw.despachos_linea.length > 0) {
+          DESPACHOS_LINEA = raw.despachos_linea;
+          GUIAS_INDEX = new Map();
+          for (const r of DESPACHOS_LINEA) {
+            if (!r.numero_guia) continue;
+            if (!GUIAS_INDEX.has(r.numero_guia)) {
+              GUIAS_INDEX.set(r.numero_guia, { numero_guia: r.numero_guia, numero_comanda: r.numero_comanda||'', fecha: r.fecha, sucursal: r.sucursal, lineas: [], total_unidades: 0 });
+            }
+            const g = GUIAS_INDEX.get(r.numero_guia);
+            g.lineas.push(r);
+            g.total_unidades += Number(r.despachado) || 0;
+          }
+        }
+        if (raw.data_quality) DATA_QUALITY = raw.data_quality;
         sharedDataCache = raw;
-        console.log('✅ Datos compartidos cargados: ' + GRANULAR.length + ' registros GRANULAR');
+        console.log('✅ Supabase cargado: ' + GRANULAR.length + ' filas');
+        // Renderizar dashboard automáticamente
+        poblarFiltros();
+        poblarFiltrosAnalisis();
+        renderAll();
       } else {
         sharedDataCache = null;
-        console.log('⚠️ Sin datos compartidos aún');
+        const badge = document.getElementById('periodoBadge');
+        if (badge) badge.textContent = '📅 Sin datos — Admin/Explorer debe cargar archivos';
       }
     } catch(e) {
-      console.warn('⚠️ Error cargando datos compartidos:', e.message);
+      console.warn('⚠️ Error cargando datos:', e.message);
       sharedDataCache = null;
+      const badge = document.getElementById('periodoBadge');
+      if (badge) badge.textContent = '⚠️ Error conectando a Supabase';
     }
   }
 
   async function saveSharedData(data) {
     try {
       const d = await api('save_data', { data });
-      console.log('✅ Datos guardados en GitHub:', d.message);
-      sharedDataCache = data; // actualizar caché local
-      broadcastMessage({ type: 'data_updated', data }); // notificar otras tabs
-      return true;
+      sharedDataCache = data;
+      // Notificar otras tabs para que recarguen datos
+      broadcastMessage({ type: 'data_updated' });
+      return { ok: true, message: d.message || 'Datos guardados' };
     } catch(e) {
-      console.error('❌ Error guardando datos:', e.message);
-      return false;
+      return { ok: false, error: e.message };
     }
   }
 
@@ -2395,9 +2450,9 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
             refreshAdminPanel(); // refrescar si el modal está abierto
           }
         } else if (msg.type === 'data_updated') {
-          sharedDataCache = msg.data;
-          console.log('🔄 Datos compartidos actualizados desde otra tab');
-          // Opcionalmente: refrescar gráficos/tablas
+          // Otro usuario actualizó datos — recargar desde Supabase y renderizar
+          loadSharedData();
+          console.log('🔄 Datos actualizados — recargando desde Supabase');
         } else if (msg.type === 'logout') {
           if (currentUser === msg.username) {
             mostrarLogin();
@@ -2457,7 +2512,7 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
       const d = await api('login', { username: user, password: pass });
       document.getElementById('loginUser').value = '';
       document.getElementById('loginPass').value = '';
-      mostrarDashboard(d.username, d.role);
+      mostrarDashboard(d.username, d.role, d.sucursal || null);
     } catch(e) { err.textContent = '❌ ' + e.message; }
   };
 
@@ -2686,46 +2741,45 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
 
   // Exportar guardarDatos como función global
   window.guardarDatos = async function() {
-    if (currentRole !== 'admin') {
-      alert('❌ Solo admin puede guardar datos compartidos');
+    if (!['admin','explorer','editor'].includes(currentRole)) {
+      alert('❌ Solo Admin o Explorer puede guardar datos compartidos');
       return;
     }
-    if (!PARSED.solicitudesFile && !PARSED.despachosFile) {
+    if (!GRANULAR || GRANULAR.length === 0) {
       alert('❌ No hay datos procesados. Procesa archivos primero.');
       return;
     }
-    
+
     const btn = document.getElementById('btnGuardarDatos');
     btn.disabled = true;
     btn.textContent = '⏳ Guardando...';
-    
+
     try {
-      if (!GRANULAR || GRANULAR.length === 0) {
-        throw new Error('No hay datos procesados (GRANULAR vacío). Procesa los archivos primero.');
-      }
-      // Comprimir keys para reducir payload: sku,desc,fecha,suc,sol,des,dif
-      const granularCompact = GRANULAR.map(r => ({
-        s: r.sku, d: r.descripcion, f: r.fecha,
-        u: r.sucursal, q: r.solicitado, e: r.despachado, x: r.diferencia
+      const granularRows = GRANULAR.map(r => ({
+        sku: r.sku, descripcion: r.descripcion, fecha: r.fecha,
+        sucursal: r.sucursal, solicitado: r.solicitado,
+        despachado: r.despachado, diferencia: r.diferencia
       }));
       const dataToSave = {
-        granular: granularCompact,
-        processed_at: new Date().toISOString(),
-        processed_by: currentUser
+        granular:        granularRows,
+        despachos_linea: DESPACHOS_LINEA || [],
+        data_quality:    DATA_QUALITY    || {},
+        processed_at:    new Date().toISOString(),
+        processed_by:    currentUser
       };
-      
-      const ok = await saveSharedData(dataToSave);
-      if (ok) {
-        btn.textContent = '✅ Datos guardados';
-        setTimeout(() => {
-          btn.textContent = '💾 Guardar datos compartidos';
-          btn.disabled = false;
-        }, 2000);
-        log('✅ Datos guardados en GitHub. Todos los usuarios verán esta información.', 'ok');
+
+      const payloadKB = Math.round(JSON.stringify(dataToSave).length / 1024);
+      log('ℹ️ Enviando ~' + payloadKB + ' KB (' + GRANULAR.length + ' filas) a Supabase…', 'info');
+
+      const result = await saveSharedData(dataToSave);
+      if (result && result.ok) {
+        btn.textContent = '✅ Guardado';
+        setTimeout(() => { btn.textContent = '💾 Guardar datos compartidos'; btn.disabled = false; }, 2500);
+        log('✅ ' + (result.message || 'Datos guardados') + ' — todos los usuarios verán los datos.', 'ok');
       } else {
-        throw new Error('No se pudo guardar');
+        throw new Error((result && result.error) || 'Error desconocido');
       }
-    } catch (e) {
+    } catch(e) {
       btn.textContent = '❌ Error';
       btn.disabled = false;
       log('❌ Error guardando: ' + e.message, 'err');
