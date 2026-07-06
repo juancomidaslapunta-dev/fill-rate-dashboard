@@ -2248,6 +2248,7 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
 (function init(){
   try {
     const seedEl = document.getElementById('seed-data');
+    if (!seedEl || seedEl.textContent.trim().startsWith('__')) return; // sin seed real
     const seed = JSON.parse(seedEl.textContent);
     RAW.solicitudes = seed.solicitudes;
     RAW.despachos = seed.despachos;
@@ -2262,7 +2263,6 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
     log('Dashboard inicializado con datos de ejemplo (Semana ISO 24).', 'ok');
   } catch(err){
     console.error('Error inicializando seed:', err);
-    log('Error cargando datos de ejemplo: ' + err.message, 'err');
   }
 })();
 
