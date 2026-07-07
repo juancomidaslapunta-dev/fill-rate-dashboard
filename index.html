@@ -2374,18 +2374,26 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
 
   async function loadSharedData() {
     try {
-      let url = SB_URL + '/rest/v1/kpi_fill_rate?select=sku,descripcion,fecha,sucursal,solicitado,despachado,diferencia&order=fecha.asc&limit=200000';
-      // viewer_sucursal: filtrar por su sucursal
-      if (currentRole === 'viewer_sucursal' && currentSucursal) {
-        url += '&sucursal=eq.' + encodeURIComponent(currentSucursal);
+      const PAGE = 1000;
+      let all = [], offset = 0, total = Infinity;
+      while (all.length < total) {
+        const r = await fetch(
+          SB_URL + '/rest/v1/kpi_fill_rate?select=sku,descripcion,fecha,sucursal,solicitado,despachado,diferencia&order=fecha.asc' +
+          (currentRole === 'viewer_sucursal' && currentSucursal ? '&sucursal=eq.' + encodeURIComponent(currentSucursal) : ''), {
+          headers: { apikey: SB_ANON, Authorization: 'Bearer ' + SB_ANON, 'Range': `${offset}-${offset+PAGE-1}`, 'Prefer': 'count=exact' }
+        });
+        if (!r.ok) throw new Error('Supabase ' + r.status + ': ' + await r.text());
+        if (total === Infinity) {
+          const cr = r.headers.get('content-range');
+          total = parseInt(cr?.split('/')[1]) || 0;
+        }
+        const rows = await r.json();
+        all = all.concat(rows);
+        if (rows.length < PAGE) break;
+        offset += PAGE;
       }
-      const resp = await fetch(url, {
-        headers: { apikey: SB_ANON, Authorization: 'Bearer ' + SB_ANON }
-      });
-      if (!resp.ok) throw new Error('Supabase: ' + await resp.text());
-      const rows = await resp.json();
-      if (rows && rows.length > 0) {
-        GRANULAR = rows.map(r => ({
+      if (all.length > 0) {
+        GRANULAR = all.map(r => ({
           sku:         r.sku         || '',
           descripcion: r.descripcion || '',
           fecha:       r.fecha       || '',
@@ -2394,8 +2402,8 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
           despachado:  Number(r.despachado)  || 0,
           diferencia:  Number(r.diferencia)  || 0
         }));
-        sharedDataCache = { granular: rows };
-        console.log('✅ Supabase: ' + GRANULAR.length + ' filas');
+        sharedDataCache = { granular: all };
+        console.log('✅ Supabase: ' + GRANULAR.length + ' filas cargadas');
         poblarFiltros();
         poblarFiltrosAnalisis();
         renderAll();
