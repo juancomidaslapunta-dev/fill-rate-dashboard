@@ -6,6 +6,7 @@
 <title>📊 Dashboard Logístico - Fill Rate</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
 // Respaldo: si jsdelivr fue bloqueado (CSP, firewall, sin conexión a ese dominio),
 // cargar XLSX desde un CDN alternativo antes de que el usuario intente importar archivos.
@@ -304,6 +305,7 @@ tbody tr:hover { background:#f8fafc; }
   <div>📊 Dashboard Fill Rate — Sesión activa: <strong id="sessionUserLabel"></strong></div>
   <div>
     <button id="adminPanelBtn" onclick="abrirPanelAdmin()" style="display:none; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.4); color:white; padding:6px 14px; border-radius:4px; cursor:pointer; font-size:12px; margin-right:10px;">⚙️ Administración</button>
+    <button id="btnCaptura" onclick="capturarDashboard()" style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.4); color:white; padding:6px 14px; border-radius:4px; cursor:pointer; font-size:12px; margin-right:10px;">📸 Capturar</button>
     <button onclick="logoutUsuario()" style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.4); color:white; padding:6px 14px; border-radius:4px; cursor:pointer; font-size:12px;">🚪 Cerrar sesión</button>
   </div>
 </div>
@@ -2890,6 +2892,45 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
 
   boot();
 })();
+// ============================================================
+// CAPTURA DE PANTALLA DEL DASHBOARD
+// ============================================================
+async function capturarDashboard() {
+  const btn = document.getElementById('btnCaptura');
+  btn.textContent = '⏳ Capturando...';
+  btn.disabled = true;
+
+  try {
+    // Capturar el contenedor principal del dashboard
+    const target = document.getElementById('mainDashboardContainer') || document.body;
+
+    const canvas = await html2canvas(target, {
+      scale: 2,              // alta resolución
+      useCORS: true,
+      backgroundColor: '#f8fafc',
+      ignoreElements: (el) => el.id === 'sessionBar' // excluir barra de sesión
+    });
+
+    // Generar nombre con fecha y filtros activos
+    const fecha = new Date().toISOString().slice(0,10);
+    const semLabel = filtroSemana.length > 0 ? '_sem' + filtroSemana.join('-') : '';
+    const localLabel = filtroLocal.length === 1 ? '_' + filtroLocal[0].replace(/\s+/g,'') : '';
+    const nombre = `FillRate_${fecha}${semLabel}${localLabel}.png`;
+
+    // Descargar
+    const link = document.createElement('a');
+    link.download = nombre;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+
+    btn.textContent = '✅ Descargada';
+    setTimeout(() => { btn.textContent = '📸 Capturar'; btn.disabled = false; }, 2000);
+  } catch(e) {
+    console.error('Error capturando:', e);
+    btn.textContent = '❌ Error';
+    setTimeout(() => { btn.textContent = '📸 Capturar'; btn.disabled = false; }, 2000);
+  }
+}
 </script>
 </body>
 </html>
