@@ -2374,10 +2374,18 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
 
   async function loadSharedData() {
     try {
-      const d = await api('load_data', {});
-      const raw = d.data || null;
-      if (raw && raw.granular && raw.granular.length > 0) {
-        GRANULAR = raw.granular.map(r => ({
+      let url = SB_URL + '/rest/v1/kpi_fill_rate?select=sku,descripcion,fecha,sucursal,solicitado,despachado,diferencia&order=fecha.asc&limit=200000';
+      // viewer_sucursal: filtrar por su sucursal
+      if (currentRole === 'viewer_sucursal' && currentSucursal) {
+        url += '&sucursal=eq.' + encodeURIComponent(currentSucursal);
+      }
+      const resp = await fetch(url, {
+        headers: { apikey: SB_ANON, Authorization: 'Bearer ' + SB_ANON }
+      });
+      if (!resp.ok) throw new Error('Supabase: ' + await resp.text());
+      const rows = await resp.json();
+      if (rows && rows.length > 0) {
+        GRANULAR = rows.map(r => ({
           sku:         r.sku         || '',
           descripcion: r.descripcion || '',
           fecha:       r.fecha       || '',
@@ -2386,9 +2394,8 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
           despachado:  Number(r.despachado)  || 0,
           diferencia:  Number(r.diferencia)  || 0
         }));
-        if (raw.data_quality) DATA_QUALITY = raw.data_quality;
-        sharedDataCache = raw;
-        console.log('✅ Supabase: ' + GRANULAR.length + ' filas cargadas');
+        sharedDataCache = { granular: rows };
+        console.log('✅ Supabase: ' + GRANULAR.length + ' filas');
         poblarFiltros();
         poblarFiltrosAnalisis();
         renderAll();
@@ -2409,12 +2416,15 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
 
   async function saveSharedData(data) {
     try {
-      // 1. Backend borra datos anteriores del usuario (requiere service_role)
-      const delResp = await api('delete_data', {});
-      if (delResp && delResp.error) throw new Error('DELETE: ' + delResp.error);
+      // 1. DELETE directo a Supabase (anon key, RLS permite borrar propios datos)
+      const delResp = await fetch(SB_URL + '/rest/v1/kpi_fill_rate?uploaded_by=eq.' + encodeURIComponent(currentUser), {
+        method: 'DELETE',
+        headers: { apikey: SB_ANON, Authorization: 'Bearer ' + SB_ANON }
+      });
+      if (!delResp.ok) throw new Error('DELETE: ' + await delResp.text());
 
-      // 2. INSERT directo a Supabase desde browser en chunks — evita límite 4.5MB de Vercel
-      const uploadId = crypto.randomUUID();
+      // 2. INSERT directo a Supabase en chunks de 500 — evita límite 4.5MB de Vercel
+      const uploadId  = crypto.randomUUID();
       const uploadedAt = data.processed_at || new Date().toISOString();
       const rows = data.granular.map(r => ({
         sku:         r.sku         || '',
@@ -2430,24 +2440,15 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
       }));
 
       const CHUNK = 500;
-      let inserted = 0;
       for (let i = 0; i < rows.length; i += CHUNK) {
         const ins = await fetch(SB_URL + '/rest/v1/kpi_fill_rate', {
           method: 'POST',
-          headers: {
-            apikey: SB_ANON,
-            Authorization: 'Bearer ' + SB_ANON,
-            'Content-Type': 'application/json',
-            Prefer: 'return=minimal'
-          },
+          headers: { apikey: SB_ANON, Authorization: 'Bearer ' + SB_ANON, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
           body: JSON.stringify(rows.slice(i, i + CHUNK))
         });
-        if (!ins.ok) {
-          const err = await ins.text();
-          throw new Error('INSERT chunk ' + i + ': ' + err);
-        }
-        inserted += Math.min(CHUNK, rows.length - i);
-        log('ℹ️ Guardando... ' + inserted + '/' + rows.length + ' filas', 'info');
+        if (!ins.ok) throw new Error('INSERT chunk ' + i + ': ' + await ins.text());
+        const done = Math.min(i + CHUNK, rows.length);
+        log('ℹ️ Guardando... ' + done + '/' + rows.length + ' filas', 'info');
       }
 
       sharedDataCache = data;
