@@ -1714,6 +1714,9 @@ function getAnalisisAgregado(){
     e.despachado += g.despachado;
     e.fechas.add(g.fecha);
     if(!e.descripcion && g.descripcion) e.descripcion = g.descripcion;
+    // Tomar el mayor valor de programa e inventario de GRANULAR directamente
+    if(g.programa   > e.programa)   e.programa   = g.programa;
+    if(g.inventario > e.inventario) e.inventario = g.inventario;
   }
 
   // Indexar guías por sku+sucursal+fecha para poder anexarlas a cada fila agregada
