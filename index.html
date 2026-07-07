@@ -1501,7 +1501,7 @@ function renderCharts(){
     e.despachado += g.despachado;
   }
   const fechas     = Array.from(porDia.keys()).sort();
-  const labels     = fechas.map(f => f.slice(5).replace('-', '/'));
+  const labels     = fechas.map(f => { const [,m,d] = f.split('-'); return d+'/'+m; });
   const solicitado = fechas.map(f => porDia.get(f).solicitado);
   const despachado = fechas.map(f => porDia.get(f).despachado);
   const fillrate   = fechas.map(f => {
