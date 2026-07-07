@@ -2378,7 +2378,7 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
       let all = [], offset = 0, total = Infinity;
       while (all.length < total) {
         const r = await fetch(
-          SB_URL + '/rest/v1/kpi_fill_rate?select=sku,descripcion,fecha,sucursal,solicitado,despachado,diferencia&order=fecha.asc' +
+          SB_URL + '/rest/v1/kpi_fill_rate?select=sku,descripcion,fecha,sucursal,solicitado,despachado,diferencia,programa,inventario&order=fecha.asc' +
           (currentRole === 'viewer_sucursal' && currentSucursal ? '&sucursal=eq.' + encodeURIComponent(currentSucursal) : ''), {
           headers: { apikey: SB_ANON, Authorization: 'Bearer ' + SB_ANON, 'Range': `${offset}-${offset+PAGE-1}`, 'Prefer': 'count=exact' }
         });
@@ -2400,7 +2400,9 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
           sucursal:    r.sucursal    || '',
           solicitado:  Number(r.solicitado)  || 0,
           despachado:  Number(r.despachado)  || 0,
-          diferencia:  Number(r.diferencia)  || 0
+          diferencia:  Number(r.diferencia)  || 0,
+          programa:    Number(r.programa)    || 0,
+          inventario:  Number(r.inventario)  || 0
         }));
         sharedDataCache = { granular: all };
         console.log('✅ Supabase: ' + GRANULAR.length + ' filas cargadas');
@@ -2442,6 +2444,8 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
         solicitado:  Number(r.solicitado)  || 0,
         despachado:  Number(r.despachado)  || 0,
         diferencia:  Number(r.diferencia)  || 0,
+        programa:    Number(r.programa)    || 0,
+        inventario:  Number(r.inventario)  || 0,
         upload_id:   uploadId,
         uploaded_at: uploadedAt,
         uploaded_by: currentUser
