@@ -591,17 +591,11 @@ tbody tr:hover { background:#f8fafc; }
       </div>
     </div>
 
-    <div class="grid-2">
-      <div class="panel">
-        <div class="panel-title">📊 Solicitado vs Despachado (por día)</div>
-        <div class="panel-note">Se ajusta automáticamente al filtro de Local / Semana / Día seleccionado.</div>
-        <canvas id="chartLinea"></canvas>
-      </div>
-      <div class="panel">
-        <div class="panel-title">📈 Evolución Fill Rate (%)</div>
-        <div class="panel-note">Capado visualmente en 150% para legibilidad.</div>
-        <canvas id="chartArea"></canvas>
-      </div>
+    <div class="panel" style="margin-bottom:1.2rem;">
+      <div class="panel-title">📊 Solicitado vs Despachado + Evolución Fill Rate (%)</div>
+      <div class="panel-note">Barras: volumen diario. Línea amarilla: Fill Rate % (eje derecho).</div>
+      <canvas id="chartLinea"></canvas>
+      <canvas id="chartArea" style="display:none;"></canvas>
     </div>
 
     <div class="grid-2">
@@ -1545,36 +1539,118 @@ function renderCharts(){
     e.solicitado += g.solicitado;
     e.despachado += g.despachado;
   }
-  const fechas = Array.from(porDia.keys()).sort();
-  const labels = fechas.map(f=>f.slice(5));
-  const solicitado = fechas.map(f=>porDia.get(f).solicitado);
-  const despachado = fechas.map(f=>porDia.get(f).despachado);
-  const fillrate = fechas.map(f=>{
+  const fechas     = Array.from(porDia.keys()).sort();
+  const labels     = fechas.map(f => f.slice(5).replace('-', '/'));
+  const solicitado = fechas.map(f => porDia.get(f).solicitado);
+  const despachado = fechas.map(f => porDia.get(f).despachado);
+  const fillrate   = fechas.map(f => {
     const e = porDia.get(f);
-    const v = e.solicitado>0 ? (e.despachado/e.solicitado*100) : 0;
-    return Math.min(v,150);
+    const v = e.solicitado > 0 ? (e.despachado / e.solicitado * 100) : 0;
+    return Math.min(v, 200);
   });
 
+  // Gráfico combinado: barras despacho+solicitud + línea fill rate
   if(chartLinea) chartLinea.destroy();
   chartLinea = new Chart(document.getElementById('chartLinea'), {
-    type:'bar',
-    data:{ labels, datasets:[
-      {label:'Solicitado', data:solicitado, backgroundColor:'#2563eb', borderRadius:4, borderWidth:0},
-      {label:'Despachado', data:despachado, backgroundColor:'#059669', borderRadius:4, borderWidth:0}
-    ]},
-    options:{ responsive:true, maintainAspectRatio:true, plugins:{legend:{position:'top'}},
-      scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>fmt(v) } } } }
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'DESPACHO',
+          data: despachado,
+          backgroundColor: '#1a1a1a',
+          borderRadius: 3,
+          borderWidth: 0,
+          yAxisID: 'y'
+        },
+        {
+          label: 'SOLICITUD',
+          data: solicitado,
+          backgroundColor: '#d97706',
+          borderRadius: 3,
+          borderWidth: 0,
+          yAxisID: 'y'
+        },
+        {
+          label: 'Fill Rate %',
+          data: fillrate,
+          type: 'line',
+          borderColor: '#eab308',
+          backgroundColor: 'transparent',
+          borderWidth: 2.5,
+          pointRadius: 5,
+          pointBackgroundColor: '#eab308',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          tension: 0.3,
+          yAxisID: 'y2',
+          datalabels: { display: true }
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { usePointStyle: true, padding: 16, font: { size: 11 } }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              if(ctx.dataset.label === 'Fill Rate %') return ' Fill Rate: ' + ctx.parsed.y.toFixed(1) + '%';
+              return ' ' + ctx.dataset.label + ': ' + fmt(ctx.parsed.y);
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: {
+          beginAtZero: true,
+          position: 'left',
+          grid: { color: 'rgba(0,0,0,0.06)' },
+          ticks: { callback: v => fmt(v), font: { size: 11 } }
+        },
+        y2: {
+          beginAtZero: true,
+          position: 'right',
+          suggestedMax: 200,
+          grid: { drawOnChartArea: false },
+          ticks: {
+            callback: v => v + '%',
+            font: { size: 11 },
+            stepSize: 50
+          }
+        }
+      }
+    },
+    plugins: [{
+      // Labels de % sobre los puntos de la línea
+      afterDatasetsDraw(chart) {
+        const ds = chart.data.datasets.find(d => d.label === 'Fill Rate %');
+        if(!ds) return;
+        const meta = chart.getDatasetMeta(chart.data.datasets.indexOf(ds));
+        const ctx2 = chart.ctx;
+        meta.data.forEach((point, i) => {
+          const val = ds.data[i];
+          if(val == null) return;
+          ctx2.save();
+          ctx2.font = 'bold 11px sans-serif';
+          ctx2.fillStyle = '#92400e';
+          ctx2.textAlign = 'center';
+          ctx2.fillText(Math.round(val) + '%', point.x, point.y - 10);
+          ctx2.restore();
+        });
+      }
+    }]
   });
 
-  if(chartArea) chartArea.destroy();
-  chartArea = new Chart(document.getElementById('chartArea'), {
-    type:'line',
-    data:{ labels, datasets:[
-      {label:'Fill Rate % (cap 150)', data:fillrate, borderColor:'#7c3aed', backgroundColor:'rgba(124,58,237,.25)', tension:.35, borderWidth:2.5, pointRadius:3, fill:true}
-    ]},
-    options:{ responsive:true, maintainAspectRatio:true, plugins:{legend:{position:'top'}},
-      scales:{ y:{ beginAtZero:true, suggestedMax:150 } } }
-  });
+  // Destruir chartArea si existía (ya no se usa)
+  if(chartArea) { chartArea.destroy(); chartArea = null; }
 }
 
 function renderSucursalBars(){
