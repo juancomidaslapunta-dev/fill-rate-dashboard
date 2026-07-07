@@ -1348,77 +1348,69 @@ function construirGranular(){
 // FILTROS
 // ============================================================
 function setupCustomFilter(prefix, opciones, selectedValues, onApply){
-  const btn = document.querySelector(`#${prefix}DD .filter-btn`);
-  const menu = document.querySelector(`#${prefix}DD .filter-menu`);
+  const ddEl = document.querySelector(`#${prefix}DD`);
+  if (!ddEl) return;
+
+  // Clonar botón para eliminar listeners anteriores
+  const oldBtn = ddEl.querySelector('.filter-btn');
+  const btn = oldBtn.cloneNode(true);
+  oldBtn.parentNode.replaceChild(btn, oldBtn);
+
+  const menu = ddEl.querySelector('.filter-menu');
   const optionsContainer = document.getElementById(`${prefix}Options`);
   const searchInput = document.getElementById(`${prefix}Search`);
   const allBtn = document.getElementById(`${prefix}All`);
   const noneBtn = document.getElementById(`${prefix}None`);
   const applyBtn = document.getElementById(`${prefix}Apply`);
   const cancelBtn = document.getElementById(`${prefix}Cancel`);
-  
+
   let tempSelected = [...selectedValues];
-  
+
   function renderOptions(filterText = ''){
-    const filtered = opciones.filter(opt => opt.toLowerCase().includes(filterText.toLowerCase()));
+    const filtered = opciones.filter(opt => opt.toLowerCase().includes((filterText||'').toLowerCase()));
     optionsContainer.innerHTML = filtered.map((opt,i) => {
       const isChecked = tempSelected.includes(opt);
       const safeId = prefix + '_opt_' + i;
-      return `<div class="filter-option">
-        <input type="checkbox" id="${safeId}" ${isChecked?'checked':''}>
-        <label for="${safeId}">${opt}</label>
-      </div>`;
+      return `<div class="filter-option"><input type="checkbox" id="${safeId}" ${isChecked?'checked':''}><label for="${safeId}">${opt}</label></div>`;
     }).join('');
-    
     optionsContainer.querySelectorAll('input[type="checkbox"]').forEach((chk, i) => {
+      const optValue = filtered[i];
       chk.addEventListener('change', () => {
-        if(chk.checked) tempSelected.push(opciones[i]);
-        else tempSelected = tempSelected.filter(x => x !== opciones[i]);
+        if(chk.checked) { if(!tempSelected.includes(optValue)) tempSelected.push(optValue); }
+        else tempSelected = tempSelected.filter(x => x !== optValue);
       });
     });
   }
-  
-  btn.addEventListener('click', ()=>{
-    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+
+  btn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    const isOpen = menu.style.display === 'block';
+    // Cerrar todos los otros menus
+    document.querySelectorAll('.filter-menu').forEach(m => { m.style.display = 'none'; });
+    menu.style.display = isOpen ? 'none' : 'block';
     if(menu.style.display === 'block') renderOptions();
   });
-  
-  if(searchInput){
-    searchInput.addEventListener('input', e => renderOptions(e.target.value));
-  }
-  
-  if(allBtn){
-    allBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      tempSelected = [...opciones];
-      renderOptions(searchInput?.value || '');
-    });
-  }
-  
-  if(noneBtn){
-    noneBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      tempSelected = [];
-      renderOptions(searchInput?.value || '');
-    });
-  }
-  
-  applyBtn.addEventListener('click', (e) => {
-    e.preventDefault();
+
+  if(searchInput) searchInput.addEventListener('input', e => renderOptions(e.target.value));
+  if(allBtn) allBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); tempSelected = [...opciones]; renderOptions(searchInput?.value||''); });
+  if(noneBtn) noneBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); tempSelected = []; renderOptions(searchInput?.value||''); });
+
+  if(applyBtn) applyBtn.addEventListener('click', (e) => {
+    e.preventDefault(); e.stopPropagation();
     onApply(tempSelected);
     menu.style.display = 'none';
+    // Actualizar label del botón
+    btn.textContent = tempSelected.length > 0 ? tempSelected.length + ' seleccionados' : btn.getAttribute('data-placeholder') || 'Seleccionar...';
   });
-  
-  cancelBtn.addEventListener('click', (e) => {
-    e.preventDefault();
+
+  if(cancelBtn) cancelBtn.addEventListener('click', (e) => {
+    e.preventDefault(); e.stopPropagation();
     tempSelected = [...selectedValues];
     menu.style.display = 'none';
   });
-  
+
   document.addEventListener('click', (e) => {
-    if(!document.querySelector(`#${prefix}DD`).contains(e.target)){
-      menu.style.display = 'none';
-    }
+    if(!ddEl.contains(e.target)) menu.style.display = 'none';
   });
 }
 
