@@ -1510,7 +1510,7 @@ function renderCharts(){
     return Math.min(v, 200);
   });
 
-  // Gráfico combinado: barras despacho+solicitud + línea fill rate
+  // Gráfico combinado estilo foto: barras overlapped + área fill rate
   if(chartLinea) chartLinea.destroy();
   chartLinea = new Chart(document.getElementById('chartLinea'), {
     type: 'bar',
@@ -1518,35 +1518,39 @@ function renderCharts(){
       labels,
       datasets: [
         {
-          label: 'DESPACHO',
-          data: despachado,
-          backgroundColor: '#0A5FD6',
-          borderRadius: 3,
-          borderWidth: 0,
-          yAxisID: 'y'
-        },
-        {
-          label: 'SOLICITUD',
+          label: 'Solicitud',
           data: solicitado,
           backgroundColor: '#B0BEC8',
-          borderRadius: 3,
+          borderRadius: 2,
           borderWidth: 0,
-          yAxisID: 'y'
+          yAxisID: 'y',
+          barPercentage: 0.85,
+          categoryPercentage: 0.8
+        },
+        {
+          label: 'Despacho',
+          data: despachado,
+          backgroundColor: '#0A5FD6',
+          borderRadius: 2,
+          borderWidth: 0,
+          yAxisID: 'y',
+          barPercentage: 0.55,
+          categoryPercentage: 0.8
         },
         {
           label: 'Fill Rate %',
           data: fillrate,
           type: 'line',
-          borderColor: '#0B875B',
-          backgroundColor: 'transparent',
-          borderWidth: 2.5,
-          pointRadius: 5,
-          pointBackgroundColor: '#0B875B',
-          pointBorderColor: '#fff',
+          borderColor: '#C07A00',
+          backgroundColor: 'rgba(192,122,0,0.12)',
+          fill: true,
+          borderWidth: 2,
+          pointRadius: 4,
+          pointBackgroundColor: '#fff',
+          pointBorderColor: '#C07A00',
           pointBorderWidth: 2,
-          tension: 0.3,
-          yAxisID: 'y2',
-          datalabels: { display: true }
+          tension: 0.4,
+          yAxisID: 'y2'
         }
       ]
     },
@@ -1556,63 +1560,75 @@ function renderCharts(){
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: {
-          position: 'bottom',
-          labels: { usePointStyle: true, padding: 16, font: { size: 11 } }
+          position: 'top',
+          align: 'start',
+          labels: {
+            usePointStyle: true,
+            pointStyle: 'circle',
+            padding: 18,
+            font: { size: 11, weight: '600' },
+            color: '#3D5166'
+          }
         },
         tooltip: {
+          backgroundColor: '#0D1B2A',
+          titleColor: '#fff',
+          bodyColor: '#94A3B8',
+          padding: 10,
           callbacks: {
             label: ctx => {
-              if(ctx.dataset.label === 'Fill Rate %') return ' Fill Rate: ' + ctx.parsed.y.toFixed(1) + '%';
-              return ' ' + ctx.dataset.label + ': ' + fmt(ctx.parsed.y);
+              if(ctx.dataset.label === 'Fill Rate %') return '  Fill Rate: ' + ctx.parsed.y.toFixed(1) + '%';
+              return '  ' + ctx.dataset.label + ': ' + fmt(ctx.parsed.y);
             }
           }
         }
       },
       scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 11 }, color: '#7A8EA3' },
+          border: { color: '#E3E8EF' }
+        },
         y: {
           beginAtZero: true,
           position: 'left',
-          grid: { color: 'rgba(0,0,0,0.06)' },
-          ticks: { callback: v => fmt(v), font: { size: 11 } }
+          grid: { color: 'rgba(0,0,0,0.05)', drawBorder: false },
+          ticks: { callback: v => fmt(v), font: { size: 11 }, color: '#7A8EA3' },
+          border: { display: false }
         },
         y2: {
-          beginAtZero: true,
+          beginAtZero: false,
           position: 'right',
-          suggestedMax: 200,
+          suggestedMax: 150,
           grid: { drawOnChartArea: false },
-          ticks: {
-            callback: v => v + '%',
-            font: { size: 11 },
-            stepSize: 50
-          }
+          ticks: { callback: v => v + '%', font: { size: 11 }, color: '#7A8EA3', stepSize: 50 },
+          border: { display: false }
         }
       }
     },
     plugins: [{
-      // Labels de % sobre los puntos de la línea
       afterDatasetsDraw(chart) {
-        const ds = chart.data.datasets.find(d => d.label === 'Fill Rate %');
-        if(!ds) return;
-        const meta = chart.getDatasetMeta(chart.data.datasets.indexOf(ds));
+        const dsIdx = chart.data.datasets.findIndex(d => d.label === 'Fill Rate %');
+        if(dsIdx < 0) return;
+        const ds   = chart.data.datasets[dsIdx];
+        const meta = chart.getDatasetMeta(dsIdx);
         const ctx2 = chart.ctx;
         meta.data.forEach((point, i) => {
           const val = ds.data[i];
           if(val == null) return;
+          const color = val >= 95 ? '#0B875B' : val >= 80 ? '#C07A00' : '#C8303A';
           ctx2.save();
-          ctx2.font = 'bold 11px sans-serif';
-          ctx2.fillStyle = '#0B875B';
+          ctx2.font = 'bold 11px Inter,sans-serif';
+          ctx2.fillStyle = color;
           ctx2.textAlign = 'center';
-          ctx2.fillText(Math.round(val) + '%', point.x, point.y - 10);
+          ctx2.fillText(Math.round(val) + '%', point.x, point.y - 11);
           ctx2.restore();
         });
       }
     }]
   });
 
-  // Destruir chartArea si existía (ya no se usa)
   if(chartArea) { chartArea.destroy(); chartArea = null; }
-}
 
 function renderSucursalBars(){
   const filtrado = getFiltrado();
