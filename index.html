@@ -1215,26 +1215,27 @@ function procesar(){
     log('Procesando archivo de Inventarios (' + invRows.length + ' filas)…', 'info');
     const invIndex = {};
     for(const row of invRows){
-      const sku = String(row['SKU'] || '').trim();
-      const local = String(row['N° Local'] || row['ID Local'] || '').trim();
-      const stock = parseFloat(row['Stock Físico'] || 0);
+      const sku    = String(row['SKU'] || '').trim();
+      const local  = String(row['N° Local'] || row['ID Local'] || '').trim();
+      const stock  = parseFloat(row['Stock Físico'] || 0);
       if(sku && local && stock > 0){
-        // Mapear código local a nombre oficial si existe, sino usar el nombre que venga
         const sucursal = NOMBRES_OFICIALES[parseInt(local)] || String(row['Nombre Local'] || row['Local'] || '').trim();
         const key = sku + '|' + sucursal;
         invIndex[key] = stock;
       }
     }
-    // Agregar inventario a despachos
+    // Agregar inventario a solicitudes (cobertura total)
     let inventarioAgregado = 0;
+    for(const sol of solicitudesOut){
+      const key = sol.sku + '|' + sol.sucursal;
+      if(invIndex[key]){ sol.inventario = invIndex[key]; inventarioAgregado++; }
+    }
+    // También a despachos
     for(const desp of despachosOut){
       const key = desp.sku + '|' + desp.sucursal;
-      if(invIndex[key]){
-        desp.inventario = invIndex[key];
-        inventarioAgregado++;
-      }
+      if(invIndex[key]) desp.inventario = invIndex[key];
     }
-    log('Inventarios: ' + invRows.length + ' filas leídas, ' + inventarioAgregado + ' combinaciones SKU+Sucursal enriquecidas', 'ok');
+    log('Inventarios: ' + invRows.length + ' filas leídas, ' + inventarioAgregado + ' solicitudes enriquecidas', 'ok');
   }
 
   // Procesar Programa si se cargó
@@ -1251,16 +1252,18 @@ function procesar(){
         progIndex[key] = (progIndex[key] || 0) + venta;
       }
     }
-    // Agregar programa a despachos
+    // Agregar programa a solicitudes (cobertura total)
     let programaAgregado = 0;
+    for(const sol of solicitudesOut){
+      const key = sol.sku + '|' + sol.sucursal;
+      if(progIndex[key]){ sol.programa = progIndex[key]; programaAgregado++; }
+    }
+    // También a despachos
     for(const desp of despachosOut){
       const key = desp.sku + '|' + desp.sucursal;
-      if(progIndex[key]){
-        desp.programa = progIndex[key];
-        programaAgregado++;
-      }
+      if(progIndex[key]) desp.programa = progIndex[key];
     }
-    log('Programa: ' + progRows.length + ' filas leídas, ' + programaAgregado + ' combinaciones SKU+Sucursal enriquecidas', 'ok');
+    log('Programa: ' + progRows.length + ' filas leídas, ' + programaAgregado + ' solicitudes enriquecidas', 'ok');
   }
 
   RAW.solicitudes = solicitudesOut;
@@ -1300,7 +1303,10 @@ function construirGranular(){
     if(!solMap.has(key)){
       solMap.set(key, { sku:r.sku, descripcion:r.descripcion, fecha:r.fecha, sucursal:r.sucursal, solicitado:0, despachado:0, programa:0, inventario:0 });
     }
-    solMap.get(key).solicitado += r.cantidad;
+    const entry = solMap.get(key);
+    entry.solicitado += r.cantidad;
+    if(r.programa   > (entry.programa   || 0)) entry.programa   = r.programa;
+    if(r.inventario > (entry.inventario || 0)) entry.inventario = r.inventario;
   }
   for(const r of RAW.despachos){
     const key = r.sku + '|' + r.fecha + '|' + r.sucursal;
