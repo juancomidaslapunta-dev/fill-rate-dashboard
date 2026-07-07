@@ -554,7 +554,7 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
 
     <div class="panel" style="margin-bottom:1.2rem;">
       <div class="panel-title">📊 Solicitado vs Despachado + Evolución Fill Rate (%)</div>
-      <div class="panel-note">Barras: volumen diario. Línea amarilla: Fill Rate % (eje derecho).</div>
+      <div class="panel-note">Barras azules: despacho · Barras grises: solicitud · Línea verde: Fill Rate % (eje derecho).</div>
       <canvas id="chartLinea"></canvas>
       <canvas id="chartArea" style="display:none;"></canvas>
     </div>
@@ -1520,7 +1520,7 @@ function renderCharts(){
         {
           label: 'DESPACHO',
           data: despachado,
-          backgroundColor: '#1a1a1a',
+          backgroundColor: '#0A5FD6',
           borderRadius: 3,
           borderWidth: 0,
           yAxisID: 'y'
@@ -1528,7 +1528,7 @@ function renderCharts(){
         {
           label: 'SOLICITUD',
           data: solicitado,
-          backgroundColor: '#d97706',
+          backgroundColor: '#B0BEC8',
           borderRadius: 3,
           borderWidth: 0,
           yAxisID: 'y'
@@ -1537,11 +1537,11 @@ function renderCharts(){
           label: 'Fill Rate %',
           data: fillrate,
           type: 'line',
-          borderColor: '#eab308',
+          borderColor: '#0B875B',
           backgroundColor: 'transparent',
           borderWidth: 2.5,
           pointRadius: 5,
-          pointBackgroundColor: '#eab308',
+          pointBackgroundColor: '#0B875B',
           pointBorderColor: '#fff',
           pointBorderWidth: 2,
           tension: 0.3,
@@ -1601,7 +1601,7 @@ function renderCharts(){
           if(val == null) return;
           ctx2.save();
           ctx2.font = 'bold 11px sans-serif';
-          ctx2.fillStyle = '#92400e';
+          ctx2.fillStyle = '#0B875B';
           ctx2.textAlign = 'center';
           ctx2.fillText(Math.round(val) + '%', point.x, point.y - 10);
           ctx2.restore();
