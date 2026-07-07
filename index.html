@@ -1314,6 +1314,29 @@ function construirGranular(){
     if(r.programa) entry.programa = Math.max(entry.programa || 0, r.programa);
     if(r.inventario) entry.inventario = Math.max(entry.inventario || 0, r.inventario);
   }
+
+  // Propagar programa e inventario a TODAS las fechas del mismo SKU+sucursal
+  // (los archivos de programa/inventario no tienen fecha, solo SKU+sucursal)
+  const skuSucMap = new Map(); // sku|sucursal -> {programa, inventario}
+  for(const entry of solMap.values()){
+    if(entry.programa > 0 || entry.inventario > 0){
+      const k = entry.sku + '|' + entry.sucursal;
+      const cur = skuSucMap.get(k) || { programa: 0, inventario: 0 };
+      skuSucMap.set(k, {
+        programa:   Math.max(cur.programa,   entry.programa),
+        inventario: Math.max(cur.inventario, entry.inventario)
+      });
+    }
+  }
+  for(const entry of solMap.values()){
+    const k = entry.sku + '|' + entry.sucursal;
+    const vals = skuSucMap.get(k);
+    if(vals){
+      if(!entry.programa   && vals.programa)   entry.programa   = vals.programa;
+      if(!entry.inventario && vals.inventario) entry.inventario = vals.inventario;
+    }
+  }
+
   GRANULAR = Array.from(solMap.values()).map(e => ({ ...e, diferencia: e.solicitado - e.despachado }));
 
   // Construir DESPACHOS_LINEA (detalle a nivel de línea, preserva numero_guia)
