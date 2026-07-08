@@ -373,9 +373,80 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
   <div class="tabs">
     <button class="tab-btn active" data-tab="dashboard">📈 Dashboard</button>
     <button class="tab-btn" data-tab="analisis">🔍 Análisis</button>
+    <button class="tab-btn" data-tab="stock">📦 Stock</button>
     <button class="tab-btn" data-tab="guias">🚚 Guías de Despacho</button>
     <button class="tab-btn" data-tab="carga">📂 Importar Archivos</button>
   </div>
+
+  <!-- ============ TAB: STOCK ============ -->
+  <div class="tab-panel" id="tab-stock">
+
+    <!-- Filtros -->
+    <div class="toolbar">
+      <div class="fgroup">
+        <label>Local / Sucursal</label>
+        <div class="filter-dropdown" id="stLocalDD">
+          <button class="filter-btn" data-placeholder="Seleccionar locales...">Seleccionar locales...</button>
+          <div class="filter-menu" style="display:none">
+            <input class="filter-search" id="stLocalSearch" placeholder="Buscar...">
+            <div class="filter-controls">
+              <button class="filter-btn-small" id="stLocalAll">Todos</button>
+              <button class="filter-btn-small" id="stLocalNone">Ninguno</button>
+            </div>
+            <div class="filter-options" id="stLocalOptions"></div>
+            <div class="filter-actions">
+              <button class="btn btn-primary" id="stLocalApply">Aplicar</button>
+              <button class="btn btn-secondary" id="stLocalCancel">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="fgroup">
+        <label>Buscar SKU / Descripción</label>
+        <input type="text" id="stBuscar" class="search-input" placeholder="Ej: 4104001, alcachofa...">
+      </div>
+      <button class="btn-reset" id="stBtnReset">✕ Limpiar filtros</button>
+      <div style="margin-left:auto; display:flex; gap:.6rem;">
+        <button class="btn btn-primary" id="stBtnImprimir" onclick="imprimirStock()">🖨️ Imprimir</button>
+        <button class="btn btn-download btn-primary" id="stBtnDescargar" onclick="descargarStockExcel()">⬇ Descargar</button>
+      </div>
+    </div>
+
+    <!-- Tabla -->
+    <div class="panel">
+      <div class="panel-header-row">
+        <div>
+          <div class="panel-title">📦 Stock por Sucursal y SKU</div>
+          <div id="stResultsCount" class="results-count">—</div>
+        </div>
+      </div>
+      <div class="analisis-table-wrap" id="stTableWrap">
+        <table id="stTable">
+          <thead>
+            <tr>
+              <th class="sort-th" data-sort="numero_local">N° Local<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="sucursal">Sucursal<span class="arrow">▾</span></th>
+              <th class="sort-th filterable-th" data-sort="sku">SKU<span class="filter-icon">▼</span><span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="descripcion">Descripción<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="inv_entrada" style="text-align:right">Inv. Entrada<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="solicitado" style="text-align:right">Solicitado<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="despachado" style="text-align:right">Despachado<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="prog_produccion" style="text-align:right">Prog. Producción<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="venta_semana" style="text-align:right">Venta Semana<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="stock_disponible" style="text-align:right">Stock Disp. (OH+Desp)<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="stock_teorico" style="text-align:right">Stock Teórico<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="inv_salida" style="text-align:right">Inv. Salida<span class="arrow">▾</span></th>
+            </tr>
+          </thead>
+          <tbody id="stTableBody">
+            <tr><td colspan="12" class="empty-state">Carga y procesa los archivos para ver el stock.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+  <!-- ============ FIN TAB STOCK ============ -->
 
   <!-- ============ TAB: CARGA DE ARCHIVOS ============ -->
   <div class="tab-panel" id="tab-carga">
@@ -1512,6 +1583,8 @@ function renderAll(){
   renderAnalisis();
   poblarFiltrosGuias();
   renderGuias();
+  poblarFiltrosStock();
+  renderStock();
 }
 
 function renderHeader(){
@@ -2378,6 +2451,202 @@ function descargarAnalisisExcel(){
 }
 
 document.getElementById('anBtnDescargar').addEventListener('click', descargarAnalisisExcel);
+
+// ============================================================
+// TAB STOCK — lógica completa
+// ============================================================
+var stLocal = [];
+var stBuscarVal = '';
+var stSortCol = 'sucursal';
+var stSortDir = 'asc';
+
+// NOMBRES_OFICIALES invertido: nombre → número local
+const CODIGOS_POR_NOMBRE = Object.fromEntries(
+  Object.entries(NOMBRES_OFICIALES).map(([k,v]) => [v, parseInt(k)])
+);
+
+function getStockRows() {
+  // Construir índices de los archivos opcionales
+  const invSalidaIdx = {}; // sku|sucursal → salida
+  const ventaSemIdx  = {}; // sku|sucursal → venta
+
+  if(PARSED.invSalidaFile) {
+    for(const r of PARSED.invSalidaFile) {
+      const sku    = String(r['SKU'] || r['sku'] || '').trim();
+      const local  = String(r['N° Local'] || r['ID Local'] || '').trim();
+      const sal    = parseFloat(r['Unidades Salida'] || r['Stock Físico'] || r['Salida'] || 0);
+      if(!sku || !local) continue;
+      const suc = NOMBRES_OFICIALES[parseInt(local)] || String(r['Nombre Local'] || r['Local'] || '').trim();
+      const key = sku + '|' + suc;
+      invSalidaIdx[key] = (invSalidaIdx[key] || 0) + sal;
+    }
+  }
+
+  if(PARSED.ventaSemanaFile) {
+    for(const r of PARSED.ventaSemanaFile) {
+      const sku   = String(r['SKU'] || r['sku'] || '').trim();
+      const local = String(r['ID Local'] || r['N° Local'] || '').trim();
+      const vta   = parseFloat(r['Venta Diaria'] || r['Venta Semana'] || r['Unidades Vendidas'] || 0);
+      if(!sku || !local) continue;
+      const suc = NOMBRES_OFICIALES[parseInt(local)] || String(r['Local'] || r['Nombre Local'] || '').trim();
+      const key = sku + '|' + suc;
+      ventaSemIdx[key] = (ventaSemIdx[key] || 0) + vta;
+    }
+  }
+
+  // Agregar GRANULAR por SKU+Sucursal
+  const map = new Map();
+  for(const g of GRANULAR) {
+    const key = g.sku + '|' + g.sucursal;
+    if(!map.has(key)) {
+      map.set(key, {
+        numero_local:   CODIGOS_POR_NOMBRE[g.sucursal] || '',
+        sucursal:       g.sucursal,
+        sku:            g.sku,
+        descripcion:    g.descripcion,
+        inv_entrada:    g.inventario || 0,
+        solicitado:     0,
+        despachado:     0,
+        prog_produccion: g.programa || 0
+      });
+    }
+    const e = map.get(key);
+    e.solicitado  += g.solicitado;
+    e.despachado  += g.despachado;
+    if(g.inventario  > e.inv_entrada)    e.inv_entrada    = g.inventario;
+    if(g.programa    > e.prog_produccion) e.prog_produccion = g.programa;
+  }
+
+  // Enriquecer con inv salida y venta semana
+  for(const [key, e] of map) {
+    e.venta_semana     = ventaSemIdx[key]  || 0;
+    e.inv_salida       = invSalidaIdx[key] || 0;
+    // Stock Disponible = Inv. Entrada + Despachado
+    e.stock_disponible = e.inv_entrada + e.despachado;
+    // Stock Teórico = Stock Disponible - Venta Semana
+    e.stock_teorico    = e.stock_disponible - e.venta_semana;
+  }
+
+  return Array.from(map.values());
+}
+
+function getStockFiltrado() {
+  let rows = getStockRows();
+  if(stLocal.length > 0) rows = rows.filter(r => stLocal.includes(r.sucursal));
+  if(stBuscarVal) {
+    const q = normalizarTexto(stBuscarVal);
+    rows = rows.filter(r =>
+      normalizarTexto(r.sku).includes(q) ||
+      normalizarTexto(r.descripcion || '').includes(q)
+    );
+  }
+  // Sort
+  rows.sort((a, b) => {
+    let va = a[stSortCol] ?? '', vb = b[stSortCol] ?? '';
+    if(typeof va === 'number') return stSortDir === 'asc' ? va - vb : vb - va;
+    return stSortDir === 'asc'
+      ? String(va).localeCompare(String(vb), 'es')
+      : String(vb).localeCompare(String(va), 'es');
+  });
+  return rows;
+}
+
+function stockColor(val) {
+  if(val === 0) return '';
+  if(val < 0) return 'color:var(--red);font-weight:700';
+  return 'color:var(--green);font-weight:700';
+}
+
+function renderStock() {
+  const rows = getStockFiltrado();
+  document.getElementById('stResultsCount').textContent =
+    rows.length + ' combinaciones SKU+Sucursal encontradas';
+
+  const tbody = document.getElementById('stTableBody');
+  if(rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="12" class="empty-state">Sin datos para este filtro.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.numero_local || '—'}</td>
+      <td><strong>${r.sucursal}</strong></td>
+      <td class="sku">${r.sku}</td>
+      <td>${r.descripcion || '—'}</td>
+      <td style="text-align:right">${r.inv_entrada > 0 ? fmt(r.inv_entrada) : '—'}</td>
+      <td style="text-align:right">${fmt(r.solicitado)}</td>
+      <td style="text-align:right">${fmt(r.despachado)}</td>
+      <td style="text-align:right">${r.prog_produccion > 0 ? fmt(r.prog_produccion) : '—'}</td>
+      <td style="text-align:right">${r.venta_semana > 0 ? fmt(r.venta_semana) : '—'}</td>
+      <td style="text-align:right;font-weight:700">${fmt(r.stock_disponible)}</td>
+      <td style="text-align:right;${stockColor(r.stock_teorico)}">${fmt(r.stock_teorico)}</td>
+      <td style="text-align:right">${r.inv_salida > 0 ? fmt(r.inv_salida) : '—'}</td>
+    </tr>`).join('');
+}
+
+function poblarFiltrosStock() {
+  const sucursales = [...new Set(getStockRows().map(r => r.sucursal))].sort();
+  setupCustomFilter('stLocal', sucursales, stLocal, sel => { stLocal = sel; renderStock(); });
+}
+
+function imprimirStock() {
+  const wrap = document.getElementById('stTableWrap');
+  const orig = document.body.innerHTML;
+  document.body.innerHTML = '<style>body{font-family:sans-serif;font-size:11px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ccc;padding:4px;}</style>' + wrap.outerHTML;
+  window.print();
+  document.body.innerHTML = orig;
+  location.reload();
+}
+
+function descargarStockExcel() {
+  const rows = getStockFiltrado();
+  if(rows.length === 0) { alert('Sin datos para descargar.'); return; }
+  const data = rows.map(r => ({
+    'N° Local': r.numero_local,
+    'Sucursal': r.sucursal,
+    'SKU': r.sku,
+    'Descripción': r.descripcion,
+    'Inv. Entrada': r.inv_entrada,
+    'Solicitado': r.solicitado,
+    'Despachado': r.despachado,
+    'Prog. Producción': r.prog_produccion,
+    'Venta Semana': r.venta_semana,
+    'Stock Disp. (OH+Desp)': r.stock_disponible,
+    'Stock Teórico': r.stock_teorico,
+    'Inv. Salida': r.inv_salida
+  }));
+  const ws = XLSX.utils.json_to_sheet(data);
+  ws['!cols'] = [{wch:8},{wch:16},{wch:10},{wch:32},{wch:10},{wch:10},{wch:10},{wch:14},{wch:12},{wch:18},{wch:12},{wch:10}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Stock');
+  XLSX.writeFile(wb, 'stock_' + new Date().toISOString().slice(0,10) + '.xlsx');
+}
+
+// Filtros y sort del tab Stock
+document.getElementById('stBuscar').addEventListener('input', debounce(e => {
+  stBuscarVal = e.target.value; renderStock();
+}, 300));
+
+document.getElementById('stBtnReset').addEventListener('click', () => {
+  stLocal = []; stBuscarVal = '';
+  document.getElementById('stBuscar').value = '';
+  const btn = document.querySelector('#stLocalDD .filter-btn');
+  if(btn) btn.textContent = 'Seleccionar locales...';
+  renderStock();
+});
+
+document.getElementById('stTable').querySelectorAll('.sort-th').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.sort;
+    if(stSortCol === col) stSortDir = stSortDir === 'asc' ? 'desc' : 'asc';
+    else { stSortCol = col; stSortDir = 'asc'; }
+    document.querySelectorAll('#stTable .sort-th').forEach(t => t.classList.remove('active'));
+    th.classList.add('active');
+    th.querySelector('.arrow').textContent = stSortDir === 'asc' ? '▴' : '▾';
+    renderStock();
+  });
+});
 
 // ============================================================
 // INICIALIZACIÓN: cargar seed embebido
