@@ -664,7 +664,7 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
           <div class="summary-card">
             <div class="summary-icon icon-inventario">📦</div>
             <div class="summary-value" id="sumInventario">0</div>
-            <div class="summary-label">Inventario</div>
+            <div class="summary-label">Inv. Entrada</div>
           </div>
         </div>
       </div>
@@ -677,7 +677,7 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
               <th class="sort-th filterable-th" data-sort="descripcion" data-filter="descripcion">Descripción<span class="arrow">▾</span><span class="filter-icon" title="Filtrar">🔽</span></th>
               <th class="sort-th filterable-th" data-sort="sucursal" data-filter="sucursal">Sucursal<span class="arrow">▾</span><span class="filter-icon" title="Filtrar">🔽</span></th>
               <th class="sort-th" data-sort="programa" style="text-align:right">Programa<span class="arrow">▾</span></th>
-              <th class="sort-th" data-sort="inventario" style="text-align:right">Inventario<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="inventario" style="text-align:right">Inv. Entrada<span class="arrow">▾</span></th>
               <th class="sort-th" data-sort="solicitado" style="text-align:right">Solicitado<span class="arrow">▾</span></th>
               <th class="sort-th" data-sort="despachado" style="text-align:right">Despachado<span class="arrow">▾</span></th>
               <th class="sort-th" data-sort="fill_rate" style="text-align:right">% Cumplimiento<span class="arrow">▾</span></th>
@@ -1926,7 +1926,7 @@ function printSummary(){
           <th>Descripción</th>
           <th>Sucursal</th>
           <th style="text-align:right">Programa</th>
-          <th style="text-align:right">Inventario</th>
+          <th style="text-align:right">Inv. Entrada</th>
           <th style="text-align:right">Solicitado</th>
           <th style="text-align:right">Despachado</th>
           <th style="text-align:right">% Cumplimiento</th>
@@ -2295,7 +2295,7 @@ function descargarAnalisisExcel(){
     'Descripción': r.descripcion || '',
     'Sucursal': r.sucursal,
     'Programa': Math.round(r.programa * 10) / 10,
-    'Inventario': Math.round(r.inventario * 10) / 10,
+    'Inv. Entrada': Math.round(r.inventario * 10) / 10,
     'Solicitado': Math.round(r.solicitado * 10) / 10,
     'Despachado': Math.round(r.despachado * 10) / 10,
     'Diferencia': Math.round((r.solicitado - r.despachado) * 10) / 10,
