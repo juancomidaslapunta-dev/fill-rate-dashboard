@@ -412,7 +412,7 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
 
       <div class="upload-card">
         <div class="upload-card-header">
-          <h3>📦 Inventarios</h3>
+          <h3>📦 Inv. Entrada</h3>
           <button class="btn-delete" id="btnDelInventarios" title="Eliminar este archivo" style="display:none;">✕</button>
         </div>
         <div class="hint">Archivo Excel con columnas: SKU, Descripción, N° Local, Stock Físico, Semana, Fecha</div>
@@ -427,7 +427,22 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
 
       <div class="upload-card">
         <div class="upload-card-header">
-          <h3>📈 Programa de Ventas</h3>
+          <h3>📤 Inv. Salida</h3>
+          <button class="btn-delete" id="btnDelInvSalida" title="Eliminar este archivo" style="display:none;">✕</button>
+        </div>
+        <div class="hint">Archivo Excel con columnas: SKU, Descripción, N° Local, Unidades Salida, Semana, Fecha</div>
+        <div class="dropzone" id="dropInvSalida">
+          <div class="icon">📄</div>
+          <div class="txt">Arrastra el archivo aquí o haz click</div>
+          <div class="sub">.xlsx, .xls, .csv</div>
+        </div>
+        <input type="file" id="inputInvSalida" class="file-input" accept=".xlsx,.xls,.csv">
+        <div class="file-status" id="statusInvSalida"></div>
+      </div>
+
+      <div class="upload-card">
+        <div class="upload-card-header">
+          <h3>📈 Prog. Producción</h3>
           <button class="btn-delete" id="btnDelPrograma" title="Eliminar este archivo" style="display:none;">✕</button>
         </div>
         <div class="hint">Archivo Excel con columnas: SKU, Descripcion Producto, ID Local, Fecha, Venta Diaria</div>
@@ -438,6 +453,21 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
         </div>
         <input type="file" id="inputPrograma" class="file-input" accept=".xlsx,.xls,.csv">
         <div class="file-status" id="statusPrograma"></div>
+      </div>
+
+      <div class="upload-card">
+        <div class="upload-card-header">
+          <h3>🛒 Venta Semana</h3>
+          <button class="btn-delete" id="btnDelVentaSemana" title="Eliminar este archivo" style="display:none;">✕</button>
+        </div>
+        <div class="hint">Archivo Excel con columnas: SKU, Descripción, N° Local, Unidades Vendidas, Semana, Fecha</div>
+        <div class="dropzone" id="dropVentaSemana">
+          <div class="icon">📄</div>
+          <div class="txt">Arrastra el archivo aquí o haz click</div>
+          <div class="sub">.xlsx, .xls, .csv</div>
+        </div>
+        <input type="file" id="inputVentaSemana" class="file-input" accept=".xlsx,.xls,.csv">
+        <div class="file-status" id="statusVentaSemana"></div>
       </div>
     </div>
 
@@ -659,7 +689,7 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
           <div class="summary-card">
             <div class="summary-icon icon-programa">📈</div>
             <div class="summary-value" id="sumPrograma">0</div>
-            <div class="summary-label">Programa</div>
+            <div class="summary-label">Prog. Prod.</div>
           </div>
           <div class="summary-card">
             <div class="summary-icon icon-inventario">📦</div>
@@ -770,7 +800,7 @@ const NOMBRES_OFICIALES = {
 const CODIGOS_OFICIALES = new Set(Object.keys(NOMBRES_OFICIALES).map(Number));
 
 let RAW = { solicitudes: [], despachos: [] };  // registros granulares crudos
-var PARSED = { solicitudesFile: null, despachosFile: null, inventariosFile: null, programaFile: null };
+var PARSED = { solicitudesFile: null, despachosFile: null, inventariosFile: null, programaFile: null, invSalidaFile: null, ventaSemanaFile: null };
 var GRANULAR = [];      // tabla final SKU+fecha+sucursal con solicitado/despachado
 let DESPACHOS_LINEA = []; // cada línea de despacho individual, con numero_guia preservado
 let GUIAS_INDEX = new Map(); // numero_guia -> { numero_guia, fecha, sucursal, lineas:[...], total_unidades }
@@ -918,6 +948,8 @@ function setStatus(statusId, type, msg){
   else if(statusId === 'statusDespachos') btnId = 'btnDelDespachos';
   else if(statusId === 'statusInventarios') btnId = 'btnDelInventarios';
   else if(statusId === 'statusPrograma') btnId = 'btnDelPrograma';
+  else if(statusId === 'statusInvSalida') btnId = 'btnDelInvSalida';
+  else if(statusId === 'statusVentaSemana') btnId = 'btnDelVentaSemana';
   
   if(btnId){
     const btn = document.getElementById(btnId);
@@ -952,6 +984,12 @@ function handleFile(file, statusId, kind){
       } else if(kind === 'programa'){
         PARSED.programaFile = rows;
         setStatus(statusId, 'ok', '✅ ' + file.name + ' — ' + rows.length + ' filas leídas (hoja "' + sheetName + '")');
+      } else if(kind === 'invSalida'){
+        PARSED.invSalidaFile = rows;
+        setStatus(statusId, 'ok', '✅ ' + file.name + ' — ' + rows.length + ' filas leídas (hoja "' + sheetName + '")');
+      } else if(kind === 'ventaSemana'){
+        PARSED.ventaSemanaFile = rows;
+        setStatus(statusId, 'ok', '✅ ' + file.name + ' — ' + rows.length + ' filas leídas (hoja "' + sheetName + '")');
       }
     } catch(err){
       setStatus(statusId, 'error', '❌ Error leyendo archivo: ' + err.message);
@@ -980,6 +1018,14 @@ function deleteFile(kind){
     PARSED.programaFile = null;
     document.getElementById('inputPrograma').value = '';
     setStatus('statusPrograma', '', '');
+  } else if(kind === 'invSalida'){
+    PARSED.invSalidaFile = null;
+    document.getElementById('inputInvSalida').value = '';
+    setStatus('statusInvSalida', '', '');
+  } else if(kind === 'ventaSemana'){
+    PARSED.ventaSemanaFile = null;
+    document.getElementById('inputVentaSemana').value = '';
+    setStatus('statusVentaSemana', '', '');
   }
   log(`${kind} eliminado. Carga uno nuevo cuando esté listo.`, 'info');
 }
@@ -988,12 +1034,16 @@ setupDropzone('dropSolicitudes','inputSolicitudes','statusSolicitudes','solicitu
 setupDropzone('dropDespachos','inputDespachos','statusDespachos','despachos');
 setupDropzone('dropInventarios','inputInventarios','statusInventarios','inventarios');
 setupDropzone('dropPrograma','inputPrograma','statusPrograma','programa');
+setupDropzone('dropInvSalida','inputInvSalida','statusInvSalida','invSalida');
+setupDropzone('dropVentaSemana','inputVentaSemana','statusVentaSemana','ventaSemana');
 
 // Event listeners para botones de eliminar
 document.getElementById('btnDelSolicitudes').addEventListener('click', () => deleteFile('solicitudes'));
 document.getElementById('btnDelDespachos').addEventListener('click', () => deleteFile('despachos'));
 document.getElementById('btnDelInventarios').addEventListener('click', () => deleteFile('inventarios'));
 document.getElementById('btnDelPrograma').addEventListener('click', () => deleteFile('programa'));
+document.getElementById('btnDelInvSalida').addEventListener('click', () => deleteFile('invSalida'));
+document.getElementById('btnDelVentaSemana').addEventListener('click', () => deleteFile('ventaSemana'));
 
 // ============================================================
 // NORMALIZACIÓN: convertir filas de Excel parseado a registros RAW
@@ -1716,14 +1766,20 @@ document.getElementById('btnLimpiar').addEventListener('click', ()=>{
   PARSED.despachosFile = null;
   PARSED.inventariosFile = null;
   PARSED.programaFile = null;
+  PARSED.invSalidaFile = null;
+  PARSED.ventaSemanaFile = null;
   document.getElementById('inputSolicitudes').value = '';
   document.getElementById('inputDespachos').value = '';
   document.getElementById('inputInventarios').value = '';
   document.getElementById('inputPrograma').value = '';
+  document.getElementById('inputInvSalida').value = '';
+  document.getElementById('inputVentaSemana').value = '';
   document.getElementById('statusSolicitudes').className = 'file-status';
   document.getElementById('statusDespachos').className = 'file-status';
   document.getElementById('statusInventarios').className = 'file-status';
   document.getElementById('statusPrograma').className = 'file-status';
+  document.getElementById('statusInvSalida').className = 'file-status';
+  document.getElementById('statusVentaSemana').className = 'file-status';
   clearLog();
   log('Archivos limpiados. Carga nuevos archivos o usa datos de ejemplo.', 'info');
 });
