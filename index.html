@@ -2484,11 +2484,17 @@ function getStockRows() {
 
   if(PARSED.ventaSemanaFile) {
     for(const r of PARSED.ventaSemanaFile) {
-      const sku   = String(r['SKU'] || r['sku'] || '').trim();
-      const local = String(r['ID Local'] || r['N° Local'] || '').trim();
-      const vta   = parseFloat(r['Venta Diaria'] || r['Venta Semana'] || r['Unidades Vendidas'] || 0);
-      if(!sku || !local) continue;
-      const suc = NOMBRES_OFICIALES[parseInt(local)] || String(r['Local'] || r['Nombre Local'] || '').trim();
+      const sku = String(r['Cód. artículo'] || r['SKU'] || r['sku'] || '').trim();
+      // Cantidad con insumos es la columna de ventas
+      const vta = parseFloat(r['Cantidad con insumos'] || r['Venta Diaria'] || r['Venta Semana'] || r['Unidades Vendidas'] || 0);
+      if(!sku || !vta) continue;
+      // Sucursal: usar nombre directo si viene, sino mapear por Cod Sucursal
+      let suc = String(r['Sucursal'] || '').trim();
+      if(!suc) {
+        const cod = parseInt(r['Cod Sucursal'] || r['ID Local'] || r['N° Local'] || 0);
+        suc = NOMBRES_OFICIALES[cod] || '';
+      }
+      if(!suc) continue;
       const key = sku + '|' + suc;
       ventaSemIdx[key] = (ventaSemIdx[key] || 0) + vta;
     }
