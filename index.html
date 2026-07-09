@@ -2877,51 +2877,45 @@ function renderDetalle() {
     rows.length + ' filas · ' + fechas.length + ' fechas';
 
   // Input helper
-  const inp = (key, placeholder, cls='') =>
-    `<input data-dtcol="${key}" value="${(dtColFiltros[key]||'').replace(/"/g,'&quot;')}"
-      placeholder="${placeholder}" style="width:100%;box-sizing:border-box;padding:3px 5px;font-size:.68rem;border:1px solid var(--border);border-radius:3px;background:var(--surface);font-family:inherit;" class="${cls}">`;
+  // Input helper (definida arriba)
 
-  // Fila 1 — grupos
+  // Header fila 1 — grupos (con rowspan=2 para fijos)
   const hRow1 = `
-    <th class="th-fix-0" rowspan="3" style="background:var(--surface-2);z-index:6;">N° Sala</th>
-    <th class="th-fix-1" rowspan="3" style="background:var(--surface-2);z-index:6;">Nombre Sala</th>
-    <th class="th-fix-2" rowspan="3" style="background:var(--surface-2);z-index:6;">SKU</th>
-    <th class="th-fix-3" rowspan="3" style="background:var(--surface-2);z-index:6;">Producto</th>
+    <th class="th-fix-0" rowspan="2" style="background:var(--surface-2);z-index:6;vertical-align:bottom;padding-bottom:4px;">N° Sala</th>
+    <th class="th-fix-1" rowspan="2" style="background:var(--surface-2);z-index:6;vertical-align:bottom;padding-bottom:4px;">Nombre Sala</th>
+    <th class="th-fix-2" rowspan="2" style="background:var(--surface-2);z-index:6;vertical-align:bottom;padding-bottom:4px;">SKU</th>
+    <th class="th-fix-3" rowspan="2" style="background:var(--surface-2);z-index:6;vertical-align:bottom;padding-bottom:4px;">Producto</th>
     <th class="th-grupo-sol" colspan="${nF}">SOLICITUDES</th>
     <th class="th-total">Total Sol.</th>
     <th class="th-grupo-des" colspan="${nF}">DESPACHOS</th>
     <th class="th-total">Total Des.</th>
-    <th class="th-dif" rowspan="3">Diferencia</th>`;
+    <th class="th-dif" rowspan="2">Dif.</th>`;
 
-  // Fila 2 — fechas
+  // Header fila 2 — fechas (sin las 4 fijas que tienen rowspan=2)
   const hRow2 =
-    fechas.map(f=>`<th class="th-grupo-sol" style="font-weight:600">${fmtFecha(f)}</th>`).join('') +
+    fechas.map(f=>`<th class="th-grupo-sol">${fmtFecha(f)}</th>`).join('') +
     `<th class="th-total"></th>` +
-    fechas.map(f=>`<th class="th-grupo-des" style="font-weight:600">${fmtFecha(f)}</th>`).join('') +
+    fechas.map(f=>`<th class="th-grupo-des">${fmtFecha(f)}</th>`).join('') +
     `<th class="th-total"></th>`;
 
-  // Fila 3 — inputs de filtro por columna
-  // Los 4 fijos se meten como rowspan=3 arriba, esta fila empieza con las fechas
-  const hRow3Sala  = `<th class="th-fix-0" style="background:var(--surface-2);z-index:6;padding:3px;">${inp('sala','N°')}</th>`;
-  const hRow3Nom   = `<th class="th-fix-1" style="background:var(--surface-2);z-index:6;padding:3px;">${inp('nombre','Sala')}</th>`;
-  const hRow3Sku   = `<th class="th-fix-2" style="background:var(--surface-2);z-index:6;padding:3px;">${inp('sku','SKU')}</th>`;
-  const hRow3Prod  = `<th class="th-fix-3" style="background:var(--surface-2);z-index:6;padding:3px;">${inp('prod','Producto')}</th>`;
+  // Header fila 3 — filtros: TODAS las columnas incluyendo las 4 fijas
+  const inpStyle = `style="width:100%;box-sizing:border-box;padding:2px 4px;font-size:.68rem;border:1px solid var(--border);border-radius:3px;background:var(--surface);font-family:inherit;"`;
+  const inp = (key, ph) =>
+    `<input data-dtcol="${key}" value="${(dtColFiltros[key]||'').replace(/"/g,'&quot;')}" placeholder="${ph}" ${inpStyle}>`;
 
-  // Las fijas van en su propia fila 3 (aunque son rowspan=3, los navegadores manejan esto)
-  // Mejor: hacer 2 filas para grupos/fechas y 1 fila completa para filtros
-  // Re-arquitectura: 3 filas. Fila 1=grupos(rowspan2), Fila 2=fechas, Fila 3=filtros(sin fijos que son rowspan3)
-
-  const hRow3Dates =
-    fechas.map(f=>`<th class="th-grupo-sol" style="padding:3px;">${inp('sol_'+f,'≥ n',)}</th>`).join('') +
+  const hRow3 =
+    `<th class="th-fix-0" style="background:var(--surface-2);z-index:6;padding:3px;">${inp('sala','N°')}</th>` +
+    `<th class="th-fix-1" style="background:var(--surface-2);z-index:6;padding:3px;">${inp('nombre','Sala')}</th>` +
+    `<th class="th-fix-2" style="background:var(--surface-2);z-index:6;padding:3px;">${inp('sku','SKU')}</th>` +
+    `<th class="th-fix-3" style="background:var(--surface-2);z-index:6;padding:3px;">${inp('prod','Producto')}</th>` +
+    fechas.map(f=>`<th class="th-grupo-sol" style="padding:3px;">${inp('sol_'+f,'≥ n')}</th>`).join('') +
     `<th class="th-total" style="padding:3px;">${inp('totSol','≥ n')}</th>` +
     fechas.map(f=>`<th class="th-grupo-des" style="padding:3px;">${inp('des_'+f,'≥ n')}</th>`).join('') +
     `<th class="th-total" style="padding:3px;">${inp('totDes','≥ n')}</th>` +
-    `<th class="th-dif" style="padding:3px;">${inp('dif','≥/>/<')}</th>`;
+    `<th class="th-dif" style="padding:3px;">${inp('dif','>/<')}</th>`;
 
   document.getElementById('dtThead').innerHTML =
-    `<tr>${hRow1}</tr>` +
-    `<tr>${hRow2}</tr>` +
-    `<tr>${hRow3Sala}${hRow3Nom}${hRow3Sku}${hRow3Prod}${hRow3Dates}</tr>`;
+    `<tr>${hRow1}</tr><tr>${hRow2}</tr><tr>${hRow3}</tr>`;
 
   // Attach listeners a los inputs de filtro
   document.getElementById('dtThead').querySelectorAll('input[data-dtcol]').forEach(inp => {
