@@ -251,7 +251,8 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
 #dtTable td.td-des{background:#F2FAF6;text-align:right;}
 #dtTable td.td-total-sol{background:#DBEAFE;text-align:right;font-weight:700;color:var(--brand);}
 #dtTable td.td-total-des{background:#D1FAE5;text-align:right;font-weight:700;color:var(--green);}
-#dtTable td.td-dif-pos{text-align:right;color:var(--red);font-weight:700;}
+#dtTable td.td-dif-neg{text-align:right;color:var(--red);font-weight:700;}
+#dtTable td.td-dif-pos{text-align:right;color:var(--brand);font-weight:700;}
 #dtTable td.td-dif-zero{text-align:right;color:var(--green);font-weight:700;}
 #dtTable td.td-fix{position:sticky;background:var(--surface);z-index:2;}
 #dtTable td.td-fix-0{left:0;min-width:55px;}
@@ -2786,10 +2787,22 @@ document.getElementById('stTable').querySelectorAll('.sort-th').forEach(th => {
 // ============================================================
 // TAB DETALLE — tabla pivote Solicitudes vs Despachos por día
 // ============================================================
+// Calcular lunes y domingo de la semana actual
+function getSemanaActual() {
+  const hoy = new Date();
+  const dia = hoy.getDay(); // 0=dom,1=lun...6=sab
+  const diff = (dia === 0) ? -6 : 1 - dia; // días hasta el lunes
+  const lunes = new Date(hoy); lunes.setDate(hoy.getDate() + diff);
+  const domingo = new Date(lunes); domingo.setDate(lunes.getDate() + 6);
+  const fmt2 = d => d.toISOString().slice(0,10);
+  return { desde: fmt2(lunes), hasta: fmt2(domingo) };
+}
+
+var { desde: _dtDesde, hasta: _dtHasta } = getSemanaActual();
 var dtLocal      = [];
 var dtBuscarVal  = '';
-var dtFechaDesde = '';
-var dtFechaHasta = '';
+var dtFechaDesde = _dtDesde;
+var dtFechaHasta = _dtHasta;
 
 function getDtGranular() {
   let g = GRANULAR;
@@ -2870,8 +2883,8 @@ function renderDetalle() {
 
     const totSol = Object.values(r.sol).reduce((s,v) => s+v, 0);
     const totDes = Object.values(r.des).reduce((s,v) => s+v, 0);
-    const dif    = totSol - totDes;
-    const difCls = dif === 0 ? 'td-dif-zero' : 'td-dif-pos';
+    const dif    = totDes - totSol;  // despachado - solicitado
+    const difCls = dif === 0 ? 'td-dif-zero' : dif > 0 ? 'td-dif-pos' : 'td-dif-neg';
 
     return `<tr>
       <td class="td-fix td-fix-0">${r.sala || '—'}</td>
@@ -2882,7 +2895,7 @@ function renderDetalle() {
       <td class="td-total-sol">${fmt(totSol)}</td>
       ${desCols}
       <td class="td-total-des">${fmt(totDes)}</td>
-      <td class="${difCls}">${dif !== 0 ? fmt(dif) : '✓'}</td>
+      <td class="${difCls}">${dif === 0 ? '✓' : (dif > 0 ? '+' : '') + fmt(dif)}</td>
     </tr>`;
   }).join('');
 
@@ -2892,6 +2905,11 @@ function renderDetalle() {
 function poblarFiltrosDetalle() {
   const sucursales = [...new Set(GRANULAR.map(g => g.sucursal))].sort();
   setupCustomFilter('dtLocal', sucursales, dtLocal, sel => { dtLocal = sel; renderDetalle(); });
+  // Setear fechas en los inputs si aún no tienen valor
+  const inpDesde = document.getElementById('dtFechaDesde');
+  const inpHasta = document.getElementById('dtFechaHasta');
+  if(!inpDesde.value) inpDesde.value = dtFechaDesde;
+  if(!inpHasta.value) inpHasta.value = dtFechaHasta;
 }
 
 function descargarDetalleExcel() {
@@ -2915,7 +2933,7 @@ function descargarDetalleExcel() {
     fechas.forEach(f => { row['Des '+fmtF(f)] = r.des[f]||0; });
     const totDes = Object.values(r.des).reduce((s,v)=>s+v,0);
     row['Total Despachado'] = totDes;
-    row['Diferencia'] = totSol - totDes;
+    row['Diferencia'] = totDes - totSol;
     return row;
   });
   const ws = XLSX.utils.json_to_sheet(data);
@@ -2935,10 +2953,11 @@ document.getElementById('dtFechaHasta').addEventListener('change', e => {
   dtFechaHasta = e.target.value; renderDetalle();
 });
 document.getElementById('dtBtnReset').addEventListener('click', () => {
-  dtLocal=[]; dtBuscarVal=''; dtFechaDesde=''; dtFechaHasta='';
+  const { desde, hasta } = getSemanaActual();
+  dtLocal=[]; dtBuscarVal=''; dtFechaDesde=desde; dtFechaHasta=hasta;
   document.getElementById('dtBuscar').value='';
-  document.getElementById('dtFechaDesde').value='';
-  document.getElementById('dtFechaHasta').value='';
+  document.getElementById('dtFechaDesde').value=desde;
+  document.getElementById('dtFechaHasta').value=hasta;
   const btn = document.querySelector('#dtLocalDD .filter-btn');
   if(btn) btn.textContent='Seleccionar locales...';
   renderDetalle();
