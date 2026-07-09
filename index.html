@@ -1345,6 +1345,18 @@ function procesar(){
     log('Programa: ' + progRows.length + ' filas leídas, ' + programaAgregado + ' solicitudes enriquecidas', 'ok');
   }
 
+  const vsRows = PARSED.ventaSemanaFile;
+  if(vsRows) {
+    const sucursalesVS = new Set(vsRows.map(r => {
+      const cod = parseInt(r['Cod Sucursal'] || 0);
+      return (cod && NOMBRES_OFICIALES[cod]) ? NOMBRES_OFICIALES[cod] : String(r['Sucursal'] || '').trim().toUpperCase();
+    }).filter(Boolean));
+    log('Venta Semana: ' + vsRows.length + ' filas leídas | sucursales: ' + [...sucursalesVS].join(', '), 'ok');
+  }
+
+  const isRows = PARSED.invSalidaFile;
+  if(isRows) log('Inv. Salida: ' + isRows.length + ' filas leídas', 'ok');
+
   RAW.solicitudes = solicitudesOut;
   RAW.despachos = despachosOut;
   DATA_QUALITY = {
@@ -2485,16 +2497,14 @@ function getStockRows() {
   if(PARSED.ventaSemanaFile) {
     for(const r of PARSED.ventaSemanaFile) {
       const sku = String(r['Cód. artículo'] || r['SKU'] || r['sku'] || '').trim();
-      // Cantidad con insumos es la columna de ventas
       const vta = parseFloat(r['Cantidad con insumos'] || r['Venta Diaria'] || r['Venta Semana'] || r['Unidades Vendidas'] || 0);
       if(!sku || !vta) continue;
-      // Sucursal: usar nombre directo si viene, sino mapear por Cod Sucursal
-      let suc = String(r['Sucursal'] || '').trim();
-      if(!suc) {
-        const cod = parseInt(r['Cod Sucursal'] || r['ID Local'] || r['N° Local'] || 0);
-        suc = NOMBRES_OFICIALES[cod] || '';
-      }
+
+      // Intentar obtener sucursal por Cod Sucursal primero (más confiable)
+      const cod = parseInt(r['Cod Sucursal'] || r['ID Local'] || r['N° Local'] || 0);
+      let suc = (cod && NOMBRES_OFICIALES[cod]) ? NOMBRES_OFICIALES[cod] : String(r['Sucursal'] || r['Local'] || r['Nombre Local'] || '').trim().toUpperCase();
       if(!suc) continue;
+
       const key = sku + '|' + suc;
       ventaSemIdx[key] = (ventaSemIdx[key] || 0) + vta;
     }
