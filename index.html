@@ -402,6 +402,14 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
         </div>
       </div>
       <div class="fgroup">
+        <label>Fecha Desde</label>
+        <input type="date" id="stFechaDesde" class="range-input" style="width:130px;">
+      </div>
+      <div class="fgroup">
+        <label>Fecha Hasta</label>
+        <input type="date" id="stFechaHasta" class="range-input" style="width:130px;">
+      </div>
+      <div class="fgroup">
         <label>Buscar SKU / Descripción</label>
         <input type="text" id="stBuscar" class="search-input" placeholder="Ej: 4104001, alcachofa...">
       </div>
@@ -436,10 +444,11 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
               <th class="sort-th" data-sort="stock_disponible" style="text-align:right">Stock Disp. (OH+Desp)<span class="arrow">▾</span></th>
               <th class="sort-th" data-sort="stock_teorico" style="text-align:right">Stock Teórico<span class="arrow">▾</span></th>
               <th class="sort-th" data-sort="inv_salida" style="text-align:right">Inv. Salida<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="diferencia_salida" style="text-align:right">Diferencia<span class="arrow">▾</span></th>
             </tr>
           </thead>
           <tbody id="stTableBody">
-            <tr><td colspan="12" class="empty-state">Carga y procesa los archivos para ver el stock.</td></tr>
+            <tr><td colspan="13" class="empty-state">Carga y procesa los archivos para ver el stock.</td></tr>
           </tbody>
         </table>
       </div>
@@ -2469,6 +2478,8 @@ document.getElementById('anBtnDescargar').addEventListener('click', descargarAna
 // ============================================================
 var stLocal = [];
 var stBuscarVal = '';
+var stFechaDesdeVal = '';
+var stFechaHastaVal = '';
 var stSortCol = 'sucursal';
 var stSortDir = 'asc';
 
@@ -2541,6 +2552,8 @@ function getStockRows() {
     e.stock_disponible = e.inv_entrada + e.despachado;
     // Stock Teórico = Stock Disponible - Venta Semana
     e.stock_teorico    = e.stock_disponible - e.venta_semana;
+    // Diferencia = Inv. Salida - Stock Teórico
+    e.diferencia_salida = e.inv_salida - e.stock_teorico;
   }
 
   return Array.from(map.values());
@@ -2555,6 +2568,17 @@ function getStockFiltrado() {
       normalizarTexto(r.sku).includes(q) ||
       normalizarTexto(r.descripcion || '').includes(q)
     );
+  }
+  // Filtro de fecha: buscar en GRANULAR fechas dentro del rango
+  if(stFechaDesdeVal || stFechaHastaVal) {
+    // Construir set de sku|sucursal que tienen filas en el rango de fecha
+    const keysEnRango = new Set();
+    for(const g of GRANULAR) {
+      if(stFechaDesdeVal && g.fecha < stFechaDesdeVal) continue;
+      if(stFechaHastaVal && g.fecha > stFechaHastaVal) continue;
+      keysEnRango.add(g.sku + '|' + g.sucursal);
+    }
+    rows = rows.filter(r => keysEnRango.has(r.sku + '|' + r.sucursal));
   }
   // Sort
   rows.sort((a, b) => {
@@ -2598,6 +2622,7 @@ function renderStock() {
       <td style="text-align:right;font-weight:700">${fmt(r.stock_disponible)}</td>
       <td style="text-align:right;${stockColor(r.stock_teorico)}">${fmt(r.stock_teorico)}</td>
       <td style="text-align:right">${r.inv_salida > 0 ? fmt(r.inv_salida) : '—'}</td>
+      <td style="text-align:right;${stockColor(r.diferencia_salida)}">${fmt(r.diferencia_salida)}</td>
     </tr>`).join('');
 }
 
@@ -2630,7 +2655,8 @@ function descargarStockExcel() {
     'Venta Semana': r.venta_semana,
     'Stock Disp. (OH+Desp)': r.stock_disponible,
     'Stock Teórico': r.stock_teorico,
-    'Inv. Salida': r.inv_salida
+    'Inv. Salida': r.inv_salida,
+    'Diferencia (Sal-Teórico)': r.diferencia_salida
   }));
   const ws = XLSX.utils.json_to_sheet(data);
   ws['!cols'] = [{wch:8},{wch:16},{wch:10},{wch:32},{wch:10},{wch:10},{wch:10},{wch:14},{wch:12},{wch:18},{wch:12},{wch:10}];
@@ -2644,9 +2670,18 @@ document.getElementById('stBuscar').addEventListener('input', debounce(e => {
   stBuscarVal = e.target.value; renderStock();
 }, 300));
 
+document.getElementById('stFechaDesde').addEventListener('change', e => {
+  stFechaDesdeVal = e.target.value; renderStock();
+});
+document.getElementById('stFechaHasta').addEventListener('change', e => {
+  stFechaHastaVal = e.target.value; renderStock();
+});
+
 document.getElementById('stBtnReset').addEventListener('click', () => {
-  stLocal = []; stBuscarVal = '';
+  stLocal = []; stBuscarVal = ''; stFechaDesdeVal = ''; stFechaHastaVal = '';
   document.getElementById('stBuscar').value = '';
+  document.getElementById('stFechaDesde').value = '';
+  document.getElementById('stFechaHasta').value = '';
   const btn = document.querySelector('#stLocalDD .filter-btn');
   if(btn) btn.textContent = 'Seleccionar locales...';
   renderStock();
