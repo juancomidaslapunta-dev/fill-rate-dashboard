@@ -239,6 +239,29 @@ body.rol-explorer #btnGuardarDatos{display:none!important;}
 body.rol-lector .tab-btn[data-tab="carga"]{display:none!important;}
 body.rol-editor #btnGuardarDatos{display:none!important;}
 @media(max-width:768px){.container{padding:.9rem;}h1{font-size:1.3rem;}.bar-label{width:90px;font-size:.72rem;}select{min-width:110px;}.kpi-value{font-size:1.5rem;}}
+
+/* ─── TAB DETALLE — tabla pivote ─────────────────────────────────────────── */
+#dtTable th,#dtTable td{padding:.38rem .6rem;border:1px solid var(--border);white-space:nowrap;}
+#dtTable thead th{background:var(--surface-2);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-2);position:sticky;top:0;z-index:4;}
+#dtTable thead th.th-grupo-sol{background:#E8F0FD;color:var(--brand);}
+#dtTable thead th.th-grupo-des{background:#E6F5EE;color:var(--green);}
+#dtTable thead th.th-total{background:var(--ink-1);color:#fff;}
+#dtTable thead th.th-dif{background:var(--red-soft);color:var(--red);}
+#dtTable td.td-sol{background:#F5F9FF;text-align:right;}
+#dtTable td.td-des{background:#F2FAF6;text-align:right;}
+#dtTable td.td-total-sol{background:#DBEAFE;text-align:right;font-weight:700;color:var(--brand);}
+#dtTable td.td-total-des{background:#D1FAE5;text-align:right;font-weight:700;color:var(--green);}
+#dtTable td.td-dif-pos{text-align:right;color:var(--red);font-weight:700;}
+#dtTable td.td-dif-zero{text-align:right;color:var(--green);font-weight:700;}
+#dtTable td.td-fix{position:sticky;background:var(--surface);z-index:2;}
+#dtTable td.td-fix-0{left:0;min-width:55px;}
+#dtTable td.td-fix-1{left:55px;min-width:140px;font-weight:600;}
+#dtTable td.td-fix-2{left:195px;min-width:80px;font-family:'SF Mono',Consolas,monospace;color:var(--brand);font-weight:700;font-size:.72rem;}
+#dtTable td.td-fix-3{left:275px;min-width:170px;}
+#dtTable thead th.th-fix-0{position:sticky;left:0;z-index:6;}
+#dtTable thead th.th-fix-1{position:sticky;left:55px;z-index:6;}
+#dtTable thead th.th-fix-2{position:sticky;left:195px;z-index:6;}
+#dtTable thead th.th-fix-3{position:sticky;left:275px;z-index:6;}
 </style>
 </head>
 <body>
@@ -374,9 +397,70 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
     <button class="tab-btn active" data-tab="dashboard">📈 Dashboard</button>
     <button class="tab-btn" data-tab="analisis">🔍 Análisis</button>
     <button class="tab-btn" data-tab="stock">📦 Stock</button>
+    <button class="tab-btn" data-tab="detalle">📋 Detalle</button>
     <button class="tab-btn" data-tab="guias">🚚 Guías de Despacho</button>
     <button class="tab-btn" data-tab="carga">📂 Importar Archivos</button>
   </div>
+
+  <!-- ============ TAB: DETALLE ============ -->
+  <div class="tab-panel" id="tab-detalle">
+
+    <div class="toolbar">
+      <div class="fgroup">
+        <label>Local / Sucursal</label>
+        <div class="filter-dropdown" id="dtLocalDD">
+          <button class="filter-btn" data-placeholder="Seleccionar locales...">Seleccionar locales...</button>
+          <div class="filter-menu" style="display:none">
+            <input class="filter-search" id="dtLocalSearch" placeholder="Buscar...">
+            <div class="filter-controls">
+              <button class="filter-btn-small" id="dtLocalAll">Todos</button>
+              <button class="filter-btn-small" id="dtLocalNone">Ninguno</button>
+            </div>
+            <div class="filter-options" id="dtLocalOptions"></div>
+            <div class="filter-actions">
+              <button class="btn btn-primary" id="dtLocalApply">Aplicar</button>
+              <button class="btn btn-secondary" id="dtLocalCancel">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="fgroup">
+        <label>Fecha Desde</label>
+        <input type="date" id="dtFechaDesde" class="range-input" style="width:130px;">
+      </div>
+      <div class="fgroup">
+        <label>Fecha Hasta</label>
+        <input type="date" id="dtFechaHasta" class="range-input" style="width:130px;">
+      </div>
+      <div class="fgroup">
+        <label>Buscar SKU / Producto</label>
+        <input type="text" id="dtBuscar" class="search-input" placeholder="Ej: 2101005, empanada...">
+      </div>
+      <button class="btn-reset" id="dtBtnReset">✕ Limpiar</button>
+      <div style="margin-left:auto; display:flex; gap:.6rem;">
+        <button class="btn btn-download btn-primary" id="dtBtnDescargar" onclick="descargarDetalleExcel()">⬇ Descargar Excel</button>
+      </div>
+    </div>
+
+    <div class="panel" style="overflow:hidden;">
+      <div class="panel-header-row">
+        <div>
+          <div class="panel-title">📋 Detalle Solicitudes vs Despachos por Día</div>
+          <div id="dtResultsCount" class="results-count">—</div>
+        </div>
+      </div>
+      <div id="dtTableWrap" style="overflow-x:auto; max-height:600px;">
+        <table id="dtTable" style="font-size:.75rem; border-collapse:collapse; min-width:900px;">
+          <thead id="dtThead"></thead>
+          <tbody id="dtTbody">
+            <tr><td colspan="6" class="empty-state">Carga y procesa los archivos para ver el detalle.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+  <!-- ============ FIN TAB DETALLE ============ -->
 
   <!-- ============ TAB: STOCK ============ -->
   <div class="tab-panel" id="tab-stock">
@@ -1606,6 +1690,8 @@ function renderAll(){
   renderGuias();
   poblarFiltrosStock();
   renderStock();
+  poblarFiltrosDetalle();
+  renderDetalle();
 }
 
 function renderHeader(){
@@ -2695,6 +2781,167 @@ document.getElementById('stTable').querySelectorAll('.sort-th').forEach(th => {
     th.querySelector('.arrow').textContent = stSortDir === 'asc' ? '▴' : '▾';
     renderStock();
   });
+});
+
+// ============================================================
+// TAB DETALLE — tabla pivote Solicitudes vs Despachos por día
+// ============================================================
+var dtLocal      = [];
+var dtBuscarVal  = '';
+var dtFechaDesde = '';
+var dtFechaHasta = '';
+
+function getDtGranular() {
+  let g = GRANULAR;
+  if(dtLocal.length > 0) g = g.filter(r => dtLocal.includes(r.sucursal));
+  if(dtFechaDesde) g = g.filter(r => r.fecha >= dtFechaDesde);
+  if(dtFechaHasta) g = g.filter(r => r.fecha <= dtFechaHasta);
+  if(dtBuscarVal) {
+    const q = normalizarTexto(dtBuscarVal);
+    g = g.filter(r => normalizarTexto(r.sku).includes(q) || normalizarTexto(r.descripcion||'').includes(q));
+  }
+  return g;
+}
+
+function renderDetalle() {
+  const src = getDtGranular();
+  if(!src.length) {
+    document.getElementById('dtThead').innerHTML = '';
+    document.getElementById('dtTbody').innerHTML = '<tr><td colspan="6" class="empty-state">Sin datos para este filtro.</td></tr>';
+    document.getElementById('dtResultsCount').textContent = '—';
+    return;
+  }
+
+  // Obtener fechas únicas ordenadas
+  const fechas = [...new Set(src.map(g => g.fecha))].sort();
+
+  // Construir mapa: sku|sucursal → { sala, nombre, sku, prod, sol:{fecha:val}, des:{fecha:val} }
+  const map = new Map();
+  for(const g of src) {
+    const key = g.sku + '|' + g.sucursal;
+    if(!map.has(key)) {
+      const cod = CODIGOS_POR_NOMBRE[g.sucursal] || '';
+      map.set(key, { sala: cod, nombre: g.sucursal, sku: g.sku, prod: g.descripcion, sol: {}, des: {} });
+    }
+    const e = map.get(key);
+    e.sol[g.fecha] = (e.sol[g.fecha] || 0) + g.solicitado;
+    e.des[g.fecha] = (e.des[g.fecha] || 0) + g.despachado;
+  }
+
+  document.getElementById('dtResultsCount').textContent =
+    map.size + ' combinaciones SKU+Sucursal · ' + fechas.length + ' fechas';
+
+  // Header fila 1: grupos
+  const nF = fechas.length;
+  const thFix = (txt, cls) => `<th class="th-fix-${cls} th-fix-${cls} ${cls<2?'th-grupo-sol':''}" rowspan="2">${txt}</th>`;
+  let hRow1 = `
+    <th class="th-fix-0" rowspan="2" style="background:var(--surface-2);z-index:6;">N° Sala</th>
+    <th class="th-fix-1" rowspan="2" style="background:var(--surface-2);z-index:6;">Nombre Sala</th>
+    <th class="th-fix-2" rowspan="2" style="background:var(--surface-2);z-index:6;">SKU</th>
+    <th class="th-fix-3" rowspan="2" style="background:var(--surface-2);z-index:6;">Producto</th>
+    <th class="th-grupo-sol" colspan="${nF}">SOLICITUDES</th>
+    <th class="th-total" colspan="1">Total</th>
+    <th class="th-grupo-des" colspan="${nF}">DESPACHOS</th>
+    <th class="th-total" colspan="1">Total</th>
+    <th class="th-dif" rowspan="2">Diferencia</th>`;
+
+  // Header fila 2: fechas
+  const fmtFecha = f => { const [,m,d] = f.split('-'); return d+'/'+m; };
+  let hRow2 = fechas.map(f => `<th class="th-grupo-sol">${fmtFecha(f)}</th>`).join('') +
+              fechas.map(f => `<th class="th-grupo-des">${fmtFecha(f)}</th>`).join('');
+
+  document.getElementById('dtThead').innerHTML =
+    `<tr>${hRow1}</tr><tr>${hRow2}</tr>`;
+
+  // Filas de datos
+  const rows = [...map.values()].sort((a,b) =>
+    a.nombre.localeCompare(b.nombre,'es') || a.sku.localeCompare(b.sku,'es')
+  );
+
+  const tbody = rows.map(r => {
+    const solCols = fechas.map(f => {
+      const v = r.sol[f] || 0;
+      return `<td class="td-sol">${v > 0 ? fmt(v) : '—'}</td>`;
+    }).join('');
+    const desCols = fechas.map(f => {
+      const v = r.des[f] || 0;
+      return `<td class="td-des">${v > 0 ? fmt(v) : '—'}</td>`;
+    }).join('');
+
+    const totSol = Object.values(r.sol).reduce((s,v) => s+v, 0);
+    const totDes = Object.values(r.des).reduce((s,v) => s+v, 0);
+    const dif    = totSol - totDes;
+    const difCls = dif === 0 ? 'td-dif-zero' : 'td-dif-pos';
+
+    return `<tr>
+      <td class="td-fix td-fix-0">${r.sala || '—'}</td>
+      <td class="td-fix td-fix-1">${r.nombre}</td>
+      <td class="td-fix td-fix-2">${r.sku}</td>
+      <td class="td-fix td-fix-3">${r.prod || '—'}</td>
+      ${solCols}
+      <td class="td-total-sol">${fmt(totSol)}</td>
+      ${desCols}
+      <td class="td-total-des">${fmt(totDes)}</td>
+      <td class="${difCls}">${dif !== 0 ? fmt(dif) : '✓'}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('dtTbody').innerHTML = tbody;
+}
+
+function poblarFiltrosDetalle() {
+  const sucursales = [...new Set(GRANULAR.map(g => g.sucursal))].sort();
+  setupCustomFilter('dtLocal', sucursales, dtLocal, sel => { dtLocal = sel; renderDetalle(); });
+}
+
+function descargarDetalleExcel() {
+  const src = getDtGranular();
+  if(!src.length) { alert('Sin datos para descargar.'); return; }
+  const fechas = [...new Set(src.map(g => g.fecha))].sort();
+  const map = new Map();
+  for(const g of src) {
+    const key = g.sku + '|' + g.sucursal;
+    if(!map.has(key)) map.set(key, { sala: CODIGOS_POR_NOMBRE[g.sucursal]||'', nombre: g.sucursal, sku: g.sku, prod: g.descripcion, sol:{}, des:{} });
+    const e = map.get(key);
+    e.sol[g.fecha] = (e.sol[g.fecha]||0) + g.solicitado;
+    e.des[g.fecha] = (e.des[g.fecha]||0) + g.despachado;
+  }
+  const fmtF = f => { const [,m,d]=f.split('-'); return d+'/'+m; };
+  const data = [...map.values()].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es')||a.sku.localeCompare(b.sku,'es')).map(r => {
+    const row = { 'N° Sala': r.sala, 'Nombre Sala': r.nombre, 'SKU': r.sku, 'Producto': r.prod };
+    fechas.forEach(f => { row['Sol '+fmtF(f)] = r.sol[f]||0; });
+    const totSol = Object.values(r.sol).reduce((s,v)=>s+v,0);
+    row['Total Solicitado'] = totSol;
+    fechas.forEach(f => { row['Des '+fmtF(f)] = r.des[f]||0; });
+    const totDes = Object.values(r.des).reduce((s,v)=>s+v,0);
+    row['Total Despachado'] = totDes;
+    row['Diferencia'] = totSol - totDes;
+    return row;
+  });
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Detalle');
+  XLSX.writeFile(wb, 'detalle_' + new Date().toISOString().slice(0,10) + '.xlsx');
+}
+
+// Listeners tab Detalle
+document.getElementById('dtBuscar').addEventListener('input', debounce(e => {
+  dtBuscarVal = e.target.value; renderDetalle();
+}, 300));
+document.getElementById('dtFechaDesde').addEventListener('change', e => {
+  dtFechaDesde = e.target.value; renderDetalle();
+});
+document.getElementById('dtFechaHasta').addEventListener('change', e => {
+  dtFechaHasta = e.target.value; renderDetalle();
+});
+document.getElementById('dtBtnReset').addEventListener('click', () => {
+  dtLocal=[]; dtBuscarVal=''; dtFechaDesde=''; dtFechaHasta='';
+  document.getElementById('dtBuscar').value='';
+  document.getElementById('dtFechaDesde').value='';
+  document.getElementById('dtFechaHasta').value='';
+  const btn = document.querySelector('#dtLocalDD .filter-btn');
+  if(btn) btn.textContent='Seleccionar locales...';
+  renderDetalle();
 });
 
 // ============================================================
