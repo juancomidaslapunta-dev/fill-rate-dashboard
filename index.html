@@ -2488,7 +2488,9 @@ const CODIGOS_POR_NOMBRE = Object.fromEntries(
   Object.entries(NOMBRES_OFICIALES).map(([k,v]) => [v, parseInt(k)])
 );
 
-function getStockRows() {
+function getStockRows(granularFiltrado) {
+  const src = granularFiltrado || GRANULAR;
+
   // Construir índices de los archivos opcionales
   const invSalidaIdx = {}; // sku|sucursal → salida
   const ventaSemIdx  = {}; // sku|sucursal → venta
@@ -2510,49 +2512,43 @@ function getStockRows() {
       const sku = String(r['Cód. artículo'] || r['SKU'] || r['sku'] || '').trim();
       const vta = parseFloat(r['Cantidad con insumos'] || r['Venta Diaria'] || r['Venta Semana'] || r['Unidades Vendidas'] || 0);
       if(!sku || !vta) continue;
-
-      // Intentar obtener sucursal por Cod Sucursal primero (más confiable)
       const cod = parseInt(r['Cod Sucursal'] || r['ID Local'] || r['N° Local'] || 0);
       let suc = (cod && NOMBRES_OFICIALES[cod]) ? NOMBRES_OFICIALES[cod] : String(r['Sucursal'] || r['Local'] || r['Nombre Local'] || '').trim().toUpperCase();
       if(!suc) continue;
-
       const key = sku + '|' + suc;
       ventaSemIdx[key] = (ventaSemIdx[key] || 0) + vta;
     }
   }
 
-  // Agregar GRANULAR por SKU+Sucursal
+  // Agregar src (GRANULAR ya filtrado por fecha) por SKU+Sucursal
   const map = new Map();
-  for(const g of GRANULAR) {
+  for(const g of src) {
     const key = g.sku + '|' + g.sucursal;
     if(!map.has(key)) {
       map.set(key, {
-        numero_local:   CODIGOS_POR_NOMBRE[g.sucursal] || '',
-        sucursal:       g.sucursal,
-        sku:            g.sku,
-        descripcion:    g.descripcion,
-        inv_entrada:    g.inventario || 0,
-        solicitado:     0,
-        despachado:     0,
-        prog_produccion: g.programa || 0
+        numero_local:    CODIGOS_POR_NOMBRE[g.sucursal] || '',
+        sucursal:        g.sucursal,
+        sku:             g.sku,
+        descripcion:     g.descripcion,
+        inv_entrada:     0,
+        solicitado:      0,
+        despachado:      0,
+        prog_produccion: 0
       });
     }
     const e = map.get(key);
     e.solicitado  += g.solicitado;
     e.despachado  += g.despachado;
-    if(g.inventario  > e.inv_entrada)    e.inv_entrada    = g.inventario;
+    if(g.inventario  > e.inv_entrada)     e.inv_entrada     = g.inventario;
     if(g.programa    > e.prog_produccion) e.prog_produccion = g.programa;
   }
 
   // Enriquecer con inv salida y venta semana
   for(const [key, e] of map) {
-    e.venta_semana     = ventaSemIdx[key]  || 0;
-    e.inv_salida       = invSalidaIdx[key] || 0;
-    // Stock Disponible = Inv. Entrada + Despachado
-    e.stock_disponible = e.inv_entrada + e.despachado;
-    // Stock Teórico = Stock Disponible - Venta Semana
-    e.stock_teorico    = e.stock_disponible - e.venta_semana;
-    // Diferencia = Inv. Salida - Stock Teórico
+    e.venta_semana      = ventaSemIdx[key]  || 0;
+    e.inv_salida        = invSalidaIdx[key] || 0;
+    e.stock_disponible  = e.inv_entrada + e.despachado;
+    e.stock_teorico     = e.stock_disponible - e.venta_semana;
     e.diferencia_salida = e.inv_salida - e.stock_teorico;
   }
 
@@ -2560,7 +2556,20 @@ function getStockRows() {
 }
 
 function getStockFiltrado() {
-  let rows = getStockRows();
+  // Filtrar GRANULAR por fecha PRIMERO para que solicitado/despachado sean correctos
+  let granular = GRANULAR;
+  if(stFechaDesdeVal || stFechaHastaVal) {
+    granular = GRANULAR.filter(g => {
+      if(stFechaDesdeVal && g.fecha < stFechaDesdeVal) return false;
+      if(stFechaHastaVal && g.fecha > stFechaHastaVal) return false;
+      return true;
+    });
+  }
+
+  // Construir rows con GRANULAR ya filtrado
+  let rows = getStockRows(granular);
+
+  // Filtrar por local y búsqueda
   if(stLocal.length > 0) rows = rows.filter(r => stLocal.includes(r.sucursal));
   if(stBuscarVal) {
     const q = normalizarTexto(stBuscarVal);
@@ -2568,17 +2577,6 @@ function getStockFiltrado() {
       normalizarTexto(r.sku).includes(q) ||
       normalizarTexto(r.descripcion || '').includes(q)
     );
-  }
-  // Filtro de fecha: buscar en GRANULAR fechas dentro del rango
-  if(stFechaDesdeVal || stFechaHastaVal) {
-    // Construir set de sku|sucursal que tienen filas en el rango de fecha
-    const keysEnRango = new Set();
-    for(const g of GRANULAR) {
-      if(stFechaDesdeVal && g.fecha < stFechaDesdeVal) continue;
-      if(stFechaHastaVal && g.fecha > stFechaHastaVal) continue;
-      keysEnRango.add(g.sku + '|' + g.sucursal);
-    }
-    rows = rows.filter(r => keysEnRango.has(r.sku + '|' + r.sucursal));
   }
   // Sort
   rows.sort((a, b) => {
@@ -2627,7 +2625,7 @@ function renderStock() {
 }
 
 function poblarFiltrosStock() {
-  const sucursales = [...new Set(getStockRows().map(r => r.sucursal))].sort();
+  const sucursales = [...new Set(getStockRows(GRANULAR).map(r => r.sucursal))].sort();
   setupCustomFilter('stLocal', sucursales, stLocal, sel => { stLocal = sel; renderStock(); });
 }
 
