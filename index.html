@@ -760,10 +760,10 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
         <div id="sucursalBars"></div>
       </div>
       <div class="panel">
-        <div class="panel-title">🔴 Top Quiebres (SKU+Sucursal con mayor brecha)</div>
+        <div class="panel-title">🔴 Top Quiebres por Producto (mayor brecha)</div>
         <div style="overflow-x:auto; max-height:330px;">
           <table>
-            <thead><tr><th>SKU</th><th>Descripción</th><th>Sucursal</th><th style="text-align:right">Solicitado</th><th style="text-align:right">Despachado</th><th style="text-align:right">Diferencia</th></tr></thead>
+            <thead><tr><th>SKU</th><th>Descripción</th><th style="text-align:right">Solicitado</th><th style="text-align:right">Despachado</th><th style="text-align:right">Diferencia</th></tr></thead>
             <tbody id="quiebresBody"></tbody>
           </table>
         </div>
@@ -1915,20 +1915,19 @@ function renderSucursalBars(){
 
 function renderQuiebres(){
   const filtrado = getFiltrado();
-  const porSkuSucursal = new Map();
+  const porSku = new Map();
   for(const g of filtrado){
     if(g.diferencia <= 0) continue;
-    const key = g.sku + '|' + g.sucursal;
-    if(!porSkuSucursal.has(key)){
-      porSkuSucursal.set(key, { sku:g.sku, descripcion:g.descripcion, sucursal:g.sucursal, solicitado:0, despachado:0, diferencia:0 });
+    if(!porSku.has(g.sku)){
+      porSku.set(g.sku, { sku:g.sku, descripcion:g.descripcion, solicitado:0, despachado:0, diferencia:0 });
     }
-    const e = porSkuSucursal.get(key);
+    const e = porSku.get(g.sku);
     e.solicitado += g.solicitado;
     e.despachado += g.despachado;
     e.diferencia += g.diferencia;
   }
-  let rows = Array.from(porSkuSucursal.values());
-  rows.sort((a,b)=>b[ordenQuiebres]-a[ordenQuiebres]);
+  let rows = Array.from(porSku.values());
+  rows.sort((a,b) => b.diferencia - a.diferencia);
   rows = rows.slice(0,15);
 
   const tbody = document.getElementById('quiebresBody');
@@ -1940,7 +1939,6 @@ function renderQuiebres(){
     '<tr>'+
       '<td><span class="sku">'+r.sku+'</span></td>'+
       '<td>'+(r.descripcion||'—')+'</td>'+
-      '<td>'+r.sucursal+'</td>'+
       '<td style="text-align:right">'+fmt(r.solicitado)+'</td>'+
       '<td style="text-align:right">'+fmt(r.despachado)+'</td>'+
       '<td style="text-align:right"><span class="gap-pos">'+fmt(r.diferencia)+'</span></td>'+
