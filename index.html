@@ -1632,7 +1632,23 @@ function poblarFiltros(){
   const locales = Array.from(new Set(GRANULAR.map(g=>g.sucursal))).sort();
   const semanas = Array.from(new Set(GRANULAR.map(g=>isoWeekOf(g.fecha)))).sort((a,b)=>a-b).map(s=>'Semana '+s);
   const dias = Array.from(new Set(GRANULAR.map(g=>g.fecha))).sort();
-  
+
+  // Pre-seleccionar semana en curso si aún no hay filtro
+  if(filtroSemana.length === 0 && semanas.length > 0) {
+    const semActual = isoWeekOf(new Date().toISOString().slice(0,10));
+    const semStr = 'Semana ' + semActual;
+    if(semanas.includes(semStr)) {
+      filtroSemana = [String(semActual)];
+    } else {
+      // fallback: la semana más reciente disponible
+      const ultima = semanas[semanas.length - 1];
+      filtroSemana = [ultima.split(' ')[1]];
+    }
+    // Actualizar label del botón
+    const btn = document.querySelector('#filtroSemanaDD .filter-btn');
+    if(btn) btn.textContent = '1 seleccionados';
+  }
+
   setupCustomFilter('filtroLocal', locales, filtroLocal, (selected)=>{ 
     filtroLocal = selected; 
     renderAll();
@@ -1712,14 +1728,22 @@ function renderHeader(){
 
 function renderKPIs(){
   const filtrado = getFiltrado();
-  const sol = filtrado.reduce((a,g)=>a+g.solicitado,0);
+  const sol  = filtrado.reduce((a,g)=>a+g.solicitado,0);
   const desp = filtrado.reduce((a,g)=>a+g.despachado,0);
-  const fr = sol > 0 ? (desp/sol*100) : 0;
+  const gap  = sol - desp;
+  const fr   = sol > 0 ? (desp/sol*100) : 0;
 
-  document.getElementById('kpiFillRate').textContent = fr.toFixed(1) + '%';
+  document.getElementById('kpiFillRate').textContent  = fr.toFixed(1) + '%';
   document.getElementById('kpiSolicitado').textContent = fmt(sol);
   document.getElementById('kpiDespachado').textContent = fmt(desp);
-  document.getElementById('kpiGap').textContent = fmt(sol - desp);
+
+  const kpiGap = document.getElementById('kpiGap');
+  kpiGap.textContent = (gap > 0 ? '-' : '') + fmt(Math.abs(gap));
+  kpiGap.style.color = gap > 0 ? 'var(--red)' : gap < 0 ? 'var(--green)' : 'var(--ink-1)';
+
+  // Actualizar subtítulo del card diferencia
+  const unit = document.querySelector('#kpiGap + .kpi-unit, .kpi-card.red .kpi-unit');
+  if(unit) unit.textContent = gap > 0 ? 'unidades sin despachar' : gap < 0 ? 'unidades sobre lo solicitado' : 'todo despachado ✓';
 }
 
 function renderCharts(){
