@@ -763,7 +763,7 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
         <div class="panel-title">🔴 Top Quiebres (SKU+Sucursal con mayor brecha)</div>
         <div style="overflow-x:auto; max-height:330px;">
           <table>
-            <thead><tr><th>SKU</th><th>Descripción</th><th>Sucursal</th><th style="text-align:right">Solicitado</th><th style="text-align:right">Diferencia</th></tr></thead>
+            <thead><tr><th>SKU</th><th>Descripción</th><th>Sucursal</th><th style="text-align:right">Solicitado</th><th style="text-align:right">Despachado</th><th style="text-align:right">Diferencia</th></tr></thead>
             <tbody id="quiebresBody"></tbody>
           </table>
         </div>
@@ -1918,6 +1918,7 @@ function renderQuiebres(){
       '<td>'+(r.descripcion||'—')+'</td>'+
       '<td>'+r.sucursal+'</td>'+
       '<td style="text-align:right">'+fmt(r.solicitado)+'</td>'+
+      '<td style="text-align:right">'+fmt(r.despachado)+'</td>'+
       '<td style="text-align:right"><span class="gap-pos">'+fmt(r.diferencia)+'</span></td>'+
     '</tr>'
   ).join('');
@@ -2785,8 +2786,76 @@ document.getElementById('stTable').querySelectorAll('.sort-th').forEach(th => {
 });
 
 // ============================================================
-// TAB DETALLE — tabla pivote Solicitudes vs Despachos por día
+// FILTROS COLUMNA TAB DETALLE (mismo estilo que Análisis)
 // ============================================================
+var dtColFiltros = {}; // { sala:[], nombre:[], sku:[], prod:[], totSol:[], totDes:[], dif:[] }
+
+function abrirFiltroDetalle(columna, rows) {
+  if(!rows || !rows.length) return;
+
+  // Valores únicos de la columna
+  const valores = [...new Set(rows.map(r => {
+    const totSol = Object.values(r.sol).reduce((s,v)=>s+v,0);
+    const totDes = Object.values(r.des).reduce((s,v)=>s+v,0);
+    if(columna==='sala')   return String(r.sala||'—');
+    if(columna==='nombre') return r.nombre;
+    if(columna==='sku')    return r.sku;
+    if(columna==='prod')   return r.prod||'—';
+    if(columna==='totSol') return String(totSol);
+    if(columna==='totDes') return String(totDes);
+    if(columna==='dif')    return String(totDes-totSol);
+    return '';
+  })).filter(v=>v)].sort((a,b) => {
+    const na=Number(a), nb=Number(b);
+    return (!isNaN(na)&&!isNaN(nb)) ? na-nb : a.localeCompare(b,'es');
+  });
+
+  const activos = dtColFiltros[columna] || [];
+  const labels  = { sala:'N° Sala', nombre:'Nombre Sala', sku:'SKU', prod:'Producto', totSol:'Total Sol.', totDes:'Total Des.', dif:'Diferencia' };
+
+  const modal = document.createElement('div');
+  modal.id = 'dtFilterModal';
+  modal.innerHTML = `
+    <div style="position:fixed;inset:0;background:rgba(13,27,42,.55);z-index:2000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px);" onclick="if(event.target===this)cerrarFiltroDetalle()">
+      <div style="background:var(--surface);border-radius:var(--radius-lg);max-width:320px;width:90%;max-height:480px;display:flex;flex-direction:column;box-shadow:var(--shadow-lg);border:1px solid var(--border);">
+        <div style="padding:1rem 1.2rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-weight:700;font-size:.9rem;color:var(--ink-1);">Filtrar: ${labels[columna]||columna}</span>
+          <button onclick="cerrarFiltroDetalle()" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--ink-3);">✕</button>
+        </div>
+        <div style="padding:.6rem .8rem;border-bottom:1px solid var(--border);">
+          <input type="text" placeholder="Buscar..." id="dtFilterSearch"
+            style="width:100%;padding:.42rem .7rem;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:.82rem;font-family:inherit;"
+            oninput="document.querySelectorAll('#dtFilterList label').forEach(l=>l.style.display=l.textContent.toLowerCase().includes(this.value.toLowerCase())?'flex':'none')">
+        </div>
+        <div id="dtFilterList" style="overflow-y:auto;flex:1;padding:.4rem .8rem;">
+          ${valores.map(v=>`
+            <label style="display:flex;align-items:center;gap:.5rem;padding:.35rem 0;cursor:pointer;font-size:.82rem;border-bottom:1px solid var(--border-soft);">
+              <input type="checkbox" data-val="${v}" ${activos.includes(v)?'checked':''} style="width:15px;height:15px;accent-color:var(--brand);cursor:pointer;">
+              <span>${v}</span>
+            </label>`).join('')}
+        </div>
+        <div style="padding:.7rem .8rem;border-top:1px solid var(--border);display:flex;gap:.5rem;">
+          <button onclick="document.querySelectorAll('#dtFilterList input').forEach(c=>c.checked=true)" style="flex:1;padding:.4rem;background:var(--brand-soft);color:var(--brand);border:1px solid #BFDBFE;border-radius:var(--radius-sm);font-size:.78rem;font-weight:700;cursor:pointer;">✓ Todos</button>
+          <button onclick="document.querySelectorAll('#dtFilterList input').forEach(c=>c.checked=false)" style="flex:1;padding:.4rem;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:.78rem;font-weight:700;cursor:pointer;">✗ Ninguno</button>
+          <button onclick="aplicarFiltroDetalle('${columna}')" style="flex:1;padding:.4rem;background:var(--brand);color:#fff;border:none;border-radius:var(--radius-sm);font-size:.78rem;font-weight:700;cursor:pointer;">Aplicar</button>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('dtFilterModal')?.remove();
+  document.body.appendChild(modal);
+  document.getElementById('dtFilterSearch')?.focus();
+}
+
+function aplicarFiltroDetalle(columna) {
+  const checked = [...document.querySelectorAll('#dtFilterList input:checked')].map(c=>c.dataset.val);
+  dtColFiltros[columna] = checked.length ? checked : [];
+  cerrarFiltroDetalle();
+  renderDetalle();
+}
+
+function cerrarFiltroDetalle() {
+  document.getElementById('dtFilterModal')?.remove();
+}
 // Calcular lunes y domingo de la semana actual
 function getSemanaActual() {
   const hoy = new Date();
@@ -2879,52 +2948,41 @@ function renderDetalle() {
   // Input helper
   // Input helper (definida arriba)
 
-  // Input helper
-  const inpStyle = `width:100%;box-sizing:border-box;padding:2px 4px;font-size:.68rem;border:1px solid var(--border);border-radius:3px;background:var(--surface);font-family:inherit;`;
-  const inp = (key, ph) =>
-    `<input data-dtcol="${key}" value="${(dtColFiltros[key]||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="${inpStyle}">`;
+  // Fila 1 — una sola fila: columnas fijas con icono ▼ + grupos
+  const fi = (label, key, cls='') =>
+    `<th class="${cls} filterable-th" data-dtfilter="${key}" style="${cls.includes('th-fix')?'background:var(--surface-2);z-index:6;':''} cursor:pointer; user-select:none;">${label} <span class="filter-icon" title="Filtrar" style="opacity:.6;font-size:.7rem;">🔽</span></th>`;
 
-  // Fila 1 — labels + grupos
   const hRow1 =
-    `<th class="th-fix-0" style="background:var(--surface-2);z-index:6;">N° Sala</th>` +
-    `<th class="th-fix-1" style="background:var(--surface-2);z-index:6;">Nombre Sala</th>` +
-    `<th class="th-fix-2" style="background:var(--surface-2);z-index:6;">SKU</th>` +
-    `<th class="th-fix-3" style="background:var(--surface-2);z-index:6;">Producto</th>` +
+    fi('N° Sala',    'sala',    'th-fix-0') +
+    fi('Nombre Sala','nombre',  'th-fix-1') +
+    fi('SKU',        'sku',     'th-fix-2') +
+    fi('Producto',   'prod',    'th-fix-3') +
     `<th class="th-grupo-sol" colspan="${nF}">SOLICITUDES</th>` +
-    `<th class="th-total">Total Sol.</th>` +
+    fi('Total Sol.', 'totSol',  'th-total') +
     `<th class="th-grupo-des" colspan="${nF}">DESPACHOS</th>` +
-    `<th class="th-total">Total Des.</th>` +
-    `<th class="th-dif">Diferencia</th>`;
+    fi('Total Des.', 'totDes',  'th-total') +
+    fi('Diferencia', 'dif',     'th-dif');
 
-  // Fila 2 — fechas + inputs bajo columnas fijas
+  // Fila 2 — fechas dinámicas
   const hRow2 =
-    `<th class="th-fix-0" style="background:var(--surface-2);z-index:6;padding:3px;">${inp('sala','Nº')}</th>` +
-    `<th class="th-fix-1" style="background:var(--surface-2);z-index:6;padding:3px;">${inp('nombre','Nombre...')}</th>` +
-    `<th class="th-fix-2" style="background:var(--surface-2);z-index:6;padding:3px;">${inp('sku','SKU...')}</th>` +
-    `<th class="th-fix-3" style="background:var(--surface-2);z-index:6;padding:3px;">${inp('prod','Producto...')}</th>` +
+    `<th class="th-fix-0" style="background:var(--surface-2);z-index:6;"></th>` +
+    `<th class="th-fix-1" style="background:var(--surface-2);z-index:6;"></th>` +
+    `<th class="th-fix-2" style="background:var(--surface-2);z-index:6;"></th>` +
+    `<th class="th-fix-3" style="background:var(--surface-2);z-index:6;"></th>` +
     fechas.map(f=>`<th class="th-grupo-sol" style="font-weight:700;">${fmtFecha(f)}</th>`).join('') +
-    `<th class="th-total" style="padding:3px;">${inp('totSol','≥ n')}</th>` +
-    fechas.map(f=>`<th class="th-grupo-des" style="font-weight:700;">${fmtFecha(f)}</th>`).join('') +
-    `<th class="th-total" style="padding:3px;">${inp('totDes','≥ n')}</th>` +
-    `<th class="th-dif" style="padding:3px;">${inp('dif','>/<')}</th>`;
-
-  // Fila 3 — inputs bajo cada fecha
-  const hRow3 =
-    `<th class="th-fix-0" style="background:var(--surface-2);z-index:6;"></th>`.repeat(4).replace(/th-fix-0/g, (m, i) => ['th-fix-0','th-fix-1','th-fix-2','th-fix-3'][Math.floor(i/4)] || m) +
-    fechas.map(f=>`<th class="th-grupo-sol" style="padding:3px;">${inp('sol_'+f,'≥ n')}</th>`).join('') +
     `<th class="th-total"></th>` +
-    fechas.map(f=>`<th class="th-grupo-des" style="padding:3px;">${inp('des_'+f,'≥ n')}</th>`).join('') +
+    fechas.map(f=>`<th class="th-grupo-des" style="font-weight:700;">${fmtFecha(f)}</th>`).join('') +
     `<th class="th-total"></th><th class="th-dif"></th>`;
 
   document.getElementById('dtThead').innerHTML =
-    `<tr>${hRow1}</tr><tr>${hRow2}</tr><tr>${hRow3}</tr>`;
+    `<tr>${hRow1}</tr><tr>${hRow2}</tr>`;
 
-  // Attach listeners a los inputs de filtro
-  document.getElementById('dtThead').querySelectorAll('input[data-dtcol]').forEach(inp => {
-    inp.addEventListener('input', debounce(e => {
-      dtColFiltros[e.target.dataset.dtcol] = e.target.value;
-      renderDetalle();
-    }, 250));
+  // Listeners iconos filtro columna
+  document.getElementById('dtThead').querySelectorAll('.filterable-th').forEach(th => {
+    th.querySelector('.filter-icon')?.addEventListener('click', e => {
+      e.stopPropagation();
+      abrirFiltroDetalle(th.dataset.dtfilter, rows);
+    });
   });
 
   // Tbody
