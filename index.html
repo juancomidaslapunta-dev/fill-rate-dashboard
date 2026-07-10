@@ -412,14 +412,14 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
         <div class="filter-dropdown" id="dtLocalDD">
           <button class="filter-btn" data-placeholder="Seleccionar locales...">Seleccionar locales...</button>
           <div class="filter-menu" style="display:none">
-            <input class="filter-search" id="dtLocalSearch" placeholder="Buscar...">
+            <input class="filter-search" id="dtLocalSearch" placeholder="Buscar sucursal...">
             <div class="filter-controls">
-              <button class="filter-btn-small" id="dtLocalAll">Todos</button>
-              <button class="filter-btn-small" id="dtLocalNone">Ninguno</button>
+              <button class="filter-btn-small" id="dtLocalAll">✓ Todos</button>
+              <button class="filter-btn-small" id="dtLocalNone">✗ Ninguno</button>
             </div>
             <div class="filter-options" id="dtLocalOptions"></div>
             <div class="filter-actions">
-              <button class="btn btn-primary" id="dtLocalApply">Aplicar</button>
+              <button class="btn btn-primary" id="dtLocalApply">Aplicar filtro</button>
               <button class="btn btn-secondary" id="dtLocalCancel">Cancelar</button>
             </div>
           </div>
@@ -427,19 +427,19 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
       </div>
       <div class="fgroup">
         <label>Fecha Desde</label>
-        <input type="date" id="dtFechaDesde" class="range-input" style="width:130px;">
+        <input type="date" id="dtFechaDesde" class="range-input" style="width:140px;">
       </div>
       <div class="fgroup">
         <label>Fecha Hasta</label>
-        <input type="date" id="dtFechaHasta" class="range-input" style="width:130px;">
+        <input type="date" id="dtFechaHasta" class="range-input" style="width:140px;">
       </div>
       <div class="fgroup">
         <label>Buscar SKU / Producto</label>
         <input type="text" id="dtBuscar" class="search-input" placeholder="Ej: 2101005, empanada...">
       </div>
-      <button class="btn-reset" id="dtBtnReset">✕ Limpiar</button>
-      <div style="margin-left:auto; display:flex; gap:.6rem;">
-        <button class="btn btn-download btn-primary" id="dtBtnDescargar" onclick="descargarDetalleExcel()">⬇ Descargar Excel</button>
+      <button class="btn-reset" id="dtBtnReset">✕ Limpiar filtros</button>
+      <div style="margin-left:auto;">
+        <button class="btn btn-download btn-primary" onclick="descargarDetalleExcel()">⬇ Descargar Excel</button>
       </div>
     </div>
 
@@ -2879,7 +2879,12 @@ function renderDetalle() {
   // Input helper
   // Input helper (definida arriba)
 
-  // Fila 1 — labels de columnas fijas + grupos
+  // Input helper
+  const inpStyle = `width:100%;box-sizing:border-box;padding:2px 4px;font-size:.68rem;border:1px solid var(--border);border-radius:3px;background:var(--surface);font-family:inherit;`;
+  const inp = (key, ph) =>
+    `<input data-dtcol="${key}" value="${(dtColFiltros[key]||'').replace(/"/g,'&quot;')}" placeholder="${ph}" style="${inpStyle}">`;
+
+  // Fila 1 — labels + grupos
   const hRow1 =
     `<th class="th-fix-0" style="background:var(--surface-2);z-index:6;">N° Sala</th>` +
     `<th class="th-fix-1" style="background:var(--surface-2);z-index:6;">Nombre Sala</th>` +
@@ -2891,29 +2896,25 @@ function renderDetalle() {
     `<th class="th-total">Total Des.</th>` +
     `<th class="th-dif">Diferencia</th>`;
 
-  // Fila 2 — fechas por columna
+  // Fila 2 — fechas + inputs bajo columnas fijas
   const hRow2 =
-    `<th class="th-fix-0" style="background:var(--surface-2);z-index:6;padding:3px;">${inp('sala','N°')}</th>` +
-    `<th class="th-fix-1" style="background:var(--surface-2);z-index:6;padding:3px;">${inp('nombre','Sala')}</th>` +
-    `<th class="th-fix-2" style="background:var(--surface-2);z-index:6;padding:3px;">${inp('sku','SKU')}</th>` +
-    `<th class="th-fix-3" style="background:var(--surface-2);z-index:6;padding:3px;">${inp('prod','Prod.')}</th>` +
-    fechas.map(f=>`<th class="th-grupo-sol" style="padding:3px;font-size:.7rem;font-weight:700;">${fmtFecha(f)}</th>`).join('') +
+    `<th class="th-fix-0" style="background:var(--surface-2);z-index:6;padding:3px;">${inp('sala','Nº')}</th>` +
+    `<th class="th-fix-1" style="background:var(--surface-2);z-index:6;padding:3px;">${inp('nombre','Nombre...')}</th>` +
+    `<th class="th-fix-2" style="background:var(--surface-2);z-index:6;padding:3px;">${inp('sku','SKU...')}</th>` +
+    `<th class="th-fix-3" style="background:var(--surface-2);z-index:6;padding:3px;">${inp('prod','Producto...')}</th>` +
+    fechas.map(f=>`<th class="th-grupo-sol" style="font-weight:700;">${fmtFecha(f)}</th>`).join('') +
     `<th class="th-total" style="padding:3px;">${inp('totSol','≥ n')}</th>` +
-    fechas.map(f=>`<th class="th-grupo-des" style="padding:3px;font-size:.7rem;font-weight:700;">${fmtFecha(f)}</th>`).join('') +
+    fechas.map(f=>`<th class="th-grupo-des" style="font-weight:700;">${fmtFecha(f)}</th>`).join('') +
     `<th class="th-total" style="padding:3px;">${inp('totDes','≥ n')}</th>` +
     `<th class="th-dif" style="padding:3px;">${inp('dif','>/<')}</th>`;
 
   // Fila 3 — inputs bajo cada fecha
   const hRow3 =
-    `<th class="th-fix-0" style="background:var(--surface-2);z-index:6;"></th>` +
-    `<th class="th-fix-1" style="background:var(--surface-2);z-index:6;"></th>` +
-    `<th class="th-fix-2" style="background:var(--surface-2);z-index:6;"></th>` +
-    `<th class="th-fix-3" style="background:var(--surface-2);z-index:6;"></th>` +
+    `<th class="th-fix-0" style="background:var(--surface-2);z-index:6;"></th>`.repeat(4).replace(/th-fix-0/g, (m, i) => ['th-fix-0','th-fix-1','th-fix-2','th-fix-3'][Math.floor(i/4)] || m) +
     fechas.map(f=>`<th class="th-grupo-sol" style="padding:3px;">${inp('sol_'+f,'≥ n')}</th>`).join('') +
-    `<th class="th-total" style="padding:3px;"></th>` +
+    `<th class="th-total"></th>` +
     fechas.map(f=>`<th class="th-grupo-des" style="padding:3px;">${inp('des_'+f,'≥ n')}</th>`).join('') +
-    `<th class="th-total" style="padding:3px;"></th>` +
-    `<th class="th-dif" style="padding:3px;"></th>`;
+    `<th class="th-total"></th><th class="th-dif"></th>`;
 
   document.getElementById('dtThead').innerHTML =
     `<tr>${hRow1}</tr><tr>${hRow2}</tr><tr>${hRow3}</tr>`;
