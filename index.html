@@ -1059,6 +1059,17 @@ function isoWeekOf(dateStr){
   return 1 + Math.ceil((firstThursday - target.valueOf()) / 604800000);
 }
 
+// Rango lunes-domingo de la semana ISO actual
+function rangoSemanaActual() {
+  const hoy = new Date();
+  const dia = hoy.getDay();
+  const diffLun = dia === 0 ? -6 : 1 - dia;
+  const lunes = new Date(hoy); lunes.setDate(hoy.getDate() + diffLun);
+  const domingo = new Date(lunes); domingo.setDate(lunes.getDate() + 6);
+  const f = d => d.toISOString().slice(0,10);
+  return { desde: f(lunes), hasta: f(domingo), semana: String(isoWeekOf(f(lunes))) };
+}
+
 function log(msg, type){
   const panel = document.getElementById('logPanel');
   const cls = type === 'ok' ? 'ok-line' : type === 'warn' ? 'warn-line' : type === 'err' ? 'err-line' : 'info-line';
@@ -1917,18 +1928,19 @@ function renderQuiebres(){
   const filtrado = getFiltrado();
   const porSku = new Map();
   for(const g of filtrado){
-    if(g.diferencia <= 0) continue;
     if(!porSku.has(g.sku)){
-      porSku.set(g.sku, { sku:g.sku, descripcion:g.descripcion, solicitado:0, despachado:0, diferencia:0 });
+      porSku.set(g.sku, { sku:g.sku, descripcion:g.descripcion, solicitado:0, despachado:0 });
     }
     const e = porSku.get(g.sku);
     e.solicitado += g.solicitado;
     e.despachado += g.despachado;
-    e.diferencia += g.diferencia;
   }
-  let rows = Array.from(porSku.values());
-  rows.sort((a,b) => b.diferencia - a.diferencia);
-  rows = rows.slice(0,15);
+  // Calcular diferencia real: solicitado - despachado
+  let rows = Array.from(porSku.values())
+    .map(r => ({ ...r, diferencia: r.solicitado - r.despachado }))
+    .filter(r => r.diferencia > 0)
+    .sort((a,b) => b.diferencia - a.diferencia)
+    .slice(0, 15);
 
   const tbody = document.getElementById('quiebresBody');
   if(rows.length===0){
@@ -2002,7 +2014,6 @@ var anSortDir = 'desc';
 
 function poblarFiltrosAnalisis(){
   const locales = Array.from(new Set(GRANULAR.map(g=>g.sucursal))).sort();
-  
   setupCustomFilter('anLocal', locales, anLocal, (selected)=>{ 
     anLocal = selected;
     renderAnalisis();
@@ -2010,10 +2021,16 @@ function poblarFiltrosAnalisis(){
 
   const fechas = Array.from(new Set(GRANULAR.map(g=>g.fecha))).sort();
   if(fechas.length){
+    const { desde, hasta } = rangoSemanaActual();
+    // Usar semana actual si no hay filtro manual
     const desdeInput = document.getElementById('anFechaDesde');
     const hastaInput = document.getElementById('anFechaHasta');
-    if(!desdeInput.value) desdeInput.min = fechas[0], desdeInput.max = fechas[fechas.length-1];
-    if(!hastaInput.value) hastaInput.min = fechas[0], hastaInput.max = fechas[fechas.length-1];
+    if(!anFechaDesde && !desdeInput.value) {
+      const d = fechas.includes(desde) ? desde : fechas[fechas.length - 7] || fechas[0];
+      const h = fechas.includes(hasta) ? hasta : fechas[fechas.length - 1];
+      anFechaDesde = d; anFechaHasta = h;
+      desdeInput.value = d; hastaInput.value = h;
+    }
   }
 }
 
@@ -2467,6 +2484,15 @@ function poblarFiltrosGuias(){
   const prevVal = sel.value;
   sel.innerHTML = '<option value="">Todas</option>' + locales.map(l=>'<option value="'+l+'">'+l+'</option>').join('');
   sel.value = prevVal;
+
+  // Semana actual por defecto si no hay filtro
+  const desdeEl = document.getElementById('gdFechaDesde');
+  const hastaEl = document.getElementById('gdFechaHasta');
+  if(!gdFechaDesde && desdeEl && !desdeEl.value) {
+    const { desde, hasta } = rangoSemanaActual();
+    gdFechaDesde = desde; gdFechaHasta = hasta;
+    desdeEl.value = desde; hastaEl.value = hasta;
+  }
 }
 
 function getGuiasFiltradas(){
@@ -2737,6 +2763,14 @@ function renderStock() {
 function poblarFiltrosStock() {
   const sucursales = [...new Set(getStockRows(GRANULAR).map(r => r.sucursal))].sort();
   setupCustomFilter('stLocal', sucursales, stLocal, sel => { stLocal = sel; renderStock(); });
+  // Semana actual por defecto si no hay filtro
+  const desdeEl = document.getElementById('stFechaDesde');
+  const hastaEl = document.getElementById('stFechaHasta');
+  if(!stFechaDesdeVal && desdeEl && !desdeEl.value) {
+    const { desde, hasta } = rangoSemanaActual();
+    stFechaDesdeVal = desde; stFechaHastaVal = hasta;
+    desdeEl.value = desde; hastaEl.value = hasta;
+  }
 }
 
 function imprimirStock() {
