@@ -2688,11 +2688,26 @@ function getStockRows(granularFiltrado) {
     if(g.programa    > e.prog_produccion) e.prog_produccion = g.programa;
   }
 
+  // ── Índice programa ──────────────────────────────────────────────────────────
+  const progIdx = {}; // sku|suc → venta diaria (programa producción)
+  if(PARSED.programaFile) {
+    for(const r of PARSED.programaFile) {
+      const sku = String(r['SKU']||'').trim();
+      const val = parseFloat(r['Venta Diaria']||r['Programa']||0);
+      if(!sku || !val) continue;
+      const suc = normSuc(r['ID Local']||r['N° Local'], r['Local']||r['Nombre Local']);
+      if(!suc) continue;
+      const key = sku+'|'+suc;
+      progIdx[key] = (progIdx[key]||0) + val;
+    }
+  }
+
   // ── Unión: cualquier clave de cualquier archivo externo ─────────────────────
   const allKeys = new Set([
     ...Object.keys(invEntradaIdx),
     ...Object.keys(invSalidaIdx),
     ...Object.keys(ventaSemIdx),
+    ...Object.keys(progIdx),
     ...map.keys()
   ]);
 
@@ -2718,6 +2733,7 @@ function getStockRows(granularFiltrado) {
     const e = map.get(key);
     // Inv entrada: tomar el mayor entre GRANULAR y archivo inventario
     if((invEntradaIdx[key]||0) > e.inv_entrada) e.inv_entrada = invEntradaIdx[key];
+    if((progIdx[key]||0) > e.prog_produccion) e.prog_produccion = progIdx[key];
     e.venta_semana      = ventaSemIdx[key]  || 0;
     e.inv_salida        = invSalidaIdx[key] || 0;
     e.stock_disponible  = e.inv_entrada + e.despachado;
