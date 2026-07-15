@@ -2688,29 +2688,74 @@ function getStockRows(granularFiltrado) {
     e.diferencia_salida = e.inv_salida - e.stock_teorico;
   }
 
-  // Agregar filas que solo existen en venta semana (no en GRANULAR)
-  for(const [key, vta] of Object.entries(ventaSemIdx)) {
-    if(map.has(key)) continue; // ya existe
-    const [sku, sucursal] = key.split('|');
-    // Buscar descripción en archivo venta semana
-    let descripcion = '';
-    if(PARSED.ventaSemanaFile) {
-      const row = PARSED.ventaSemanaFile.find(r => {
-        const rSku = String(r['Cód. artículo'] || r['SKU'] || '').trim();
-        const cod  = parseInt(r['Cod Sucursal'] || r['ID Local'] || 0);
-        const rSuc = (cod && NOMBRES_OFICIALES[cod]) ? NOMBRES_OFICIALES[cod] : String(r['Sucursal'] || '').trim().toUpperCase();
-        return rSku === sku && rSuc === sucursal;
-      });
-      descripcion = row ? String(row['Artículo'] || row['Descripción'] || row['descripcion'] || '') : '';
+  // Agregar CUALQUIER movimiento no representado en GRANULAR
+  // (venta semana, inv salida, inv entrada)
+  const allKeys = new Set([...Object.keys(ventaSemIdx), ...Object.keys(invSalidaIdx)]);
+
+  // Agregar también claves del archivo de inventario (inv entrada)
+  if(PARSED.inventariosFile) {
+    for(const r of PARSED.inventariosFile) {
+      const sku   = String(r['SKU'] || '').trim();
+      const local = String(r['N° Local'] || r['ID Local'] || '').trim();
+      if(!sku || !local) continue;
+      const suc = NOMBRES_OFICIALES[parseInt(local)] || String(r['Nombre Local'] || r['Local'] || '').trim();
+      if(suc) allKeys.add(sku + '|' + suc);
     }
+  }
+  if(PARSED.invSalidaFile) {
+    for(const r of PARSED.invSalidaFile) {
+      const sku   = String(r['SKU'] || r['sku'] || '').trim();
+      const local = String(r['N° Local'] || r['ID Local'] || '').trim();
+      if(!sku || !local) continue;
+      const suc = NOMBRES_OFICIALES[parseInt(local)] || String(r['Nombre Local'] || r['Local'] || '').trim();
+      if(suc) allKeys.add(sku + '|' + suc);
+    }
+  }
+
+  // Helper: buscar descripción en cualquier archivo
+  const getDesc = (sku, sucursal) => {
+    const archivos = [
+      [PARSED.ventaSemanaFile, r => String(r['Cód. artículo']||r['SKU']||'').trim(), r => {
+        const cod = parseInt(r['Cod Sucursal']||r['ID Local']||0);
+        return (cod && NOMBRES_OFICIALES[cod]) ? NOMBRES_OFICIALES[cod] : String(r['Sucursal']||'').trim().toUpperCase();
+      }, r => String(r['Artículo']||r['Descripción']||'')],
+      [PARSED.inventariosFile, r => String(r['SKU']||'').trim(), r => NOMBRES_OFICIALES[parseInt(r['N° Local']||0)]||String(r['Nombre Local']||'').trim(), r => String(r['Descripción']||'')],
+    ];
+    for(const [file, getSku, getSuc, getD] of archivos) {
+      if(!file) continue;
+      const row = file.find(r => getSku(r) === sku && getSuc(r) === sucursal);
+      if(row) return getD(row);
+    }
+    return '';
+  };
+
+  for(const key of allKeys) {
+    if(map.has(key)) continue; // ya existe en GRANULAR
+    const [sku, sucursal] = key.split('|');
+    // Buscar inv entrada del archivo
+    let invEnt = 0;
+    if(PARSED.inventariosFile) {
+      for(const r of PARSED.inventariosFile) {
+        const rSku = String(r['SKU']||'').trim();
+        const cod  = parseInt(r['N° Local']||r['ID Local']||0);
+        const rSuc = NOMBRES_OFICIALES[cod] || String(r['Nombre Local']||r['Local']||'').trim();
+        if(rSku === sku && rSuc === sucursal) { invEnt = Math.max(invEnt, parseFloat(r['Stock Físico']||0)); }
+      }
+    }
+    const vta    = ventaSemIdx[key]  || 0;
     const invSal = invSalidaIdx[key] || 0;
-    const stockDisp = 0;
+    const stockDisp = invEnt;
     const stockTeo  = stockDisp - vta;
     map.set(key, {
-      numero_local:    CODIGOS_POR_NOMBRE[sucursal] || '',
-      sucursal, sku, descripcion,
-      inv_entrada: 0, solicitado: 0, despachado: 0, prog_produccion: 0,
-      venta_semana: vta, inv_salida: invSal,
+      numero_local:     CODIGOS_POR_NOMBRE[sucursal] || '',
+      sucursal, sku,
+      descripcion:      getDesc(sku, sucursal),
+      inv_entrada:      invEnt,
+      solicitado:       0,
+      despachado:       0,
+      prog_produccion:  0,
+      venta_semana:     vta,
+      inv_salida:       invSal,
       stock_disponible: stockDisp,
       stock_teorico:    stockTeo,
       diferencia_salida: invSal - stockTeo
