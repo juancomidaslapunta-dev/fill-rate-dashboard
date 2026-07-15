@@ -2627,139 +2627,102 @@ const CODIGOS_POR_NOMBRE = Object.fromEntries(
 function getStockRows(granularFiltrado) {
   const src = granularFiltrado || GRANULAR;
 
-  // Construir índices de los archivos opcionales
-  const invSalidaIdx = {}; // sku|sucursal → salida
-  const ventaSemIdx  = {}; // sku|sucursal → venta
+  // ── Índices de archivos externos ────────────────────────────────────────────
+  const invEntradaIdx = {}; // sku|suc → stock físico
+  const invSalidaIdx  = {}; // sku|suc → salida
+  const ventaSemIdx   = {}; // sku|suc → venta
+
+  const normSuc = (cod, nombre) =>
+    NOMBRES_OFICIALES[parseInt(cod)] || String(nombre||'').trim().toUpperCase();
+
+  if(PARSED.inventariosFile) {
+    for(const r of PARSED.inventariosFile) {
+      const sku  = String(r['SKU']||'').trim();
+      const suc  = normSuc(r['N° Local']||r['ID Local'], r['Nombre Local']||r['Local']);
+      const val  = parseFloat(r['Stock Físico']||0);
+      if(!sku || !suc) continue;
+      const key  = sku+'|'+suc;
+      invEntradaIdx[key] = Math.max(invEntradaIdx[key]||0, val);
+    }
+  }
 
   if(PARSED.invSalidaFile) {
     for(const r of PARSED.invSalidaFile) {
-      const sku    = String(r['SKU'] || r['sku'] || '').trim();
-      const local  = String(r['N° Local'] || r['ID Local'] || '').trim();
-      const sal    = parseFloat(r['Unidades Salida'] || r['Stock Físico'] || r['Salida'] || 0);
-      if(!sku || !local) continue;
-      const suc = NOMBRES_OFICIALES[parseInt(local)] || String(r['Nombre Local'] || r['Local'] || '').trim();
-      const key = sku + '|' + suc;
-      invSalidaIdx[key] = (invSalidaIdx[key] || 0) + sal;
+      const sku  = String(r['SKU']||r['sku']||'').trim();
+      const suc  = normSuc(r['N° Local']||r['ID Local'], r['Nombre Local']||r['Local']);
+      const val  = parseFloat(r['Unidades Salida']||r['Stock Físico']||r['Salida']||0);
+      if(!sku || !suc) continue;
+      const key  = sku+'|'+suc;
+      invSalidaIdx[key] = (invSalidaIdx[key]||0) + val;
     }
   }
 
   if(PARSED.ventaSemanaFile) {
     for(const r of PARSED.ventaSemanaFile) {
-      const sku = String(r['Cód. artículo'] || r['SKU'] || r['sku'] || '').trim();
-      const vta = parseFloat(r['Cantidad con insumos'] || r['Venta Diaria'] || r['Venta Semana'] || r['Unidades Vendidas'] || 0);
-      if(!sku || !vta) continue;
-      const cod = parseInt(r['Cod Sucursal'] || r['ID Local'] || r['N° Local'] || 0);
-      let suc = (cod && NOMBRES_OFICIALES[cod]) ? NOMBRES_OFICIALES[cod] : String(r['Sucursal'] || r['Local'] || r['Nombre Local'] || '').trim().toUpperCase();
+      const sku  = String(r['Cód. artículo']||r['SKU']||r['sku']||'').trim();
+      const val  = parseFloat(r['Cantidad con insumos']||r['Venta Diaria']||r['Venta Semana']||r['Unidades Vendidas']||0);
+      if(!sku || !val) continue;
+      const cod  = parseInt(r['Cod Sucursal']||r['ID Local']||r['N° Local']||0);
+      const suc  = normSuc(cod, r['Sucursal']||r['Local']);
       if(!suc) continue;
-      const key = sku + '|' + suc;
-      ventaSemIdx[key] = (ventaSemIdx[key] || 0) + vta;
+      const key  = sku+'|'+suc;
+      ventaSemIdx[key] = (ventaSemIdx[key]||0) + val;
     }
   }
 
-  // Agregar src (GRANULAR ya filtrado por fecha) por SKU+Sucursal
+  // ── Map principal: GRANULAR filtrado ────────────────────────────────────────
   const map = new Map();
   for(const g of src) {
-    const key = g.sku + '|' + g.sucursal;
+    const key = g.sku+'|'+g.sucursal;
     if(!map.has(key)) {
       map.set(key, {
-        numero_local:    CODIGOS_POR_NOMBRE[g.sucursal] || '',
-        sucursal:        g.sucursal,
-        sku:             g.sku,
-        descripcion:     g.descripcion,
-        inv_entrada:     0,
-        solicitado:      0,
-        despachado:      0,
-        prog_produccion: 0
+        numero_local:    CODIGOS_POR_NOMBRE[g.sucursal]||'',
+        sucursal: g.sucursal, sku: g.sku, descripcion: g.descripcion,
+        inv_entrada: 0, solicitado: 0, despachado: 0, prog_produccion: 0
       });
     }
     const e = map.get(key);
     e.solicitado  += g.solicitado;
     e.despachado  += g.despachado;
-    if(g.inventario  > e.inv_entrada)     e.inv_entrada     = g.inventario;
+    if(g.inventario  > e.inv_entrada)    e.inv_entrada    = g.inventario;
     if(g.programa    > e.prog_produccion) e.prog_produccion = g.programa;
   }
 
-  // Enriquecer con inv salida y venta semana
-  for(const [key, e] of map) {
-    e.venta_semana      = ventaSemIdx[key]  || 0;
-    e.inv_salida        = invSalidaIdx[key] || 0;
-    e.stock_disponible  = e.inv_entrada + e.despachado;
-    e.stock_teorico     = e.stock_disponible - e.venta_semana;
-    e.diferencia_salida = e.inv_salida - e.stock_teorico;
-  }
+  // ── Unión: cualquier clave de cualquier archivo externo ─────────────────────
+  const allKeys = new Set([
+    ...Object.keys(invEntradaIdx),
+    ...Object.keys(invSalidaIdx),
+    ...Object.keys(ventaSemIdx),
+    ...map.keys()
+  ]);
 
-  // Agregar CUALQUIER movimiento no representado en GRANULAR
-  // (venta semana, inv salida, inv entrada)
-  const allKeys = new Set([...Object.keys(ventaSemIdx), ...Object.keys(invSalidaIdx)]);
-
-  // Agregar también claves del archivo de inventario (inv entrada)
-  if(PARSED.inventariosFile) {
-    for(const r of PARSED.inventariosFile) {
-      const sku   = String(r['SKU'] || '').trim();
-      const local = String(r['N° Local'] || r['ID Local'] || '').trim();
-      if(!sku || !local) continue;
-      const suc = NOMBRES_OFICIALES[parseInt(local)] || String(r['Nombre Local'] || r['Local'] || '').trim();
-      if(suc) allKeys.add(sku + '|' + suc);
-    }
-  }
-  if(PARSED.invSalidaFile) {
-    for(const r of PARSED.invSalidaFile) {
-      const sku   = String(r['SKU'] || r['sku'] || '').trim();
-      const local = String(r['N° Local'] || r['ID Local'] || '').trim();
-      if(!sku || !local) continue;
-      const suc = NOMBRES_OFICIALES[parseInt(local)] || String(r['Nombre Local'] || r['Local'] || '').trim();
-      if(suc) allKeys.add(sku + '|' + suc);
-    }
-  }
-
-  // Helper: buscar descripción en cualquier archivo
-  const getDesc = (sku, sucursal) => {
-    const archivos = [
-      [PARSED.ventaSemanaFile, r => String(r['Cód. artículo']||r['SKU']||'').trim(), r => {
-        const cod = parseInt(r['Cod Sucursal']||r['ID Local']||0);
-        return (cod && NOMBRES_OFICIALES[cod]) ? NOMBRES_OFICIALES[cod] : String(r['Sucursal']||'').trim().toUpperCase();
-      }, r => String(r['Artículo']||r['Descripción']||'')],
-      [PARSED.inventariosFile, r => String(r['SKU']||'').trim(), r => NOMBRES_OFICIALES[parseInt(r['N° Local']||0)]||String(r['Nombre Local']||'').trim(), r => String(r['Descripción']||'')],
-    ];
-    for(const [file, getSku, getSuc, getD] of archivos) {
+  // Descripción desde archivos externos
+  const getDesc = sku => {
+    for(const file of [PARSED.ventaSemanaFile, PARSED.inventariosFile, PARSED.invSalidaFile]) {
       if(!file) continue;
-      const row = file.find(r => getSku(r) === sku && getSuc(r) === sucursal);
-      if(row) return getD(row);
+      const r = file.find(r => String(r['Cód. artículo']||r['SKU']||r['sku']||'').trim() === sku);
+      if(r) return String(r['Artículo']||r['Descripción']||r['descripcion']||'');
     }
     return '';
   };
 
   for(const key of allKeys) {
-    if(map.has(key)) continue; // ya existe en GRANULAR
-    const [sku, sucursal] = key.split('|');
-    // Buscar inv entrada del archivo
-    let invEnt = 0;
-    if(PARSED.inventariosFile) {
-      for(const r of PARSED.inventariosFile) {
-        const rSku = String(r['SKU']||'').trim();
-        const cod  = parseInt(r['N° Local']||r['ID Local']||0);
-        const rSuc = NOMBRES_OFICIALES[cod] || String(r['Nombre Local']||r['Local']||'').trim();
-        if(rSku === sku && rSuc === sucursal) { invEnt = Math.max(invEnt, parseFloat(r['Stock Físico']||0)); }
-      }
+    if(!map.has(key)) {
+      const [sku, sucursal] = key.split('|');
+      map.set(key, {
+        numero_local: CODIGOS_POR_NOMBRE[sucursal]||'',
+        sucursal, sku, descripcion: getDesc(sku),
+        inv_entrada: 0, solicitado: 0, despachado: 0, prog_produccion: 0
+      });
     }
-    const vta    = ventaSemIdx[key]  || 0;
-    const invSal = invSalidaIdx[key] || 0;
-    const stockDisp = invEnt;
-    const stockTeo  = stockDisp - vta;
-    map.set(key, {
-      numero_local:     CODIGOS_POR_NOMBRE[sucursal] || '',
-      sucursal, sku,
-      descripcion:      getDesc(sku, sucursal),
-      inv_entrada:      invEnt,
-      solicitado:       0,
-      despachado:       0,
-      prog_produccion:  0,
-      venta_semana:     vta,
-      inv_salida:       invSal,
-      stock_disponible: stockDisp,
-      stock_teorico:    stockTeo,
-      diferencia_salida: invSal - stockTeo
-    });
+    const e = map.get(key);
+    // Inv entrada: tomar el mayor entre GRANULAR y archivo inventario
+    if((invEntradaIdx[key]||0) > e.inv_entrada) e.inv_entrada = invEntradaIdx[key];
+    e.venta_semana      = ventaSemIdx[key]  || 0;
+    e.inv_salida        = invSalidaIdx[key] || 0;
+    e.stock_disponible  = e.inv_entrada + e.despachado;
+    e.stock_teorico     = e.stock_disponible - e.venta_semana;
+    e.diferencia_salida = e.inv_salida - e.stock_teorico;
   }
 
   return Array.from(map.values());
