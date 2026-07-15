@@ -2688,6 +2688,35 @@ function getStockRows(granularFiltrado) {
     e.diferencia_salida = e.inv_salida - e.stock_teorico;
   }
 
+  // Agregar filas que solo existen en venta semana (no en GRANULAR)
+  for(const [key, vta] of Object.entries(ventaSemIdx)) {
+    if(map.has(key)) continue; // ya existe
+    const [sku, sucursal] = key.split('|');
+    // Buscar descripción en archivo venta semana
+    let descripcion = '';
+    if(PARSED.ventaSemanaFile) {
+      const row = PARSED.ventaSemanaFile.find(r => {
+        const rSku = String(r['Cód. artículo'] || r['SKU'] || '').trim();
+        const cod  = parseInt(r['Cod Sucursal'] || r['ID Local'] || 0);
+        const rSuc = (cod && NOMBRES_OFICIALES[cod]) ? NOMBRES_OFICIALES[cod] : String(r['Sucursal'] || '').trim().toUpperCase();
+        return rSku === sku && rSuc === sucursal;
+      });
+      descripcion = row ? String(row['Artículo'] || row['Descripción'] || row['descripcion'] || '') : '';
+    }
+    const invSal = invSalidaIdx[key] || 0;
+    const stockDisp = 0;
+    const stockTeo  = stockDisp - vta;
+    map.set(key, {
+      numero_local:    CODIGOS_POR_NOMBRE[sucursal] || '',
+      sucursal, sku, descripcion,
+      inv_entrada: 0, solicitado: 0, despachado: 0, prog_produccion: 0,
+      venta_semana: vta, inv_salida: invSal,
+      stock_disponible: stockDisp,
+      stock_teorico:    stockTeo,
+      diferencia_salida: invSal - stockTeo
+    });
+  }
+
   return Array.from(map.values());
 }
 
