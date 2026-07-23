@@ -2059,6 +2059,23 @@ function getAnalisisAgregado(){
     if(g.inventario > e.inventario) e.inventario = g.inventario;
   }
 
+  // Agregar SKUs que solo tienen programa (sin solicitudes/despachos en el rango filtrado)
+  if(PARSED.programaFile) {
+    for(const r of PARSED.programaFile) {
+      const sku = String(r['SKU']||'').trim();
+      const val = parseFloat(r['Venta Diaria']||0);
+      const local = String(r['ID Local']||'').trim();
+      if(!sku || !local || !val) continue;
+      const suc = NOMBRES_OFICIALES[parseInt(local)] || String(r['Local']||'').trim();
+      if(!suc) continue;
+      if(anLocal.length > 0 && !anLocal.includes(suc)) continue;
+      const key = sku+'|'+suc;
+      if(!map.has(key)) {
+        map.set(key, { sku, sucursal:suc, descripcion:'', programa:val, solicitado:0, despachado:0, inventario:0, fechas:new Set() });
+      } else if(val > map.get(key).programa) { map.get(key).programa = val; }
+    }
+  }
+
   // Indexar guías por sku+sucursal+fecha para poder anexarlas a cada fila agregada
   const guiasPorSkuSucursal = new Map();
   for(const linea of DESPACHOS_LINEA){
