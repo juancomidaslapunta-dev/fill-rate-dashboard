@@ -2060,19 +2060,32 @@ function getAnalisisAgregado(){
   }
 
   // Agregar SKUs que solo tienen programa (sin solicitudes/despachos en el rango filtrado)
+  // OJO: programaFile viene con fecha por día (columna 'Fecha'), hay que respetar el mismo
+  // filtro de fecha/local que se aplica a GRANULAR, si no se cuela historial completo.
   if(PARSED.programaFile) {
     for(const r of PARSED.programaFile) {
       const sku = String(r['SKU']||'').trim();
       const val = parseFloat(r['Venta Diaria']||0);
       const local = String(r['ID Local']||'').trim();
       if(!sku || !local || !val) continue;
+
+      const fecha = toISODate(r['Fecha']);
+      if(!fecha) continue;
+      if(anFechaDesde && fecha < anFechaDesde) continue;
+      if(anFechaHasta && fecha > anFechaHasta) continue;
+
       const suc = NOMBRES_OFICIALES[parseInt(local)] || String(r['Local']||'').trim();
       if(!suc) continue;
       if(anLocal.length > 0 && !anLocal.includes(suc)) continue;
+
       const key = sku+'|'+suc;
       if(!map.has(key)) {
-        map.set(key, { sku, sucursal:suc, descripcion:'', programa:val, solicitado:0, despachado:0, inventario:0, fechas:new Set() });
-      } else if(val > map.get(key).programa) { map.get(key).programa = val; }
+        map.set(key, { sku, sucursal:suc, descripcion:String(r['Descripcion Producto']||''), programa:val, solicitado:0, despachado:0, inventario:0, fechas:new Set([fecha]) });
+      } else {
+        const e = map.get(key);
+        e.fechas.add(fecha);
+        if(val > e.programa) e.programa = val;
+      }
     }
   }
 
