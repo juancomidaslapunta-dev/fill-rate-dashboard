@@ -2035,11 +2035,27 @@ function poblarFiltrosAnalisis(){
 }
 
 function getAnalisisAgregado(){
+  // Exclusión: SKUs que empiezan con 3 o 4 se omiten en Análisis para ciertos locales,
+  // salvo lista blanca de excepciones. Locales 303 y 299 no se tocan.
+  const AN_LOCALES_EXCLUYE_3_4 = new Set([316,426,300,302,314,483]);
+  const AN_SKU_EXCEPCIONES_3_4 = new Set(['4127003','4121004','4121008','4121009','4121006','4222005','4222009','4222011','4207001','4218021','4218025','4222004','4222010']);
+  const AN_NOMBRE_A_CODIGO = {};
+  for(const cod in NOMBRES_OFICIALES) AN_NOMBRE_A_CODIGO[NOMBRES_OFICIALES[cod]] = parseInt(cod);
+  function anSkuExcluido(sku, sucursalNombre){
+    const cod = AN_NOMBRE_A_CODIGO[sucursalNombre];
+    if(!AN_LOCALES_EXCLUYE_3_4.has(cod)) return false;
+    const s = String(sku).trim();
+    if(!(s.startsWith('3') || s.startsWith('4'))) return false;
+    if(AN_SKU_EXCEPCIONES_3_4.has(s)) return false;
+    return true;
+  }
+
   // Agrega GRANULAR (SKU+fecha+sucursal) por SKU+Sucursal, respetando filtros independientes de fecha/local
   const filtradoFecha = GRANULAR.filter(g=>{
     if(anLocal.length > 0 && !anLocal.includes(g.sucursal)) return false;
     if(anFechaDesde && g.fecha < anFechaDesde) return false;
     if(anFechaHasta && g.fecha > anFechaHasta) return false;
+    if(anSkuExcluido(g.sku, g.sucursal)) return false;
     return true;
   });
 
@@ -2077,6 +2093,7 @@ function getAnalisisAgregado(){
       const suc = NOMBRES_OFICIALES[parseInt(local)] || String(r['Local']||'').trim();
       if(!suc) continue;
       if(anLocal.length > 0 && !anLocal.includes(suc)) continue;
+      if(anSkuExcluido(sku, suc)) continue;
 
       const key = sku+'|'+suc;
       if(!map.has(key)) {
