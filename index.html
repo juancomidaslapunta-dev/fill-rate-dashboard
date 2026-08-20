@@ -263,8 +263,12 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
 #dtTable thead th.th-fix-1{position:sticky;left:55px;z-index:6;}
 #dtTable thead th.th-fix-2{position:sticky;left:195px;z-index:6;}
 #dtTable thead th.th-fix-3{position:sticky;left:275px;z-index:6;}
+/* ─── DAY TABS — filtro día discreto en paneles dashboard ────────────────── */
+.day-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:10px;}
+.day-tab{padding:3px 9px;font-size:.68rem;font-weight:600;color:var(--ink-3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .12s,border-color .12s;white-space:nowrap;user-select:none;}
+.day-tab:hover{color:var(--ink-1);}
+.day-tab.active{color:var(--brand);border-bottom-color:var(--brand);}
 </style>
-</head>
 <body>
 
 <!-- ============ PANTALLA DE LOGIN (capa de autenticación) ============ -->
@@ -757,11 +761,13 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
     <div class="grid-2">
       <div class="panel">
         <div class="panel-title">🏬 Fill Rate por Sucursal</div>
+        <div class="day-tabs" id="sucursalDayTabs"></div>
         <div id="sucursalBars"></div>
       </div>
       <div class="panel">
         <div class="panel-title">🔴 Top Quiebres por Producto (mayor brecha)</div>
-        <div style="overflow-x:auto; max-height:330px;">
+        <div class="day-tabs" id="quiebresDayTabs"></div>
+        <div style="overflow-x:auto; max-height:300px;">
           <table>
             <thead><tr><th>SKU</th><th>Descripción</th><th style="text-align:right">Solicitado</th><th style="text-align:right">Despachado</th><th style="text-align:right">Diferencia</th></tr></thead>
             <tbody id="quiebresBody"></tbody>
@@ -1897,8 +1903,43 @@ function renderCharts(){
   if(chartArea) { chartArea.destroy(); chartArea = null; }
 }
 
+var panelDiaSucursal  = null; // null = semana completa, 'YYYY-MM-DD' = día
+var panelDiaQuiebres  = null;
+
+function buildDayTabs(containerId, varName, dias, renderFn) {
+  const cont = document.getElementById(containerId);
+  if(!cont) return;
+  const actual = window['_panelDia_' + varName];
+  const items = [{ label:'Semana', fecha:null },
+    ...dias.map(f => { const [,m,d]=f.split('-'); return { label: d+'/'+m, fecha: f }; })
+  ];
+  cont.innerHTML = items.map(it =>
+    `<span class="day-tab${(actual===it.fecha)?' active':''}" data-fecha="${it.fecha||''}">${it.label}</span>`
+  ).join('');
+  cont.querySelectorAll('.day-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      window['_panelDia_' + varName] = tab.dataset.fecha || null;
+      renderFn();
+    });
+  });
+}
+
+function getSucursalFiltrado() {
+  let g = getFiltrado();
+  if(window._panelDia_sucursal) g = g.filter(r => r.fecha === window._panelDia_sucursal);
+  return g;
+}
+function getQuiebresFiltrado() {
+  let g = getFiltrado();
+  if(window._panelDia_quiebres) g = g.filter(r => r.fecha === window._panelDia_quiebres);
+  return g;
+}
+
 function renderSucursalBars(){
-  const filtrado = getFiltrado();
+  const diasDisp = [...new Set(getFiltrado().map(g=>g.fecha))].sort();
+  buildDayTabs('sucursalDayTabs', 'sucursal', diasDisp, renderSucursalBars);
+
+  const filtrado = getSucursalFiltrado();
   const porSucursal = new Map();
   for(const g of filtrado){
     if(!porSucursal.has(g.sucursal)) porSucursal.set(g.sucursal, { solicitado:0, despachado:0 });
@@ -1925,7 +1966,10 @@ function renderSucursalBars(){
 }
 
 function renderQuiebres(){
-  const filtrado = getFiltrado();
+  const diasDisp = [...new Set(getFiltrado().map(g=>g.fecha))].sort();
+  buildDayTabs('quiebresDayTabs', 'quiebres', diasDisp, renderQuiebres);
+
+  const filtrado = getQuiebresFiltrado();
   const porSku = new Map();
   for(const g of filtrado){
     if(!porSku.has(g.sku)){
@@ -1935,7 +1979,6 @@ function renderQuiebres(){
     e.solicitado += g.solicitado;
     e.despachado += g.despachado;
   }
-  // Calcular diferencia real: solicitado - despachado
   let rows = Array.from(porSku.values())
     .map(r => ({ ...r, diferencia: r.solicitado - r.despachado }))
     .filter(r => r.diferencia > 0)
