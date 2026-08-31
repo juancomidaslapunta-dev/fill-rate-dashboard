@@ -3497,13 +3497,16 @@ function descargarEmpanadasExcel() {
   XLSX.writeFile(wb,'solicitudes_'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
 
-document.getElementById('grFechaDesde').addEventListener('change',e=>{grFechaDesde=e.target.value;renderGuiaRapida();});
-document.getElementById('grFechaHasta').addEventListener('change',e=>{grFechaHasta=e.target.value;renderGuiaRapida();});
-document.getElementById('grBtnReset').addEventListener('click',()=>{
+const _grDesde = document.getElementById('grFechaDesde');
+const _grHasta = document.getElementById('grFechaHasta');
+const _grReset = document.getElementById('grBtnReset');
+if(_grDesde) _grDesde.addEventListener('change',e=>{grFechaDesde=e.target.value;renderGuiaRapida();});
+if(_grHasta) _grHasta.addEventListener('change',e=>{grFechaHasta=e.target.value;renderGuiaRapida();});
+if(_grReset) _grReset.addEventListener('click',()=>{
   const {desde,hasta}=rangoSemanaActual();
   grLocal=[];grFechaDesde=desde;grFechaHasta=hasta;
-  document.getElementById('grFechaDesde').value=desde;
-  document.getElementById('grFechaHasta').value=hasta;
+  if(_grDesde) _grDesde.value=desde;
+  if(_grHasta) _grHasta.value=hasta;
   const btn=document.querySelector('#grLocalDD .filter-btn');
   if(btn)btn.textContent='Seleccionar locales...';
   renderGuiaRapida();
