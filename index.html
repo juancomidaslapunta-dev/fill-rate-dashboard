@@ -913,17 +913,12 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
     <div class="panel" id="grPrintArea">
       <div class="panel-header-row">
         <div>
-          <div class="panel-title">🗂️ Solicitudes de Empanadas por Día</div>
+          <div class="panel-title">🗂️ Solicitudes por Día</div>
           <div id="grResultsCount" class="results-count">—</div>
         </div>
       </div>
-      <div style="overflow-x:auto;">
-        <table id="grTable">
-          <thead id="grThead"></thead>
-          <tbody id="grTbody">
-            <tr><td colspan="4" class="empty-state">Carga y procesa los archivos para ver los datos.</td></tr>
-          </tbody>
-        </table>
+      <div id="grContent">
+        <div class="empty-state">Carga y procesa los archivos para ver los datos.</div>
       </div>
     </div>
   </div>
@@ -3343,84 +3338,81 @@ const GR_SKUS = ['2101001','2101005','2101006','2101003','2101010','2101012',
   '2101019','2101016','2101007','2101020','2101018','2101009',
   '2101011','2101021','2101017','2101015','2101023','2101024'];
 
+const GR_SKUS2 = ['1101031','1101034','1101037','1101038','1101039','1101040',
+  '1101041','1101042','1101044','1101045','1101046'];
+
 var grFechaDesde = '';
 var grFechaHasta = '';
 
 function getGrGranular() {
-  let g = GRANULAR.filter(r => GR_SKUS.includes(r.sku));
+  const allSkus = [...GR_SKUS, ...GR_SKUS2];
+  let g = GRANULAR.filter(r => allSkus.includes(r.sku));
   if(grFechaDesde) g = g.filter(r => r.fecha >= grFechaDesde);
   if(grFechaHasta) g = g.filter(r => r.fecha <= grFechaHasta);
   return g;
 }
 
+function buildGrMap(src, skus) {
+  const map = new Map();
+  for(const g of src.filter(r => skus.includes(r.sku))) {
+    if(!map.has(g.sku)) map.set(g.sku, { sku:g.sku, desc:g.descripcion||'', sol:{} });
+    const e = map.get(g.sku);
+    e.sol[g.fecha] = (e.sol[g.fecha]||0) + g.solicitado;
+    if(!e.desc && g.descripcion) e.desc = g.descripcion;
+  }
+  return map;
+}
+
+function buildGrTable(map, skus, fechas) {
+  const fmtF = f => { const [,m,d]=f.split('-'); return d+'/'+m; };
+  const rows = skus.map(sku => map.get(sku)).filter(Boolean);
+  if(!rows.length) return '<tr><td colspan="20" class="empty-state">Sin datos.</td></tr>';
+
+  const thead = `<thead><tr>
+    <th style="background:var(--surface-2);position:sticky;top:0;z-index:3;">SKU</th>
+    <th style="background:var(--surface-2);position:sticky;top:0;z-index:3;">Descripción</th>
+    ${fechas.map(f=>`<th class="th-grupo-sol" style="position:sticky;top:0;z-index:3;">${fmtF(f)}</th>`).join('')}
+    <th class="th-total" style="position:sticky;top:0;z-index:3;">Total</th>
+  </tr></thead>`;
+
+  const tbody = `<tbody>${rows.map(r => {
+    const tot = Object.values(r.sol).reduce((s,v)=>s+v,0);
+    return `<tr>
+      <td class="sku">${r.sku}</td>
+      <td style="font-weight:600;">${r.desc||'—'}</td>
+      ${fechas.map(f=>`<td class="td-sol">${r.sol[f]>0?fmt(r.sol[f]):'—'}</td>`).join('')}
+      <td class="td-total-sol">${fmt(tot)}</td>
+    </tr>`;
+  }).join('')}</tbody>`;
+
+  return `<table style="width:100%;border-collapse:collapse;font-size:.78rem;">${thead}${tbody}</table>`;
+}
+
 function renderGuiaRapida() {
-  const src = getGrGranular();
+  const src   = getGrGranular();
+  const fechas = [...new Set(src.map(g=>g.fecha))].sort();
   const count = document.getElementById('grResultsCount');
 
   if(!src.length) {
-    document.getElementById('grThead').innerHTML = '';
-    document.getElementById('grTbody').innerHTML =
-      '<tr><td colspan="4" class="empty-state">Sin datos para este filtro.</td></tr>';
+    document.getElementById('grContent').innerHTML =
+      '<div class="empty-state">Sin datos para este filtro.</div>';
     count.textContent = '—';
     return;
   }
 
-  const fechas = [...new Set(src.map(g => g.fecha))].sort();
-  const fmtF = f => { const [,m,d] = f.split('-'); return d+'/'+m; };
+  count.textContent = fechas.length + ' días';
+  const map1 = buildGrMap(src, GR_SKUS);
+  const map2 = buildGrMap(src, GR_SKUS2);
 
-  // Agrupar por SKU — tomar descripción y sumar por fecha
-  const map = new Map();
-  for(const g of src) {
-    if(!map.has(g.sku)) {
-      map.set(g.sku, { sku: g.sku, desc: g.descripcion || '', sol: {}, desp: {} });
-    }
-    const e = map.get(g.sku);
-    e.sol[g.fecha]  = (e.sol[g.fecha]  || 0) + g.solicitado;
-    e.desp[g.fecha] = (e.desp[g.fecha] || 0) + g.despachado;
-    if(!e.desc && g.descripcion) e.desc = g.descripcion;
-  }
-
-  // Ordenar por orden del array GR_SKUS
-  const rows = GR_SKUS.map(sku => map.get(sku)).filter(Boolean);
-
-  count.textContent = rows.length + ' productos · ' + fechas.length + ' días';
-
-  // Thead: SKU | Descripción | [fecha sol] | Total Sol | [fecha desp] | Total Desp
-  const nF = fechas.length;
-  const thead = `<tr>
-    <th rowspan="2" style="background:var(--surface-2);">SKU</th>
-    <th rowspan="2" style="background:var(--surface-2);">Descripción</th>
-    <th class="th-grupo-sol" colspan="${nF}">SOLICITADO</th>
-    <th class="th-total">Total</th>
-    <th class="th-grupo-des" colspan="${nF}">DESPACHADO</th>
-    <th class="th-total">Total</th>
-  </tr>
-  <tr>
-    ${fechas.map(f=>`<th class="th-grupo-sol" style="font-weight:700;">${fmtF(f)}</th>`).join('')}
-    <th class="th-total"></th>
-    ${fechas.map(f=>`<th class="th-grupo-des" style="font-weight:700;">${fmtF(f)}</th>`).join('')}
-    <th class="th-total"></th>
-  </tr>`;
-
-  document.getElementById('grThead').innerHTML = thead;
-
-  // Tbody
-  const tbody = rows.map(r => {
-    const totSol  = Object.values(r.sol).reduce((s,v)=>s+v,0);
-    const totDesp = Object.values(r.desp).reduce((s,v)=>s+v,0);
-    const solCols  = fechas.map(f => `<td class="td-sol">${r.sol[f]  > 0 ? fmt(r.sol[f])  : '—'}</td>`).join('');
-    const despCols = fechas.map(f => `<td class="td-des">${r.desp[f] > 0 ? fmt(r.desp[f]) : '—'}</td>`).join('');
-    return `<tr>
-      <td class="sku">${r.sku}</td>
-      <td style="font-weight:600;">${r.desc || '—'}</td>
-      ${solCols}
-      <td class="td-total-sol">${fmt(totSol)}</td>
-      ${despCols}
-      <td class="td-total-des">${fmt(totDesp)}</td>
-    </tr>`;
-  }).join('');
-
-  document.getElementById('grTbody').innerHTML = tbody;
+  document.getElementById('grContent').innerHTML = `
+    <div class="panel" style="margin-bottom:1.2rem;">
+      <div class="panel-title" style="margin-bottom:.7rem;">🥟 Empanadas</div>
+      <div style="overflow-x:auto;">${buildGrTable(map1, GR_SKUS, fechas)}</div>
+    </div>
+    <div class="panel">
+      <div class="panel-title" style="margin-bottom:.7rem;">🥐 Masas / Otros</div>
+      <div style="overflow-x:auto;">${buildGrTable(map2, GR_SKUS2, fechas)}</div>
+    </div>`;
 }
 
 function poblarFiltrosGuiaRapida() {
@@ -3434,25 +3426,23 @@ function poblarFiltrosGuiaRapida() {
 }
 
 function imprimirEmpanadas() {
-  const area  = document.getElementById('grPrintArea');
+  const area = document.getElementById('grContent');
   const style = `<style>
     body{font-family:sans-serif;font-size:11px;padding:12px;}
-    table{width:100%;border-collapse:collapse;}
-    th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;}
-    th{background:#f1f5f9;font-weight:700;}
+    h3{margin:12px 0 6px;}
+    table{width:100%;border-collapse:collapse;margin-bottom:20px;}
+    th,td{border:1px solid #ccc;padding:4px 6px;}
+    th{background:#f1f5f9;font-weight:700;text-align:left;}
     .td-sol{background:#F5F9FF;text-align:right;}
-    .td-des{background:#F2FAF6;text-align:right;}
     .td-total-sol{background:#DBEAFE;text-align:right;font-weight:700;}
-    .td-total-des{background:#D1FAE5;text-align:right;font-weight:700;}
-    .th-grupo-sol{background:#E8F0FD;color:#0A5FD6;}
-    .th-grupo-des{background:#E6F5EE;color:#0B875B;}
-    .th-total{background:#0D1B2A;color:#fff;}
+    .th-grupo-sol{background:#E8F0FD;color:#0A5FD6;text-align:center;}
+    .th-total{background:#0D1B2A;color:#fff;text-align:center;}
     .sku{font-family:monospace;font-weight:700;}
   </style>`;
-  const win = window.open('', '_blank');
-  win.document.write(`<!DOCTYPE html><html><head>${style}<title>Empanadas</title></head><body>`);
-  win.document.write(`<h2 style="margin-bottom:8px;">🗂️ Solicitudes Empanadas — ${grFechaDesde||''}${grFechaHasta&&grFechaHasta!==grFechaDesde?' → '+grFechaHasta:''}</h2>`);
-  win.document.write(area.querySelector('table').outerHTML);
+  const win = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head>${style}<title>Solicitudes</title></head><body>`);
+  win.document.write(`<h2>📋 Solicitudes — ${grFechaDesde||''}${grFechaHasta&&grFechaHasta!==grFechaDesde?' → '+grFechaHasta:''}</h2>`);
+  win.document.write(area.innerHTML);
   win.document.write('</body></html>');
   win.document.close();
   win.print();
@@ -3460,31 +3450,24 @@ function imprimirEmpanadas() {
 
 function descargarEmpanadasExcel() {
   const src = getGrGranular();
-  if(!src.length) { alert('Sin datos para descargar.'); return; }
+  if(!src.length) { alert('Sin datos.'); return; }
   const fechas = [...new Set(src.map(g=>g.fecha))].sort();
   const fmtF = f => { const [,m,d]=f.split('-'); return d+'/'+m; };
-  const map = new Map();
-  for(const g of src) {
-    if(!map.has(g.sku)) map.set(g.sku, { sku:g.sku, desc:g.descripcion||'', sol:{}, desp:{} });
-    const e = map.get(g.sku);
-    e.sol[g.fecha]  = (e.sol[g.fecha] ||0)+g.solicitado;
-    e.desp[g.fecha] = (e.desp[g.fecha]||0)+g.despachado;
-  }
-  const rows = GR_SKUS.map(sku=>map.get(sku)).filter(Boolean).map(r=>{
-    const row = { SKU: r.sku, Descripción: r.desc };
-    fechas.forEach(f => { row['Sol '+fmtF(f)] = r.sol[f]||0; });
-    row['Total Sol.'] = Object.values(r.sol).reduce((s,v)=>s+v,0);
-    fechas.forEach(f => { row['Des '+fmtF(f)] = r.desp[f]||0; });
-    row['Total Des.'] = Object.values(r.desp).reduce((s,v)=>s+v,0);
-    return row;
-  });
-  const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Empanadas');
-  XLSX.writeFile(wb, 'empanadas_'+new Date().toISOString().slice(0,10)+'.xlsx');
+
+  [[GR_SKUS,'Empanadas'],[GR_SKUS2,'Masas']].forEach(([skus, nombre]) => {
+    const map = buildGrMap(src, skus);
+    const rows = skus.map(sku=>map.get(sku)).filter(Boolean).map(r=>{
+      const row = { SKU:r.sku, Descripción:r.desc };
+      fechas.forEach(f => { row[fmtF(f)] = r.sol[f]||0; });
+      row['Total'] = Object.values(r.sol).reduce((s,v)=>s+v,0);
+      return row;
+    });
+    if(rows.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), nombre);
+  });
+  XLSX.writeFile(wb, 'solicitudes_'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
 
-// Listeners tab Empanadas
 document.getElementById('grFechaDesde').addEventListener('change', e => { grFechaDesde=e.target.value; renderGuiaRapida(); });
 document.getElementById('grFechaHasta').addEventListener('change', e => { grFechaHasta=e.target.value; renderGuiaRapida(); });
 document.getElementById('grBtnReset').addEventListener('click', () => {
