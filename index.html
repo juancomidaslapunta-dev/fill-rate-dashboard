@@ -3684,7 +3684,10 @@ if(_grReset) _grReset.addEventListener('click',()=>{
     } catch(e) {
       console.warn('⚠️ Error cargando datos:', e.message);
       const badge = document.getElementById('periodoBadge');
-      if (badge) badge.textContent = '⚠️ Error: ' + e.message;
+      const msg = e.message.includes('fetch') 
+        ? '⚠️ Sin conexión a Supabase — el proyecto puede estar pausado' 
+        : '⚠️ Error: ' + e.message;
+      if (badge) badge.textContent = msg;
     }
   }
 
