@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ð Dashboard LogÃ­stico - Fill Rate</title>
+<title>📊 Dashboard Logístico - Fill Rate</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
-// Respaldo: si jsdelivr fue bloqueado (CSP, firewall, sin conexiÃ³n a ese dominio),
+// Respaldo: si jsdelivr fue bloqueado (CSP, firewall, sin conexión a ese dominio),
 // cargar XLSX desde un CDN alternativo antes de que el usuario intente importar archivos.
 (function(){
   function cargarScriptRespaldo(src, onload){
@@ -21,22 +21,22 @@
   }
   window.addEventListener('DOMContentLoaded', function(){
     if (typeof XLSX === 'undefined') {
-      console.warn('â ï¸ XLSX no cargÃ³ desde jsdelivr, intentando CDN de respaldo (cdnjs)...');
+      console.warn('⚠️ XLSX no cargó desde jsdelivr, intentando CDN de respaldo (cdnjs)...');
       cargarScriptRespaldo('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js', function(){
-        console.log('â XLSX cargado desde CDN de respaldo (cdnjs)');
+        console.log('✅ XLSX cargado desde CDN de respaldo (cdnjs)');
       });
     }
     if (typeof Chart === 'undefined') {
-      console.warn('â ï¸ Chart.js no cargÃ³ desde jsdelivr, intentando CDN de respaldo (cdnjs)...');
+      console.warn('⚠️ Chart.js no cargó desde jsdelivr, intentando CDN de respaldo (cdnjs)...');
       cargarScriptRespaldo('https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js', function(){
-        console.log('â Chart.js cargado desde CDN de respaldo (cdnjs)');
+        console.log('✅ Chart.js cargado desde CDN de respaldo (cdnjs)');
       });
     }
   });
 })();
 </script>
 <style>
-/* âââ TOKENS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */
+/* ─── TOKENS ─────────────────────────────────────────────────────────────── */
 :root {
   --bg:          #F0F4F8;
   --surface:     #FFFFFF;
@@ -240,7 +240,7 @@ body.rol-lector .tab-btn[data-tab="carga"]{display:none!important;}
 body.rol-editor #btnGuardarDatos{display:none!important;}
 @media(max-width:768px){.container{padding:.9rem;}h1{font-size:1.3rem;}.bar-label{width:90px;font-size:.72rem;}select{min-width:110px;}.kpi-value{font-size:1.5rem;}}
 
-/* âââ TAB DETALLE â tabla pivote âââââââââââââââââââââââââââââââââââââââââââ */
+/* ─── TAB DETALLE — tabla pivote ─────────────────────────────────────────── */
 #dtTable th,#dtTable td{padding:.38rem .6rem;border:1px solid var(--border);white-space:nowrap;}
 #dtTable thead th{background:var(--surface-2);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-2);position:sticky;top:0;z-index:4;}
 #dtTable thead th.th-grupo-sol{background:#E8F0FD;color:var(--brand);}
@@ -263,7 +263,7 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
 #dtTable thead th.th-fix-1{position:sticky;left:55px;z-index:6;}
 #dtTable thead th.th-fix-2{position:sticky;left:195px;z-index:6;}
 #dtTable thead th.th-fix-3{position:sticky;left:275px;z-index:6;}
-/* âââ DAY TABS â filtro dÃ­a discreto en paneles dashboard ââââââââââââââââââ */
+/* ─── DAY TABS — filtro día discreto en paneles dashboard ────────────────── */
 .day-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:10px;}
 .day-tab{padding:3px 9px;font-size:.68rem;font-weight:600;color:var(--ink-3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .12s,border-color .12s;white-space:nowrap;user-select:none;}
 .day-tab:hover{color:var(--ink-1);}
@@ -271,69 +271,69 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
 </style>
 <body>
 
-<!-- ============ PANTALLA DE LOGIN (capa de autenticaciÃ³n) ============ -->
+<!-- ============ PANTALLA DE LOGIN (capa de autenticación) ============ -->
 <div id="loginScreen" style="display:flex; justify-content:center; align-items:center; min-height:100vh; padding:20px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); position:fixed; inset:0; z-index:9999;">
   <div style="background:white; border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,0.3); width:100%; max-width:400px; padding:40px;">
-    <h1 style="color:#333; margin-bottom:30px; text-align:center; font-size:22px;">ð Dashboard Fill Rate</h1>
+    <h1 style="color:#333; margin-bottom:30px; text-align:center; font-size:22px;">🔐 Dashboard Fill Rate</h1>
     <form onsubmit="loginUsuario(event)">
       <div style="margin-bottom:20px;">
-        <label style="display:block; margin-bottom:8px; color:#333; font-weight:500; font-size:13px;">ð¤ Usuario</label>
+        <label style="display:block; margin-bottom:8px; color:#333; font-weight:500; font-size:13px;">👤 Usuario</label>
         <input type="text" id="loginUser" placeholder="Ingresa tu usuario" required autofocus style="width:100%; padding:12px; border:2px solid #e0e0e0; border-radius:6px; font-size:14px; box-sizing:border-box;">
       </div>
       <div style="margin-bottom:20px;">
-        <label style="display:block; margin-bottom:8px; color:#333; font-weight:500; font-size:13px;">ð ContraseÃ±a</label>
-        <input type="password" id="loginPass" placeholder="Ingresa tu contraseÃ±a" required style="width:100%; padding:12px; border:2px solid #e0e0e0; border-radius:6px; font-size:14px; box-sizing:border-box;">
+        <label style="display:block; margin-bottom:8px; color:#333; font-weight:500; font-size:13px;">🔑 Contraseña</label>
+        <input type="password" id="loginPass" placeholder="Ingresa tu contraseña" required style="width:100%; padding:12px; border:2px solid #e0e0e0; border-radius:6px; font-size:14px; box-sizing:border-box;">
       </div>
-      <button type="submit" style="width:100%; padding:12px; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:white; border:none; border-radius:6px; font-weight:600; cursor:pointer; font-size:14px;">ð Acceder</button>
+      <button type="submit" style="width:100%; padding:12px; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:white; border:none; border-radius:6px; font-weight:600; cursor:pointer; font-size:14px;">🔓 Acceder</button>
       <div id="loginError" style="color:#d32f2f; font-size:13px; margin-top:10px; text-align:center;"></div>
     </form>
   </div>
 </div>
 
-<!-- ============ BARRA SUPERIOR DE SESIÃN (visible tras login) ============ -->
+<!-- ============ BARRA SUPERIOR DE SESIÓN (visible tras login) ============ -->
 <div id="sessionBar" style="display:none; background:#1e293b; color:white; padding:10px 20px; justify-content:space-between; align-items:center; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; font-size:13px;">
-  <div>ð Dashboard Fill Rate â SesiÃ³n activa: <strong id="sessionUserLabel"></strong></div>
+  <div>📊 Dashboard Fill Rate — Sesión activa: <strong id="sessionUserLabel"></strong></div>
   <div>
-    <button id="adminPanelBtn" onclick="abrirPanelAdmin()" style="display:none; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.4); color:white; padding:6px 14px; border-radius:4px; cursor:pointer; font-size:12px; margin-right:10px;">âï¸ AdministraciÃ³n</button>
-    <button id="btnCaptura" onclick="capturarDashboard()" style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.4); color:white; padding:6px 14px; border-radius:4px; cursor:pointer; font-size:12px; margin-right:10px;">ð Exportar PDF</button>
-    <button onclick="logoutUsuario()" style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.4); color:white; padding:6px 14px; border-radius:4px; cursor:pointer; font-size:12px;">ðª Cerrar sesiÃ³n</button>
+    <button id="adminPanelBtn" onclick="abrirPanelAdmin()" style="display:none; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.4); color:white; padding:6px 14px; border-radius:4px; cursor:pointer; font-size:12px; margin-right:10px;">⚙️ Administración</button>
+    <button id="btnCaptura" onclick="capturarDashboard()" style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.4); color:white; padding:6px 14px; border-radius:4px; cursor:pointer; font-size:12px; margin-right:10px;">📄 Exportar PDF</button>
+    <button onclick="logoutUsuario()" style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.4); color:white; padding:6px 14px; border-radius:4px; cursor:pointer; font-size:12px;">🚪 Cerrar sesión</button>
   </div>
 </div>
 
-<!-- ============ MODAL PANEL DE ADMINISTRACIÃN ============ -->
+<!-- ============ MODAL PANEL DE ADMINISTRACIÓN ============ -->
 <div id="adminModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:10000; justify-content:center; align-items:center; padding:20px;">
   <div style="background:white; border-radius:10px; max-width:700px; width:100%; max-height:85vh; overflow-y:auto; padding:30px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-      <h2 style="color:#333; font-size:20px;">âï¸ Panel de AdministraciÃ³n</h2>
+      <h2 style="color:#333; font-size:20px;">⚙️ Panel de Administración</h2>
       <button onclick="cerrarPanelAdmin()" style="background:none; border:none; font-size:22px; cursor:pointer; color:#999;">&times;</button>
     </div>
 
     <div id="adminMessages"></div>
 
     <div style="margin-bottom:30px; padding-bottom:30px; border-bottom:2px solid #e0e0e0;">
-      <h3 style="font-size:15px; margin-bottom:15px; color:#333;">â Crear Nuevo Usuario</h3>
+      <h3 style="font-size:15px; margin-bottom:15px; color:#333;">➕ Crear Nuevo Usuario</h3>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
         <input type="text" id="newUser" placeholder="Usuario" style="padding:10px; border:2px solid #e0e0e0; border-radius:4px; font-size:13px;">
-        <input type="password" id="newPass" placeholder="ContraseÃ±a" style="padding:10px; border:2px solid #e0e0e0; border-radius:4px; font-size:13px;">
+        <input type="password" id="newPass" placeholder="Contraseña" style="padding:10px; border:2px solid #e0e0e0; border-radius:4px; font-size:13px;">
       </div>
       <div style="display:flex; gap:12px; align-items:center;">
         <select id="newRole" style="padding:10px; border:2px solid #e0e0e0; border-radius:4px; font-size:13px; flex:1;">
-          <option value="lector">ðï¸ Lector - Solo lectura</option>
-          <option value="editor">âï¸ Editor - Lectura + Importar</option>
-          <option value="admin">ð¡ï¸ Administrador - Control total</option>
+          <option value="lector">👁️ Lector - Solo lectura</option>
+          <option value="editor">✏️ Editor - Lectura + Importar</option>
+          <option value="admin">🛡️ Administrador - Control total</option>
         </select>
         <button onclick="crearUsuario()" style="padding:10px 18px; background:#667eea; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px; font-weight:600;">Crear</button>
       </div>
     </div>
 
     <div style="margin-bottom:30px; padding-bottom:30px; border-bottom:2px solid #e0e0e0;">
-      <h3 style="font-size:15px; margin-bottom:15px; color:#333;">ð¥ Usuarios Registrados</h3>
+      <h3 style="font-size:15px; margin-bottom:15px; color:#333;">👥 Usuarios Registrados</h3>
       <table style="width:100%; border-collapse:collapse; font-size:13px;">
         <thead>
           <tr style="background:#667eea; color:white;">
             <th style="padding:10px; text-align:left;">Usuario</th>
             <th style="padding:10px; text-align:left;">Rol</th>
-            <th style="padding:10px; text-align:left;">ContraseÃ±a</th>
+            <th style="padding:10px; text-align:left;">Contraseña</th>
             <th style="padding:10px; text-align:left;">Cambiar Rol</th>
             <th style="padding:10px; text-align:left;">Acciones</th>
           </tr>
@@ -343,45 +343,45 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
     </div>
 
     <div style="margin-bottom:30px; padding-bottom:30px; border-bottom:2px solid #e0e0e0;">
-      <h3 style="font-size:15px; margin-bottom:15px; color:#333;">ð Cambiar ContraseÃ±a de Usuario</h3>
+      <h3 style="font-size:15px; margin-bottom:15px; color:#333;">🔐 Cambiar Contraseña de Usuario</h3>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
         <select id="changePassUser" style="padding:10px; border:2px solid #e0e0e0; border-radius:4px; font-size:13px;">
           <option value="">-- Selecciona un usuario --</option>
         </select>
-        <input type="password" id="newPassword" placeholder="Nueva contraseÃ±a" style="padding:10px; border:2px solid #e0e0e0; border-radius:4px; font-size:13px;">
+        <input type="password" id="newPassword" placeholder="Nueva contraseña" style="padding:10px; border:2px solid #e0e0e0; border-radius:4px; font-size:13px;">
       </div>
-      <button onclick="cambiarContrasena()" style="padding:10px 18px; background:#667eea; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px; font-weight:600;">Actualizar ContraseÃ±a</button>
+      <button onclick="cambiarContrasena()" style="padding:10px 18px; background:#667eea; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px; font-weight:600;">Actualizar Contraseña</button>
     </div>
 
     <div>
-      <h3 style="font-size:15px; margin-bottom:15px; color:#333;">ð² Generador de ContraseÃ±as Seguras</h3>
-      <button onclick="generarContrasena()" style="padding:10px 18px; background:#667eea; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px; font-weight:600;">Generar ContraseÃ±a</button>
+      <h3 style="font-size:15px; margin-bottom:15px; color:#333;">🎲 Generador de Contraseñas Seguras</h3>
+      <button onclick="generarContrasena()" style="padding:10px 18px; background:#667eea; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px; font-weight:600;">Generar Contraseña</button>
       <div id="passwordGenerated" style="margin-top:12px;"></div>
     </div>
 
     <!-- EDITOR DE USUARIOS (genera JSON para pegar en Vercel) -->
     <div style="margin-bottom:20px; padding-bottom:20px; border-bottom:2px solid #e0e0e0;">
-      <h3 style="font-size:15px; margin-bottom:10px; color:#333;">âï¸ Editor de Usuarios</h3>
+      <h3 style="font-size:15px; margin-bottom:10px; color:#333;">✏️ Editor de Usuarios</h3>
       <div style="background:#fff3e0; border:1px solid #ff9800; border-radius:6px; padding:12px; font-size:12px; color:#e65100; margin-bottom:12px;">
-        â ï¸ Los cambios se aplican actualizando la variable <code>FILLRATE_USERS</code> en Vercel â Settings â Environment Variables, luego Redeploy.
+        ⚠️ Los cambios se aplican actualizando la variable <code>FILLRATE_USERS</code> en Vercel → Settings → Environment Variables, luego Redeploy.
       </div>
-      <button onclick="cargarEditorUsuarios()" style="padding:10px 18px; background:#667eea; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px; font-weight:600;">ð Cargar editor de usuarios</button>
+      <button onclick="cargarEditorUsuarios()" style="padding:10px 18px; background:#667eea; color:white; border:none; border-radius:4px; cursor:pointer; font-size:13px; font-weight:600;">📂 Cargar editor de usuarios</button>
     </div>
 
-    <!-- SECCIÃN JSON OUTPUT (visible tras cargar editor) -->
+    <!-- SECCIÓN JSON OUTPUT (visible tras cargar editor) -->
     <div id="jsonEditorSection" style="display:none; padding-bottom:20px;">
-      <h3 style="font-size:15px; margin-bottom:10px; color:#333;">ð JSON para copiar en Vercel</h3>
+      <h3 style="font-size:15px; margin-bottom:10px; color:#333;">📋 JSON para copiar en Vercel</h3>
       <div style="background:#f5f5f5; border:1px solid #ddd; border-radius:4px; padding:10px; font-family:monospace; font-size:11px; word-break:break-all; max-height:120px; overflow-y:auto; margin-bottom:10px;">
         <span id="jsonOutput"></span>
       </div>
-      <button onclick="copiarJson()" style="padding:8px 16px; background:#4caf50; color:white; border:none; border-radius:4px; cursor:pointer; font-size:12px; font-weight:600;">ð Copiar JSON</button>
+      <button onclick="copiarJson()" style="padding:8px 16px; background:#4caf50; color:white; border:none; border-radius:4px; cursor:pointer; font-size:12px; font-weight:600;">📋 Copiar JSON</button>
       <div style="margin-top:10px; font-size:12px; color:#555;">
         <strong>Pasos para aplicar cambios:</strong><br>
         1. Copia el JSON<br>
-        2. Vercel â tu proyecto â Settings â Environment Variables<br>
-        3. Busca <code>FILLRATE_USERS</code> (o crÃ©ala si no existe)<br>
+        2. Vercel → tu proyecto → Settings → Environment Variables<br>
+        3. Busca <code>FILLRATE_USERS</code> (o créala si no existe)<br>
         4. Pega el JSON como valor<br>
-        5. Guardar â Deployments â Redeploy
+        5. Guardar → Deployments → Redeploy
       </div>
     </div>
 
@@ -392,20 +392,20 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
 
   <div class="header">
     <div>
-      <h1>ð Dashboard LogÃ­stico</h1>
-      <div class="subtitle">Fill Rate calculado a nivel <b>SKU + DÃ­a + Sucursal</b>, agregado luego al periodo seleccionado</div>
+      <h1>📊 Dashboard Logístico</h1>
+      <div class="subtitle">Fill Rate calculado a nivel <b>SKU + Día + Sucursal</b>, agregado luego al periodo seleccionado</div>
     </div>
-    <div class="badge-periodo" id="periodoBadge">Cargandoâ¦</div>
+    <div class="badge-periodo" id="periodoBadge">Cargando…</div>
   </div>
 
   <div class="tabs">
-    <button class="tab-btn active" data-tab="dashboard">ð Dashboard</button>
-    <button class="tab-btn" data-tab="analisis">ð AnÃ¡lisis</button>
-    <button class="tab-btn" data-tab="stock">ð¦ Stock</button>
-    <button class="tab-btn" data-tab="detalle">ð Detalle</button>
-    <button class="tab-btn" data-tab="guiarapida">ðï¸ Empanadas</button>
-    <button class="tab-btn" data-tab="guias">ð GuÃ­as de Despacho</button>
-    <button class="tab-btn" data-tab="carga">ð Importar Archivos</button>
+    <button class="tab-btn active" data-tab="dashboard">📈 Dashboard</button>
+    <button class="tab-btn" data-tab="analisis">🔍 Análisis</button>
+    <button class="tab-btn" data-tab="stock">📦 Stock</button>
+    <button class="tab-btn" data-tab="detalle">📋 Detalle</button>
+    <button class="tab-btn" data-tab="guiarapida">🗂️ Empanadas</button>
+    <button class="tab-btn" data-tab="guias">🚚 Guías de Despacho</button>
+    <button class="tab-btn" data-tab="carga">📂 Importar Archivos</button>
   </div>
 
   <!-- ============ TAB: DETALLE ============ -->
@@ -419,8 +419,8 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
           <div class="filter-menu" style="display:none">
             <input class="filter-search" id="dtLocalSearch" placeholder="Buscar sucursal...">
             <div class="filter-controls">
-              <button class="filter-btn-small" id="dtLocalAll">â Todos</button>
-              <button class="filter-btn-small" id="dtLocalNone">â Ninguno</button>
+              <button class="filter-btn-small" id="dtLocalAll">✓ Todos</button>
+              <button class="filter-btn-small" id="dtLocalNone">✗ Ninguno</button>
             </div>
             <div class="filter-options" id="dtLocalOptions"></div>
             <div class="filter-actions">
@@ -442,17 +442,17 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
         <label>Buscar SKU / Producto</label>
         <input type="text" id="dtBuscar" class="search-input" placeholder="Ej: 2101005, empanada...">
       </div>
-      <button class="btn-reset" id="dtBtnReset">â Limpiar filtros</button>
+      <button class="btn-reset" id="dtBtnReset">✕ Limpiar filtros</button>
       <div style="margin-left:auto;">
-        <button class="btn btn-download btn-primary" onclick="descargarDetalleExcel()">â¬ Descargar Excel</button>
+        <button class="btn btn-download btn-primary" onclick="descargarDetalleExcel()">⬇ Descargar Excel</button>
       </div>
     </div>
 
     <div class="panel" style="overflow:hidden;">
       <div class="panel-header-row">
         <div>
-          <div class="panel-title">ð Detalle Solicitudes vs Despachos por DÃ­a</div>
-          <div id="dtResultsCount" class="results-count">â</div>
+          <div class="panel-title">📋 Detalle Solicitudes vs Despachos por Día</div>
+          <div id="dtResultsCount" class="results-count">—</div>
         </div>
       </div>
       <div id="dtTableWrap" style="overflow-x:auto; max-height:600px;">
@@ -500,13 +500,13 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
         <input type="date" id="stFechaHasta" class="range-input" style="width:130px;">
       </div>
       <div class="fgroup">
-        <label>Buscar SKU / DescripciÃ³n</label>
+        <label>Buscar SKU / Descripción</label>
         <input type="text" id="stBuscar" class="search-input" placeholder="Ej: 4104001, alcachofa...">
       </div>
-      <button class="btn-reset" id="stBtnReset">â Limpiar filtros</button>
+      <button class="btn-reset" id="stBtnReset">✕ Limpiar filtros</button>
       <div style="margin-left:auto; display:flex; gap:.6rem;">
-        <button class="btn btn-primary" id="stBtnImprimir" onclick="imprimirStock()">ð¨ï¸ Imprimir</button>
-        <button class="btn btn-download btn-primary" id="stBtnDescargar" onclick="descargarStockExcel()">â¬ Descargar</button>
+        <button class="btn btn-primary" id="stBtnImprimir" onclick="imprimirStock()">🖨️ Imprimir</button>
+        <button class="btn btn-download btn-primary" id="stBtnDescargar" onclick="descargarStockExcel()">⬇ Descargar</button>
       </div>
     </div>
 
@@ -514,27 +514,27 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
     <div class="panel">
       <div class="panel-header-row">
         <div>
-          <div class="panel-title">ð¦ Stock por Sucursal y SKU</div>
-          <div id="stResultsCount" class="results-count">â</div>
+          <div class="panel-title">📦 Stock por Sucursal y SKU</div>
+          <div id="stResultsCount" class="results-count">—</div>
         </div>
       </div>
       <div class="analisis-table-wrap" id="stTableWrap">
         <table id="stTable">
           <thead>
             <tr>
-              <th class="sort-th" data-sort="numero_local">NÂ° Local<span class="arrow">â¾</span></th>
-              <th class="sort-th" data-sort="sucursal">Sucursal<span class="arrow">â¾</span></th>
-              <th class="sort-th filterable-th" data-sort="sku">SKU<span class="filter-icon">â¼</span><span class="arrow">â¾</span></th>
-              <th class="sort-th" data-sort="descripcion">DescripciÃ³n<span class="arrow">â¾</span></th>
-              <th class="sort-th" data-sort="inv_entrada" style="text-align:right">Inv. Entrada<span class="arrow">â¾</span></th>
-              <th class="sort-th" data-sort="solicitado" style="text-align:right">Solicitado<span class="arrow">â¾</span></th>
-              <th class="sort-th" data-sort="despachado" style="text-align:right">Despachado<span class="arrow">â¾</span></th>
-              <th class="sort-th" data-sort="prog_produccion" style="text-align:right">Prog. ProducciÃ³n<span class="arrow">â¾</span></th>
-              <th class="sort-th" data-sort="venta_semana" style="text-align:right">Venta Semana<span class="arrow">â¾</span></th>
-              <th class="sort-th" data-sort="stock_disponible" style="text-align:right">Stock Disp. (OH+Desp)<span class="arrow">â¾</span></th>
-              <th class="sort-th" data-sort="stock_teorico" style="text-align:right">Stock TeÃ³rico<span class="arrow">â¾</span></th>
-              <th class="sort-th" data-sort="inv_salida" style="text-align:right">Inv. Salida<span class="arrow">â¾</span></th>
-              <th class="sort-th" data-sort="diferencia_salida" style="text-align:right">Diferencia<span class="arrow">â¾</span></th>
+              <th class="sort-th" data-sort="numero_local">N° Local<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="sucursal">Sucursal<span class="arrow">▾</span></th>
+              <th class="sort-th filterable-th" data-sort="sku">SKU<span class="filter-icon">▼</span><span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="descripcion">Descripción<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="inv_entrada" style="text-align:right">Inv. Entrada<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="solicitado" style="text-align:right">Solicitado<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="despachado" style="text-align:right">Despachado<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="prog_produccion" style="text-align:right">Prog. Producción<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="venta_semana" style="text-align:right">Venta Semana<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="stock_disponible" style="text-align:right">Stock Disp. (OH+Desp)<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="stock_teorico" style="text-align:right">Stock Teórico<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="inv_salida" style="text-align:right">Inv. Salida<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="diferencia_salida" style="text-align:right">Diferencia<span class="arrow">▾</span></th>
             </tr>
           </thead>
           <tbody id="stTableBody">
@@ -552,13 +552,13 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
     <div class="upload-grid">
       <div class="upload-card">
         <div class="upload-card-header">
-          <h3>ð Solicitudes de Sucursales</h3>
-          <button class="btn-delete" id="btnDelSolicitudes" title="Eliminar este archivo" style="display:none;">â</button>
+          <h3>📋 Solicitudes de Sucursales</h3>
+          <button class="btn-delete" id="btnDelSolicitudes" title="Eliminar este archivo" style="display:none;">✕</button>
         </div>
-        <div class="hint">Archivo Excel con columnas: CÃ³digo, DescripciÃ³n, Cantidad, Nombre local, NÃºmero local, Fecha solicitud, Fecha entrega</div>
+        <div class="hint">Archivo Excel con columnas: Código, Descripción, Cantidad, Nombre local, Número local, Fecha solicitud, Fecha entrega</div>
         <div class="dropzone" id="dropSolicitudes">
-          <div class="icon">ð</div>
-          <div class="txt">Arrastra el archivo aquÃ­ o haz click</div>
+          <div class="icon">📄</div>
+          <div class="txt">Arrastra el archivo aquí o haz click</div>
           <div class="sub">.xlsx, .xls, .csv</div>
         </div>
         <input type="file" id="inputSolicitudes" class="file-input" accept=".xlsx,.xls,.csv">
@@ -567,13 +567,13 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
 
       <div class="upload-card">
         <div class="upload-card-header">
-          <h3>ð GuÃ­as de Despacho</h3>
-          <button class="btn-delete" id="btnDelDespachos" title="Eliminar este archivo" style="display:none;">â</button>
+          <h3>🚚 Guías de Despacho</h3>
+          <button class="btn-delete" id="btnDelDespachos" title="Eliminar este archivo" style="display:none;">✕</button>
         </div>
-        <div class="hint">Archivo Excel con columnas: CÃ³d. cliente, CÃ³d. ArtÃ­culo, ArtÃ­culo, Cantidad sin Insumos, Fecha emisiÃ³n</div>
+        <div class="hint">Archivo Excel con columnas: Cód. cliente, Cód. Artículo, Artículo, Cantidad sin Insumos, Fecha emisión</div>
         <div class="dropzone" id="dropDespachos">
-          <div class="icon">ð</div>
-          <div class="txt">Arrastra el archivo aquÃ­ o haz click</div>
+          <div class="icon">📄</div>
+          <div class="txt">Arrastra el archivo aquí o haz click</div>
           <div class="sub">.xlsx, .xls, .csv</div>
         </div>
         <input type="file" id="inputDespachos" class="file-input" accept=".xlsx,.xls,.csv">
@@ -582,13 +582,13 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
 
       <div class="upload-card">
         <div class="upload-card-header">
-          <h3>ð¦ Inv. Entrada</h3>
-          <button class="btn-delete" id="btnDelInventarios" title="Eliminar este archivo" style="display:none;">â</button>
+          <h3>📦 Inv. Entrada</h3>
+          <button class="btn-delete" id="btnDelInventarios" title="Eliminar este archivo" style="display:none;">✕</button>
         </div>
-        <div class="hint">Archivo Excel con columnas: SKU, DescripciÃ³n, NÂ° Local, Stock FÃ­sico, Semana, Fecha</div>
+        <div class="hint">Archivo Excel con columnas: SKU, Descripción, N° Local, Stock Físico, Semana, Fecha</div>
         <div class="dropzone" id="dropInventarios">
-          <div class="icon">ð</div>
-          <div class="txt">Arrastra el archivo aquÃ­ o haz click</div>
+          <div class="icon">📄</div>
+          <div class="txt">Arrastra el archivo aquí o haz click</div>
           <div class="sub">.xlsx, .xls, .csv</div>
         </div>
         <input type="file" id="inputInventarios" class="file-input" accept=".xlsx,.xls,.csv">
@@ -597,13 +597,13 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
 
       <div class="upload-card">
         <div class="upload-card-header">
-          <h3>ð¤ Inv. Salida</h3>
-          <button class="btn-delete" id="btnDelInvSalida" title="Eliminar este archivo" style="display:none;">â</button>
+          <h3>📤 Inv. Salida</h3>
+          <button class="btn-delete" id="btnDelInvSalida" title="Eliminar este archivo" style="display:none;">✕</button>
         </div>
-        <div class="hint">Archivo Excel con columnas: SKU, DescripciÃ³n, NÂ° Local, Unidades Salida, Semana, Fecha</div>
+        <div class="hint">Archivo Excel con columnas: SKU, Descripción, N° Local, Unidades Salida, Semana, Fecha</div>
         <div class="dropzone" id="dropInvSalida">
-          <div class="icon">ð</div>
-          <div class="txt">Arrastra el archivo aquÃ­ o haz click</div>
+          <div class="icon">📄</div>
+          <div class="txt">Arrastra el archivo aquí o haz click</div>
           <div class="sub">.xlsx, .xls, .csv</div>
         </div>
         <input type="file" id="inputInvSalida" class="file-input" accept=".xlsx,.xls,.csv">
@@ -612,13 +612,13 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
 
       <div class="upload-card">
         <div class="upload-card-header">
-          <h3>ð Prog. ProducciÃ³n</h3>
-          <button class="btn-delete" id="btnDelPrograma" title="Eliminar este archivo" style="display:none;">â</button>
+          <h3>📈 Prog. Producción</h3>
+          <button class="btn-delete" id="btnDelPrograma" title="Eliminar este archivo" style="display:none;">✕</button>
         </div>
         <div class="hint">Archivo Excel con columnas: SKU, Descripcion Producto, ID Local, Fecha, Venta Diaria</div>
         <div class="dropzone" id="dropPrograma">
-          <div class="icon">ð</div>
-          <div class="txt">Arrastra el archivo aquÃ­ o haz click</div>
+          <div class="icon">📄</div>
+          <div class="txt">Arrastra el archivo aquí o haz click</div>
           <div class="sub">.xlsx, .xls, .csv</div>
         </div>
         <input type="file" id="inputPrograma" class="file-input" accept=".xlsx,.xls,.csv">
@@ -627,13 +627,13 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
 
       <div class="upload-card">
         <div class="upload-card-header">
-          <h3>ð Venta Semana</h3>
-          <button class="btn-delete" id="btnDelVentaSemana" title="Eliminar este archivo" style="display:none;">â</button>
+          <h3>🛒 Venta Semana</h3>
+          <button class="btn-delete" id="btnDelVentaSemana" title="Eliminar este archivo" style="display:none;">✕</button>
         </div>
-        <div class="hint">Archivo Excel con columnas: SKU, DescripciÃ³n, NÂ° Local, Unidades Vendidas, Semana, Fecha</div>
+        <div class="hint">Archivo Excel con columnas: SKU, Descripción, N° Local, Unidades Vendidas, Semana, Fecha</div>
         <div class="dropzone" id="dropVentaSemana">
-          <div class="icon">ð</div>
-          <div class="txt">Arrastra el archivo aquÃ­ o haz click</div>
+          <div class="icon">📄</div>
+          <div class="txt">Arrastra el archivo aquí o haz click</div>
           <div class="sub">.xlsx, .xls, .csv</div>
         </div>
         <input type="file" id="inputVentaSemana" class="file-input" accept=".xlsx,.xls,.csv">
@@ -642,19 +642,19 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
     </div>
 
     <div class="upload-card">
-      <h3>âï¸ Procesar y Calcular</h3>
+      <h3>⚙️ Procesar y Calcular</h3>
       <div class="hint">Una vez cargados ambos archivos (o usando los datos de ejemplo precargados), procesa para recalcular el dashboard.</div>
       <div class="upload-actions">
-        <button class="btn btn-primary" id="btnProcesar">ð Procesar y Calcular Fill Rate</button>
-        <button class="btn btn-secondary" id="btnDemo">ð¦ Usar datos de ejemplo (Semana 24)</button>
-        <button class="btn btn-secondary" id="btnLimpiar">ðï¸ Limpiar todo</button>
-        <button class="btn btn-primary" id="btnGuardarDatos" style="display:none; background:#27ae60;">ð¾ Guardar datos compartidos</button>
+        <button class="btn btn-primary" id="btnProcesar">🔄 Procesar y Calcular Fill Rate</button>
+        <button class="btn btn-secondary" id="btnDemo">📦 Usar datos de ejemplo (Semana 24)</button>
+        <button class="btn btn-secondary" id="btnLimpiar">🗑️ Limpiar todo</button>
+        <button class="btn btn-primary" id="btnGuardarDatos" style="display:none; background:#27ae60;">💾 Guardar datos compartidos</button>
       </div>
-      <div class="log-panel" id="logPanel"><span class="info-line">Esperando archivosâ¦</span></div>
+      <div class="log-panel" id="logPanel"><span class="info-line">Esperando archivos…</span></div>
     </div>
 
     <div class="methodology">
-      ð§® <b>MetodologÃ­a:</b> 1) Solicitado se agrupa por (SKU, Fecha de Entrega, Sucursal). 2) Despachado se agrupa por (SKU, Fecha de EmisiÃ³n de GuÃ­a, Sucursal), considerando solo comprobantes cuyo nÃºmero empieza con <b>"G"</b> (GuÃ­a de despacho real) â se excluyen los que empiezan con "F" (Factura) o "B" (Boleta), que corresponden a ventas facturadas, no a despacho fÃ­sico de mercaderÃ­a a sucursal propia. 3) Se cruzan por esa clave compuesta. 4) Fill Rate = Î£ despachado granular / Î£ solicitado granular del periodo filtrado â no un promedio de porcentajes diarios. Se excluyen tambiÃ©n SKU de insumos/bodega que no pertenecen al flujo de Solicitudes.
+      🧮 <b>Metodología:</b> 1) Solicitado se agrupa por (SKU, Fecha de Entrega, Sucursal). 2) Despachado se agrupa por (SKU, Fecha de Emisión de Guía, Sucursal), considerando solo comprobantes cuyo número empieza con <b>"G"</b> (Guía de despacho real) — se excluyen los que empiezan con "F" (Factura) o "B" (Boleta), que corresponden a ventas facturadas, no a despacho físico de mercadería a sucursal propia. 3) Se cruzan por esa clave compuesta. 4) Fill Rate = Σ despachado granular / Σ solicitado granular del periodo filtrado — no un promedio de porcentajes diarios. Se excluyen también SKU de insumos/bodega que no pertenecen al flujo de Solicitudes.
     </div>
 
     <div class="data-quality-bar" id="dqBar"></div>
@@ -671,8 +671,8 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
           <div class="filter-menu" style="display:none;">
             <input type="text" class="filter-search" placeholder="Buscar sucursal..." id="filtroLocalSearch">
             <div class="filter-controls">
-              <button class="filter-btn-small" id="filtroLocalAll">â Todos</button>
-              <button class="filter-btn-small" id="filtroLocalNone">â Ninguno</button>
+              <button class="filter-btn-small" id="filtroLocalAll">✓ Todos</button>
+              <button class="filter-btn-small" id="filtroLocalNone">✗ Ninguno</button>
             </div>
             <div class="filter-options" id="filtroLocalOptions"></div>
             <div class="filter-actions">
@@ -689,8 +689,8 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
           <button class="filter-btn">Seleccionar semanas...</button>
           <div class="filter-menu" style="display:none;">
             <div class="filter-controls">
-              <button class="filter-btn-small" id="filtroSemanaAll">â Todos</button>
-              <button class="filter-btn-small" id="filtroSemanaNone">â Ninguno</button>
+              <button class="filter-btn-small" id="filtroSemanaAll">✓ Todos</button>
+              <button class="filter-btn-small" id="filtroSemanaNone">✗ Ninguno</button>
             </div>
             <div class="filter-options" id="filtroSemanaOptions"></div>
             <div class="filter-actions">
@@ -702,13 +702,13 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
       </div>
 
       <div class="fgroup">
-        <label>DÃ­a</label>
+        <label>Día</label>
         <div class="filter-dropdown" id="filtroDiaDD">
-          <button class="filter-btn">Seleccionar dÃ­as...</button>
+          <button class="filter-btn">Seleccionar días...</button>
           <div class="filter-menu" style="display:none;">
             <div class="filter-controls">
-              <button class="filter-btn-small" id="filtroDiaAll">â Todos</button>
-              <button class="filter-btn-small" id="filtroDiaNone">â Ninguno</button>
+              <button class="filter-btn-small" id="filtroDiaAll">✓ Todos</button>
+              <button class="filter-btn-small" id="filtroDiaNone">✗ Ninguno</button>
             </div>
             <div class="filter-options" id="filtroDiaOptions"></div>
             <div class="filter-actions">
@@ -726,51 +726,51 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
           <option value="solicitado">Mayor Solicitado</option>
         </select>
       </div>
-      <button class="btn-reset" id="btnResetFiltros">â Limpiar filtros</button>
+      <button class="btn-reset" id="btnResetFiltros">✕ Limpiar filtros</button>
     </div>
 
     <div class="kpi-grid">
       <div class="kpi-card blue">
-        <div class="kpi-top"><span class="kpi-title">Fill Rate</span><span class="kpi-icon">ð</span></div>
-        <div class="kpi-value" id="kpiFillRate">â</div>
-        <div class="kpi-unit">Î£ Despachado / Î£ Solicitado</div>
+        <div class="kpi-top"><span class="kpi-title">Fill Rate</span><span class="kpi-icon">📈</span></div>
+        <div class="kpi-value" id="kpiFillRate">—</div>
+        <div class="kpi-unit">Σ Despachado / Σ Solicitado</div>
       </div>
       <div class="kpi-card green">
-        <div class="kpi-top"><span class="kpi-title">Solicitado</span><span class="kpi-icon">ð¦</span></div>
-        <div class="kpi-value" id="kpiSolicitado">â</div>
+        <div class="kpi-top"><span class="kpi-title">Solicitado</span><span class="kpi-icon">📦</span></div>
+        <div class="kpi-value" id="kpiSolicitado">—</div>
         <div class="kpi-unit">unidades en el filtro actual</div>
       </div>
       <div class="kpi-card purple">
-        <div class="kpi-top"><span class="kpi-title">Despachado</span><span class="kpi-icon">ð</span></div>
-        <div class="kpi-value" id="kpiDespachado">â</div>
+        <div class="kpi-top"><span class="kpi-title">Despachado</span><span class="kpi-icon">🚚</span></div>
+        <div class="kpi-value" id="kpiDespachado">—</div>
         <div class="kpi-unit">unidades en el filtro actual</div>
       </div>
       <div class="kpi-card red">
-        <div class="kpi-top"><span class="kpi-title">Diferencia</span><span class="kpi-icon">â ï¸</span></div>
-        <div class="kpi-value" id="kpiGap">â</div>
+        <div class="kpi-top"><span class="kpi-title">Diferencia</span><span class="kpi-icon">⚠️</span></div>
+        <div class="kpi-value" id="kpiGap">—</div>
         <div class="kpi-unit">unidades no despachadas</div>
       </div>
     </div>
 
     <div class="panel" style="margin-bottom:1.2rem;">
-      <div class="panel-title">ð Solicitado vs Despachado + EvoluciÃ³n Fill Rate (%)</div>
-      <div class="panel-note">Barras azules: despacho Â· Barras grises: solicitud Â· LÃ­nea verde: Fill Rate % (eje derecho).</div>
+      <div class="panel-title">📊 Solicitado vs Despachado + Evolución Fill Rate (%)</div>
+      <div class="panel-note">Barras azules: despacho · Barras grises: solicitud · Línea verde: Fill Rate % (eje derecho).</div>
       <canvas id="chartLinea"></canvas>
       <canvas id="chartArea" style="display:none;"></canvas>
     </div>
 
     <div class="grid-2">
       <div class="panel">
-        <div class="panel-title">ð¬ Fill Rate por Sucursal</div>
+        <div class="panel-title">🏬 Fill Rate por Sucursal</div>
         <div class="day-tabs" id="sucursalDayTabs"></div>
         <div id="sucursalBars"></div>
       </div>
       <div class="panel">
-        <div class="panel-title">ð´ Top Quiebres por Producto (mayor brecha)</div>
+        <div class="panel-title">🔴 Top Quiebres por Producto (mayor brecha)</div>
         <div class="day-tabs" id="quiebresDayTabs"></div>
         <div style="overflow-x:auto; max-height:300px;">
           <table>
-            <thead><tr><th>SKU</th><th>DescripciÃ³n</th><th style="text-align:right">Solicitado</th><th style="text-align:right">Despachado</th><th style="text-align:right">Diferencia</th></tr></thead>
+            <thead><tr><th>SKU</th><th>Descripción</th><th style="text-align:right">Solicitado</th><th style="text-align:right">Despachado</th><th style="text-align:right">Diferencia</th></tr></thead>
             <tbody id="quiebresBody"></tbody>
           </table>
         </div>
@@ -779,7 +779,7 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
 
   </div>
 
-  <!-- ============ TAB: ANÃLISIS ============ -->
+  <!-- ============ TAB: ANÁLISIS ============ -->
   <div class="tab-panel" id="tab-analisis">
 
     <div class="toolbar">
@@ -790,8 +790,8 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
           <div class="filter-menu" style="display:none;">
             <input type="text" class="filter-search" placeholder="Buscar sucursal..." id="anLocalSearch">
             <div class="filter-controls">
-              <button class="filter-btn-small" id="anLocalAll">â Todos</button>
-              <button class="filter-btn-small" id="anLocalNone">â Ninguno</button>
+              <button class="filter-btn-small" id="anLocalAll">✓ Todos</button>
+              <button class="filter-btn-small" id="anLocalNone">✗ Ninguno</button>
             </div>
             <div class="filter-options" id="anLocalOptions"></div>
             <div class="filter-actions">
@@ -812,24 +812,24 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
       <div class="fgroup">
         <label>% Cumplimiento</label>
         <div class="range-group">
-          <input type="number" id="anPctMin" class="range-input" placeholder="MÃ­n" min="0" max="999">
-          <span style="color:#94a3b8;">â</span>
-          <input type="number" id="anPctMax" class="range-input" placeholder="MÃ¡x" min="0" max="999">
+          <input type="number" id="anPctMin" class="range-input" placeholder="Mín" min="0" max="999">
+          <span style="color:#94a3b8;">–</span>
+          <input type="number" id="anPctMax" class="range-input" placeholder="Máx" min="0" max="999">
         </div>
       </div>
       <div class="fgroup">
-        <label for="anBuscar">Buscar SKU / DescripciÃ³n</label>
-        <input type="text" id="anBuscar" class="search-input" placeholder="Ej: empanada, 2101010â¦">
+        <label for="anBuscar">Buscar SKU / Descripción</label>
+        <input type="text" id="anBuscar" class="search-input" placeholder="Ej: empanada, 2101010…">
       </div>
-      <button class="btn-reset" id="anBtnReset">â Limpiar filtros</button>
+      <button class="btn-reset" id="anBtnReset">✕ Limpiar filtros</button>
     </div>
 
     <div class="panel">
       <div class="panel-header-row">
-        <div class="panel-title" style="margin-bottom:0;">ð Detalle SKU â Solicitado vs Despachado</div>
+        <div class="panel-title" style="margin-bottom:0;">📋 Detalle SKU — Solicitado vs Despachado</div>
         <div style="display:flex; gap:.6rem;">
-          <button class="btn btn-primary" id="anBtnImprimir">ð¨ï¸ Imprimir</button>
-          <button class="btn btn-primary btn-download" id="anBtnDescargar">â¬ï¸ Descargar detalle</button>
+          <button class="btn btn-primary" id="anBtnImprimir">🖨️ Imprimir</button>
+          <button class="btn btn-primary btn-download" id="anBtnDescargar">⬇️ Descargar detalle</button>
         </div>
       </div>
       <div class="results-count" id="anResultsCount"></div>
@@ -839,17 +839,17 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
         <div class="summary-title">Resumen Filtrado</div>
         <div class="summary-grid">
           <div class="summary-card">
-            <div class="summary-icon icon-solicitado">ð</div>
+            <div class="summary-icon icon-solicitado">📊</div>
             <div class="summary-value" id="sumSolicitado">0</div>
             <div class="summary-label">Solicitado</div>
           </div>
           <div class="summary-card">
-            <div class="summary-icon icon-despachado">â</div>
+            <div class="summary-icon icon-despachado">✓</div>
             <div class="summary-value" id="sumDespachado">0</div>
             <div class="summary-label">Despachado</div>
           </div>
           <div class="summary-card">
-            <div class="summary-icon icon-gap">â </div>
+            <div class="summary-icon icon-gap">⚠</div>
             <div class="summary-value" id="sumGap">0</div>
             <div class="summary-label">Diferencia</div>
           </div>
@@ -859,12 +859,12 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
             <div class="summary-label">Fill Rate</div>
           </div>
           <div class="summary-card">
-            <div class="summary-icon icon-programa">ð</div>
+            <div class="summary-icon icon-programa">📈</div>
             <div class="summary-value" id="sumPrograma">0</div>
             <div class="summary-label">Prog. Prod.</div>
           </div>
           <div class="summary-card">
-            <div class="summary-icon icon-inventario">ð¦</div>
+            <div class="summary-icon icon-inventario">📦</div>
             <div class="summary-value" id="sumInventario">0</div>
             <div class="summary-label">Inv. Entrada</div>
           </div>
@@ -875,15 +875,15 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
         <table>
           <thead>
             <tr>
-              <th class="sort-th filterable-th" data-sort="sku" data-filter="sku">SKU<span class="arrow">â¾</span><span class="filter-icon" title="Filtrar">ð½</span></th>
-              <th class="sort-th filterable-th" data-sort="descripcion" data-filter="descripcion">DescripciÃ³n<span class="arrow">â¾</span><span class="filter-icon" title="Filtrar">ð½</span></th>
-              <th class="sort-th filterable-th" data-sort="sucursal" data-filter="sucursal">Sucursal<span class="arrow">â¾</span><span class="filter-icon" title="Filtrar">ð½</span></th>
-              <th class="sort-th" data-sort="programa" style="text-align:right">Programa<span class="arrow">â¾</span></th>
-              <th class="sort-th" data-sort="inventario" style="text-align:right">Inv. Entrada<span class="arrow">â¾</span></th>
-              <th class="sort-th" data-sort="solicitado" style="text-align:right">Solicitado<span class="arrow">â¾</span></th>
-              <th class="sort-th" data-sort="despachado" style="text-align:right">Despachado<span class="arrow">â¾</span></th>
-              <th class="sort-th" data-sort="fill_rate" style="text-align:right">% Cumplimiento<span class="arrow">â¾</span></th>
-              <th>GuÃ­a Despacho</th>
+              <th class="sort-th filterable-th" data-sort="sku" data-filter="sku">SKU<span class="arrow">▾</span><span class="filter-icon" title="Filtrar">🔽</span></th>
+              <th class="sort-th filterable-th" data-sort="descripcion" data-filter="descripcion">Descripción<span class="arrow">▾</span><span class="filter-icon" title="Filtrar">🔽</span></th>
+              <th class="sort-th filterable-th" data-sort="sucursal" data-filter="sucursal">Sucursal<span class="arrow">▾</span><span class="filter-icon" title="Filtrar">🔽</span></th>
+              <th class="sort-th" data-sort="programa" style="text-align:right">Programa<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="inventario" style="text-align:right">Inv. Entrada<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="solicitado" style="text-align:right">Solicitado<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="despachado" style="text-align:right">Despachado<span class="arrow">▾</span></th>
+              <th class="sort-th" data-sort="fill_rate" style="text-align:right">% Cumplimiento<span class="arrow">▾</span></th>
+              <th>Guía Despacho</th>
             </tr>
           </thead>
           <tbody id="analisisBody"></tbody>
@@ -903,8 +903,8 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
           <div class="filter-menu" style="display:none">
             <input class="filter-search" id="grLocalSearch" placeholder="Buscar sucursal...">
             <div class="filter-controls">
-              <button class="filter-btn-small" id="grLocalAll">â Todos</button>
-              <button class="filter-btn-small" id="grLocalNone">â Ninguno</button>
+              <button class="filter-btn-small" id="grLocalAll">✓ Todos</button>
+              <button class="filter-btn-small" id="grLocalNone">✗ Ninguno</button>
             </div>
             <div class="filter-options" id="grLocalOptions"></div>
             <div class="filter-actions">
@@ -922,9 +922,9 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
         <label>Fecha Hasta</label>
         <input type="date" id="grFechaHasta" class="range-input" style="width:140px;">
       </div>
-      <button class="btn-reset" id="grBtnReset">â Limpiar</button>
+      <button class="btn-reset" id="grBtnReset">✕ Limpiar</button>
       <div style="margin-left:auto;">
-        <button class="btn btn-download btn-primary" onclick="descargarEmpanadasExcel()">â¬ Excel</button>
+        <button class="btn btn-download btn-primary" onclick="descargarEmpanadasExcel()">⬇ Excel</button>
       </div>
     </div>
 
@@ -932,10 +932,10 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
     <div class="panel" style="margin-bottom:1.2rem;">
       <div class="panel-header-row">
         <div>
-          <div class="panel-title">ð¥ Empanadas</div>
-          <div id="grResultsCount" class="results-count">â</div>
+          <div class="panel-title">🥟 Empanadas</div>
+          <div id="grResultsCount" class="results-count">—</div>
         </div>
-        <button class="btn btn-primary" onclick="imprimirGrTabla('grTable1','Empanadas')">ð¨ï¸ Imprimir</button>
+        <button class="btn btn-primary" onclick="imprimirGrTabla('grTable1','Empanadas')">🖨️ Imprimir</button>
       </div>
       <div style="overflow-x:auto;" id="grTable1"><div class="empty-state">Carga archivos para ver datos.</div></div>
     </div>
@@ -944,17 +944,17 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
     <div class="panel">
       <div class="panel-header-row">
         <div>
-          <div class="panel-title">ð¥ Masas / Otros</div>
-          <div id="grResultsCount2" class="results-count">â</div>
+          <div class="panel-title">🥐 Masas / Otros</div>
+          <div id="grResultsCount2" class="results-count">—</div>
         </div>
-        <button class="btn btn-primary" onclick="imprimirGrTabla('grTable2','Masas')">ð¨ï¸ Imprimir</button>
+        <button class="btn btn-primary" onclick="imprimirGrTabla('grTable2','Masas')">🖨️ Imprimir</button>
       </div>
       <div style="overflow-x:auto;" id="grTable2"><div class="empty-state">Carga archivos para ver datos.</div></div>
     </div>
   </div>
   <!-- ============ FIN TAB EMPANADAS ============ -->
 
-  <!-- ============ TAB: GUÃAS DE DESPACHO ============ -->
+  <!-- ============ TAB: GUÍAS DE DESPACHO ============ -->
   <div class="tab-panel" id="tab-guias">
 
     <div class="toolbar">
@@ -971,24 +971,24 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
         <input type="date" id="gdFechaHasta" class="range-input" style="width:140px;">
       </div>
       <div class="fgroup">
-        <label for="gdBuscar">Buscar GuÃ­a / Comanda / SKU</label>
-        <input type="text" id="gdBuscar" class="search-input" placeholder="Ej: G0520500062506, empanadaâ¦">
+        <label for="gdBuscar">Buscar Guía / Comanda / SKU</label>
+        <input type="text" id="gdBuscar" class="search-input" placeholder="Ej: G0520500062506, empanada…">
       </div>
-      <button class="btn-reset" id="gdBtnReset">â Limpiar filtros</button>
+      <button class="btn-reset" id="gdBtnReset">✕ Limpiar filtros</button>
     </div>
 
     <div class="panel">
-      <div class="panel-title">ð Listado de GuÃ­as de Despacho</div>
-      <div class="panel-note">Click en cualquier fila o en "Ver detalle" para ver los productos despachados en esa guÃ­a.</div>
+      <div class="panel-title">🚚 Listado de Guías de Despacho</div>
+      <div class="panel-note">Click en cualquier fila o en "Ver detalle" para ver los productos despachados en esa guía.</div>
       <div class="results-count" id="gdResultsCount"></div>
       <div class="analisis-table-wrap">
         <table>
           <thead>
             <tr>
-              <th>NÂ° GuÃ­a</th>
+              <th>N° Guía</th>
               <th>Fecha</th>
               <th>Sucursal</th>
-              <th>NÂ° Comanda</th>
+              <th>N° Comanda</th>
               <th style="text-align:right">Total SKU</th>
               <th style="text-align:right">Total Unidades</th>
               <th></th>
@@ -1003,17 +1003,17 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
 
 </div>
 
-<!-- ============ MODAL DETALLE GUÃA ============ -->
+<!-- ============ MODAL DETALLE GUÍA ============ -->
 <div class="modal-overlay" id="modalGuiaOverlay">
   <div class="modal-box">
     <div class="modal-header">
-      <h3 id="modalGuiaTitulo">GuÃ­a</h3>
-      <button class="modal-close" id="modalGuiaClose">â</button>
+      <h3 id="modalGuiaTitulo">Guía</h3>
+      <button class="modal-close" id="modalGuiaClose">✕</button>
     </div>
     <div class="modal-meta" id="modalGuiaMeta"></div>
     <div class="modal-table-wrap">
       <table>
-        <thead><tr><th>SKU</th><th>DescripciÃ³n</th><th style="text-align:right">Cantidad</th></tr></thead>
+        <thead><tr><th>SKU</th><th>Descripción</th><th style="text-align:right">Cantidad</th></tr></thead>
         <tbody id="modalGuiaBody"></tbody>
       </table>
     </div>
@@ -1035,7 +1035,7 @@ const CODIGOS_OFICIALES = new Set(Object.keys(NOMBRES_OFICIALES).map(Number));
 let RAW = { solicitudes: [], despachos: [] };  // registros granulares crudos
 var PARSED = { solicitudesFile: null, despachosFile: null, inventariosFile: null, programaFile: null, invSalidaFile: null, ventaSemanaFile: null };
 var GRANULAR = [];      // tabla final SKU+fecha+sucursal con solicitado/despachado
-let DESPACHOS_LINEA = []; // cada lÃ­nea de despacho individual, con numero_guia preservado
+let DESPACHOS_LINEA = []; // cada línea de despacho individual, con numero_guia preservado
 let GUIAS_INDEX = new Map(); // numero_guia -> { numero_guia, fecha, sucursal, lineas:[...], total_unidades }
 var DATA_QUALITY = { total_raw:0, validas:0, rechazadas:0, pct_rechazo:0, insumos_excluidos:0 };
 
@@ -1073,7 +1073,7 @@ function excelSerialToDate(serial){
 }
 
 // ============================================================
-// SEGURIDAD & VALIDACIÃN
+// SEGURIDAD & VALIDACIÓN
 // ============================================================
 
 // Sanitizar texto contra XSS
@@ -1141,7 +1141,7 @@ function rangoSemanaActual() {
 function log(msg, type){
   const panel = document.getElementById('logPanel');
   const cls = type === 'ok' ? 'ok-line' : type === 'warn' ? 'warn-line' : type === 'err' ? 'err-line' : 'info-line';
-  const icon = type === 'ok' ? 'â' : type === 'warn' ? 'â ï¸' : type === 'err' ? 'â' : 'â¹ï¸';
+  const icon = type === 'ok' ? '✅' : type === 'warn' ? '⚠️' : type === 'err' ? '❌' : 'ℹ️';
   panel.innerHTML += '<div class="' + cls + '">' + icon + ' ' + msg + '</div>';
   panel.scrollTop = panel.scrollHeight;
 }
@@ -1185,7 +1185,7 @@ function setStatus(statusId, type, msg){
   el.className = 'file-status ' + type;
   el.textContent = msg;
   
-  // Mostrar/ocultar botÃ³n de eliminar segÃºn el estado
+  // Mostrar/ocultar botón de eliminar según el estado
   const kind = statusId.replace('status', '').toLowerCase();
   let btnId = '';
   if(statusId === 'statusSolicitudes') btnId = 'btnDelSolicitudes';
@@ -1203,10 +1203,10 @@ function setStatus(statusId, type, msg){
 
 function handleFile(file, statusId, kind){
   if (typeof XLSX === 'undefined') {
-    setStatus(statusId, 'error', 'â La librerÃ­a de lectura de Excel (XLSX) no se cargÃ³. Verifica tu conexiÃ³n a internet y recarga la pÃ¡gina.');
+    setStatus(statusId, 'error', '❌ La librería de lectura de Excel (XLSX) no se cargó. Verifica tu conexión a internet y recarga la página.');
     return;
   }
-  setStatus(statusId, 'loading', 'â³ Leyendo ' + file.name + 'â¦');
+  setStatus(statusId, 'loading', '⏳ Leyendo ' + file.name + '…');
   const reader = new FileReader();
   reader.onload = function(e){
     try {
@@ -1218,29 +1218,29 @@ function handleFile(file, statusId, kind){
 
       if(kind === 'solicitudes'){
         PARSED.solicitudesFile = rows;
-        setStatus(statusId, 'ok', 'â ' + file.name + ' â ' + rows.length + ' filas leÃ­das (hoja "' + sheetName + '")');
+        setStatus(statusId, 'ok', '✅ ' + file.name + ' — ' + rows.length + ' filas leídas (hoja "' + sheetName + '")');
       } else if(kind === 'despachos'){
         PARSED.despachosFile = rows;
-        setStatus(statusId, 'ok', 'â ' + file.name + ' â ' + rows.length + ' filas leÃ­das (hoja "' + sheetName + '")');
+        setStatus(statusId, 'ok', '✅ ' + file.name + ' — ' + rows.length + ' filas leídas (hoja "' + sheetName + '")');
       } else if(kind === 'inventarios'){
         PARSED.inventariosFile = rows;
-        setStatus(statusId, 'ok', 'â ' + file.name + ' â ' + rows.length + ' filas leÃ­das (hoja "' + sheetName + '")');
+        setStatus(statusId, 'ok', '✅ ' + file.name + ' — ' + rows.length + ' filas leídas (hoja "' + sheetName + '")');
       } else if(kind === 'programa'){
         PARSED.programaFile = rows;
-        setStatus(statusId, 'ok', 'â ' + file.name + ' â ' + rows.length + ' filas leÃ­das (hoja "' + sheetName + '")');
+        setStatus(statusId, 'ok', '✅ ' + file.name + ' — ' + rows.length + ' filas leídas (hoja "' + sheetName + '")');
       } else if(kind === 'invSalida'){
         PARSED.invSalidaFile = rows;
-        setStatus(statusId, 'ok', 'â ' + file.name + ' â ' + rows.length + ' filas leÃ­das (hoja "' + sheetName + '")');
+        setStatus(statusId, 'ok', '✅ ' + file.name + ' — ' + rows.length + ' filas leídas (hoja "' + sheetName + '")');
       } else if(kind === 'ventaSemana'){
         PARSED.ventaSemanaFile = rows;
-        setStatus(statusId, 'ok', 'â ' + file.name + ' â ' + rows.length + ' filas leÃ­das (hoja "' + sheetName + '")');
+        setStatus(statusId, 'ok', '✅ ' + file.name + ' — ' + rows.length + ' filas leídas (hoja "' + sheetName + '")');
       }
     } catch(err){
-      setStatus(statusId, 'error', 'â Error leyendo archivo: ' + err.message);
+      setStatus(statusId, 'error', '❌ Error leyendo archivo: ' + err.message);
     }
   };
   reader.onerror = function(){
-    setStatus(statusId, 'error', 'â No se pudo leer el archivo');
+    setStatus(statusId, 'error', '❌ No se pudo leer el archivo');
   };
   reader.readAsArrayBuffer(file);
 }
@@ -1271,7 +1271,7 @@ function deleteFile(kind){
     document.getElementById('inputVentaSemana').value = '';
     setStatus('statusVentaSemana', '', '');
   }
-  log(`${kind} eliminado. Carga uno nuevo cuando estÃ© listo.`, 'info');
+  log(`${kind} eliminado. Carga uno nuevo cuando esté listo.`, 'info');
 }
 
 setupDropzone('dropSolicitudes','inputSolicitudes','statusSolicitudes','solicitudes');
@@ -1290,7 +1290,7 @@ document.getElementById('btnDelInvSalida').addEventListener('click', () => delet
 document.getElementById('btnDelVentaSemana').addEventListener('click', () => deleteFile('ventaSemana'));
 
 // ============================================================
-// NORMALIZACIÃN: convertir filas de Excel parseado a registros RAW
+// NORMALIZACIÓN: convertir filas de Excel parseado a registros RAW
 // ============================================================
 function findColumn(row, candidates){
   const keys = Object.keys(row);
@@ -1311,10 +1311,10 @@ function normalizarSolicitudesRows(rows){
   const out = [];
   if(!rows || rows.length === 0) return { out, validas, rechazadas };
 
-  const colCodigo = findColumn(rows[0], ['CÃ³digo','Codigo','SKU','CÃ³d. ArtÃ­culo']);
-  const colDesc = findColumn(rows[0], ['DescripciÃ³n','Descripcion','ArtÃ­culo']);
+  const colCodigo = findColumn(rows[0], ['Código','Codigo','SKU','Cód. Artículo']);
+  const colDesc = findColumn(rows[0], ['Descripción','Descripcion','Artículo']);
   const colCantidad = findColumn(rows[0], ['Cantidad']);
-  const colNumLocal = findColumn(rows[0], ['NÃºmero local','Numero local','Local','CÃ³d. cliente']);
+  const colNumLocal = findColumn(rows[0], ['Número local','Numero local','Local','Cód. cliente']);
   const colNombreLocal = findColumn(rows[0], ['Nombre local']);
   const colFechaEntrega = findColumn(rows[0], ['Fecha entrega']);
 
@@ -1352,19 +1352,19 @@ function normalizarDespachosRows(rows, skusValidos){
   const out = [];
   if(!rows || rows.length === 0) return { out, validas, rechazadas, excluidosInsumos, excluidosInsumosUnid, excluidosNoG, excluidosNoGUnid };
 
-  const colCliente = findColumn(rows[0], ['CÃ³d. cliente','Cod. cliente','Cliente']);
-  const colSku = findColumn(rows[0], ['CÃ³d. ArtÃ­culo','Cod. Articulo','SKU','CÃ³digo']);
-  const colDesc = findColumn(rows[0], ['ArtÃ­culo','Articulo','DescripciÃ³n']);
+  const colCliente = findColumn(rows[0], ['Cód. cliente','Cod. cliente','Cliente']);
+  const colSku = findColumn(rows[0], ['Cód. Artículo','Cod. Articulo','SKU','Código']);
+  const colDesc = findColumn(rows[0], ['Artículo','Articulo','Descripción']);
   const colCantidad = findColumn(rows[0], ['Cantidad sin Insumos','Cantidad']);
-  const colFecha = findColumn(rows[0], ['Fecha emisiÃ³n','Fecha emision']);
+  const colFecha = findColumn(rows[0], ['Fecha emisión','Fecha emision']);
   const colComprobante = findColumn(rows[0], ['Nro. Comprobante','Nro Comprobante','Comprobante']);
   const colComanda = findColumn(rows[0], ['Nro. Comanda','Nro Comanda']);
   const colHora = findColumn(rows[0], ['Hora cierre','Hora']);
   const colEstado = findColumn(rows[0], ['Estado Comanda','Estado']);
 
   for(const row of rows){
-    // FILTRO: solo Nro. Comprobante que empiece con 'G' (GuÃ­a de despacho real).
-    // Se omiten los que empiezan con 'F' (Factura) o 'B' (Boleta) â no son despacho fÃ­sico.
+    // FILTRO: solo Nro. Comprobante que empiece con 'G' (Guía de despacho real).
+    // Se omiten los que empiezan con 'F' (Factura) o 'B' (Boleta) — no son despacho físico.
     const comprobante = colComprobante ? String(row[colComprobante] || '').trim() : '';
     if(colComprobante){
       const prefijo = comprobante.charAt(0).toUpperCase();
@@ -1419,7 +1419,7 @@ function normalizarDespachosRows(rows, skusValidos){
 // ============================================================
 function procesar(){
   clearLog();
-  log('Iniciando procesamientoâ¦', 'info');
+  log('Iniciando procesamiento…', 'info');
   
   try {
     const solRows = PARSED.solicitudesFile;
@@ -1436,40 +1436,40 @@ function procesar(){
     let dq = { total_raw:0, validas:0, rechazadas:0, insumos_excluidos_unid:0 };
 
   if(solRows){
-    log('Procesando archivo de Solicitudes (' + solRows.length + ' filas)â¦', 'info');
+    log('Procesando archivo de Solicitudes (' + solRows.length + ' filas)…', 'info');
     const r = normalizarSolicitudesRows(solRows);
     solicitudesOut = r.out;
     dq.total_raw = solRows.length;
     dq.validas = r.validas;
     dq.rechazadas = r.rechazadas;
-    log('Solicitudes: ' + r.validas + ' vÃ¡lidas, ' + r.rechazadas + ' rechazadas (sucursal no mapeada, cantidad vacÃ­a/cero, o fecha invÃ¡lida)', r.rechazadas > 0 ? 'warn' : 'ok');
+    log('Solicitudes: ' + r.validas + ' válidas, ' + r.rechazadas + ' rechazadas (sucursal no mapeada, cantidad vacía/cero, o fecha inválida)', r.rechazadas > 0 ? 'warn' : 'ok');
   } else {
-    log('No se cargÃ³ archivo de Solicitudes â usando seed de ejemplo', 'warn');
+    log('No se cargó archivo de Solicitudes — usando seed de ejemplo', 'warn');
     solicitudesOut = RAW.solicitudes;
   }
 
   const skusValidos = new Set(solicitudesOut.map(r => r.sku));
 
   if(despRows){
-    log('Procesando archivo de GuÃ­as de Despacho (' + despRows.length + ' filas)â¦', 'info');
+    log('Procesando archivo de Guías de Despacho (' + despRows.length + ' filas)…', 'info');
     const r = normalizarDespachosRows(despRows, skusValidos);
     despachosOut = r.out;
-    log('Comprobantes excluidos por NO ser tipo "G" (Factura/Boleta, no despacho fÃ­sico): ' + r.excluidosNoG + ' lÃ­neas, ' + fmt(r.excluidosNoGUnid) + ' unidades', 'warn');
-    log('Despachos: ' + r.validas + ' vÃ¡lidas, ' + r.rechazadas + ' rechazadas, ' + r.excluidosInsumos + ' excluidas por ser SKU de insumos/bodega (' + fmt(r.excluidosInsumosUnid) + ' unidades)', 'ok');
+    log('Comprobantes excluidos por NO ser tipo "G" (Factura/Boleta, no despacho físico): ' + r.excluidosNoG + ' líneas, ' + fmt(r.excluidosNoGUnid) + ' unidades', 'warn');
+    log('Despachos: ' + r.validas + ' válidas, ' + r.rechazadas + ' rechazadas, ' + r.excluidosInsumos + ' excluidas por ser SKU de insumos/bodega (' + fmt(r.excluidosInsumosUnid) + ' unidades)', 'ok');
     dq.insumos_excluidos_unid = r.excluidosInsumosUnid;
   } else {
-    log('No se cargÃ³ archivo de GuÃ­as â usando seed de ejemplo', 'warn');
+    log('No se cargó archivo de Guías — usando seed de ejemplo', 'warn');
     despachosOut = RAW.despachos;
   }
 
   // Procesar Inventarios si se cargaron
   if(invRows){
-    log('Procesando archivo de Inventarios (' + invRows.length + ' filas)â¦', 'info');
+    log('Procesando archivo de Inventarios (' + invRows.length + ' filas)…', 'info');
     const invIndex = {};
     for(const row of invRows){
       const sku    = String(row['SKU'] || '').trim();
-      const local  = String(row['NÂ° Local'] || row['ID Local'] || '').trim();
-      const stock  = parseFloat(row['Stock FÃ­sico'] || 0);
+      const local  = String(row['N° Local'] || row['ID Local'] || '').trim();
+      const stock  = parseFloat(row['Stock Físico'] || 0);
       if(sku && local && stock > 0){
         const sucursal = NOMBRES_OFICIALES[parseInt(local)] || String(row['Nombre Local'] || row['Local'] || '').trim();
         const key = sku + '|' + sucursal;
@@ -1482,17 +1482,17 @@ function procesar(){
       const key = sol.sku + '|' + sol.sucursal;
       if(invIndex[key]){ sol.inventario = invIndex[key]; inventarioAgregado++; }
     }
-    // TambiÃ©n a despachos
+    // También a despachos
     for(const desp of despachosOut){
       const key = desp.sku + '|' + desp.sucursal;
       if(invIndex[key]) desp.inventario = invIndex[key];
     }
-    log('Inventarios: ' + invRows.length + ' filas leÃ­das, ' + inventarioAgregado + ' solicitudes enriquecidas', 'ok');
+    log('Inventarios: ' + invRows.length + ' filas leídas, ' + inventarioAgregado + ' solicitudes enriquecidas', 'ok');
   }
 
-  // Procesar Programa si se cargÃ³
+  // Procesar Programa si se cargó
   if(progRows){
-    log('Procesando archivo de Programa (' + progRows.length + ' filas)â¦', 'info');
+    log('Procesando archivo de Programa (' + progRows.length + ' filas)…', 'info');
     const progIndex = {};
     for(const row of progRows){
       const sku = String(row['SKU'] || '').trim();
@@ -1510,12 +1510,12 @@ function procesar(){
       const key = sol.sku + '|' + sol.sucursal;
       if(progIndex[key]){ sol.programa = progIndex[key]; programaAgregado++; }
     }
-    // TambiÃ©n a despachos
+    // También a despachos
     for(const desp of despachosOut){
       const key = desp.sku + '|' + desp.sucursal;
       if(progIndex[key]) desp.programa = progIndex[key];
     }
-    log('Programa: ' + progRows.length + ' filas leÃ­das, ' + programaAgregado + ' solicitudes enriquecidas', 'ok');
+    log('Programa: ' + progRows.length + ' filas leídas, ' + programaAgregado + ' solicitudes enriquecidas', 'ok');
   }
 
   const vsRows = PARSED.ventaSemanaFile;
@@ -1524,11 +1524,11 @@ function procesar(){
       const cod = parseInt(r['Cod Sucursal'] || 0);
       return (cod && NOMBRES_OFICIALES[cod]) ? NOMBRES_OFICIALES[cod] : String(r['Sucursal'] || '').trim().toUpperCase();
     }).filter(Boolean));
-    log('Venta Semana: ' + vsRows.length + ' filas leÃ­das | sucursales: ' + [...sucursalesVS].join(', '), 'ok');
+    log('Venta Semana: ' + vsRows.length + ' filas leídas | sucursales: ' + [...sucursalesVS].join(', '), 'ok');
   }
 
   const isRows = PARSED.invSalidaFile;
-  if(isRows) log('Inv. Salida: ' + isRows.length + ' filas leÃ­das', 'ok');
+  if(isRows) log('Inv. Salida: ' + isRows.length + ' filas leídas', 'ok');
 
   RAW.solicitudes = solicitudesOut;
   RAW.despachos = despachosOut;
@@ -1540,22 +1540,22 @@ function procesar(){
     insumos_excluidos_unid: dq.insumos_excluidos_unid || 0
   };
 
-  log('Construyendo tabla granular SKU + DÃ­a + Sucursalâ¦', 'info');
+  log('Construyendo tabla granular SKU + Día + Sucursal…', 'info');
   construirGranular();
-  log('Listo. ' + GRANULAR.length + ' combinaciones SKU-dÃ­a-sucursal generadas.', 'ok');
+  log('Listo. ' + GRANULAR.length + ' combinaciones SKU-día-sucursal generadas.', 'ok');
 
   poblarFiltros();
   poblarFiltrosAnalisis();
   renderAll();
 
-  // Mostrar botÃ³n "Guardar datos compartidos" despuÃ©s de procesar
+  // Mostrar botón "Guardar datos compartidos" después de procesar
   document.getElementById('btnGuardarDatos').style.display = 'inline-block';
 
-  // Cambiar a tab dashboard automÃ¡ticamente
+  // Cambiar a tab dashboard automáticamente
   document.querySelector('.tab-btn[data-tab="dashboard"]').click();
   
   } catch(error) {
-    log('â Error al procesar archivos: ' + error.message, 'err');
+    log('❌ Error al procesar archivos: ' + error.message, 'err');
     console.error('[ERRO] Procesamiento fallido:', error);
   }
 }
@@ -1609,7 +1609,7 @@ function construirGranular(){
 
   GRANULAR = Array.from(solMap.values()).map(e => ({ ...e, diferencia: e.solicitado - e.despachado }));
 
-  // Construir DESPACHOS_LINEA (detalle a nivel de lÃ­nea, preserva numero_guia)
+  // Construir DESPACHOS_LINEA (detalle a nivel de línea, preserva numero_guia)
   DESPACHOS_LINEA = RAW.despachos.filter(r => r.numero_guia);
 
   // Construir GUIAS_INDEX: numero_guia -> {info + lineas[]}
@@ -1644,7 +1644,7 @@ function setupCustomFilter(prefix, opciones, selectedValues, onApply){
   const ddEl = document.querySelector(`#${prefix}DD`);
   if (!ddEl) return;
 
-  // Clonar botÃ³n para eliminar listeners anteriores
+  // Clonar botón para eliminar listeners anteriores
   const oldBtn = ddEl.querySelector('.filter-btn');
   const btn = oldBtn.cloneNode(true);
   oldBtn.parentNode.replaceChild(btn, oldBtn);
@@ -1692,7 +1692,7 @@ function setupCustomFilter(prefix, opciones, selectedValues, onApply){
     e.preventDefault(); e.stopPropagation();
     onApply(tempSelected);
     menu.style.display = 'none';
-    // Actualizar label del botÃ³n
+    // Actualizar label del botón
     btn.textContent = tempSelected.length > 0 ? tempSelected.length + ' seleccionados' : btn.getAttribute('data-placeholder') || 'Seleccionar...';
   });
 
@@ -1712,18 +1712,18 @@ function poblarFiltros(){
   const semanas = Array.from(new Set(GRANULAR.map(g=>isoWeekOf(g.fecha)))).sort((a,b)=>a-b).map(s=>'Semana '+s);
   const dias = Array.from(new Set(GRANULAR.map(g=>g.fecha))).sort();
 
-  // Pre-seleccionar semana en curso si aÃºn no hay filtro
+  // Pre-seleccionar semana en curso si aún no hay filtro
   if(filtroSemana.length === 0 && semanas.length > 0) {
     const semActual = isoWeekOf(new Date().toISOString().slice(0,10));
     const semStr = 'Semana ' + semActual;
     if(semanas.includes(semStr)) {
       filtroSemana = [String(semActual)];
     } else {
-      // fallback: la semana mÃ¡s reciente disponible
+      // fallback: la semana más reciente disponible
       const ultima = semanas[semanas.length - 1];
       filtroSemana = [ultima.split(' ')[1]];
     }
-    // Actualizar label del botÃ³n
+    // Actualizar label del botón
     const btn = document.querySelector('#filtroSemanaDD .filter-btn');
     if(btn) btn.textContent = '1 seleccionados';
   }
@@ -1761,7 +1761,7 @@ document.getElementById('btnResetFiltros').addEventListener('click', ()=>{
   document.getElementById('filtroLocalOptions').innerHTML = '';
   document.getElementById('filtroSemanaOptions').innerHTML = '';
   document.getElementById('filtroDiaOptions').innerHTML = '';
-  // Limpiar inputs de bÃºsqueda
+  // Limpiar inputs de búsqueda
   if(document.getElementById('filtroLocalSearch')) document.getElementById('filtroLocalSearch').value = '';
   // Cerrar menus
   document.querySelectorAll('#filtroLocalDD .filter-menu, #filtroSemanaDD .filter-menu, #filtroDiaDD .filter-menu').forEach(m => m.style.display = 'none');
@@ -1797,14 +1797,14 @@ function renderHeader(){
   const fechas = filtrado.map(g=>g.fecha).sort();
   const badge = document.getElementById('periodoBadge');
   if(fechas.length){
-    badge.textContent = 'ð ' + fechas[0] + ' â ' + fechas[fechas.length-1] + ' Â· ' + filtrado.length + ' combinaciones';
+    badge.textContent = '📅 ' + fechas[0] + ' → ' + fechas[fechas.length-1] + ' · ' + filtrado.length + ' combinaciones';
   } else {
-    badge.textContent = 'ð Sin datos para este filtro';
+    badge.textContent = '📅 Sin datos para este filtro';
   }
 
   const dq = DATA_QUALITY;
   document.getElementById('dqBar').innerHTML =
-    'â ï¸ <b>Data Quality:</b> de ' + fmt(dq.total_raw) + ' registros de solicitud cargados, <b>' + fmt(dq.rechazadas) + ' (' + dq.pct_rechazo + '%)</b> se excluyeron por sucursal no mapeada, cantidad vacÃ­a/cero o fecha invÃ¡lida. Se excluyeron ademÃ¡s <b>' + fmt(dq.insumos_excluidos_unid) + '</b> unidades despachadas de SKU de insumos/bodega que no pertenecen al flujo de Solicitudes.';
+    '⚠️ <b>Data Quality:</b> de ' + fmt(dq.total_raw) + ' registros de solicitud cargados, <b>' + fmt(dq.rechazadas) + ' (' + dq.pct_rechazo + '%)</b> se excluyeron por sucursal no mapeada, cantidad vacía/cero o fecha inválida. Se excluyeron además <b>' + fmt(dq.insumos_excluidos_unid) + '</b> unidades despachadas de SKU de insumos/bodega que no pertenecen al flujo de Solicitudes.';
 }
 
 function renderKPIs(){
@@ -1822,9 +1822,9 @@ function renderKPIs(){
   kpiGap.textContent = (gap > 0 ? '-' : '') + fmt(Math.abs(gap));
   kpiGap.style.color = gap > 0 ? 'var(--red)' : gap < 0 ? 'var(--green)' : 'var(--ink-1)';
 
-  // Actualizar subtÃ­tulo del card diferencia
+  // Actualizar subtítulo del card diferencia
   const unit = document.querySelector('#kpiGap + .kpi-unit, .kpi-card.red .kpi-unit');
-  if(unit) unit.textContent = gap > 0 ? 'unidades sin despachar' : gap < 0 ? 'unidades sobre lo solicitado' : 'todo despachado â';
+  if(unit) unit.textContent = gap > 0 ? 'unidades sin despachar' : gap < 0 ? 'unidades sobre lo solicitado' : 'todo despachado ✓';
 }
 
 function renderCharts(){
@@ -1846,7 +1846,7 @@ function renderCharts(){
     return Math.min(v, 200);
   });
 
-  // GrÃ¡fico combinado estilo foto: barras overlapped + Ã¡rea fill rate
+  // Gráfico combinado estilo foto: barras overlapped + área fill rate
   if(chartLinea) chartLinea.destroy();
   chartLinea = new Chart(document.getElementById('chartLinea'), {
     type: 'bar',
@@ -1967,7 +1967,7 @@ function renderCharts(){
   if(chartArea) { chartArea.destroy(); chartArea = null; }
 }
 
-var panelDiaSucursal  = null; // null = semana completa, 'YYYY-MM-DD' = dÃ­a
+var panelDiaSucursal  = null; // null = semana completa, 'YYYY-MM-DD' = día
 var panelDiaQuiebres  = null;
 
 function buildDayTabs(containerId, varName, dias, renderFn) {
@@ -2053,13 +2053,13 @@ function renderQuiebres(){
 
   const tbody = document.getElementById('quiebresBody');
   if(rows.length===0){
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#64748b;padding:1.4rem;">â Sin quiebres para este filtro</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#64748b;padding:1.4rem;">✅ Sin quiebres para este filtro</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(r=>
     '<tr>'+
       '<td><span class="sku">'+r.sku+'</span></td>'+
-      '<td>'+(r.descripcion||'â')+'</td>'+
+      '<td>'+(r.descripcion||'—')+'</td>'+
       '<td style="text-align:right">'+fmt(r.solicitado)+'</td>'+
       '<td style="text-align:right">'+fmt(r.despachado)+'</td>'+
       '<td style="text-align:right"><span class="gap-pos">'+fmt(r.diferencia)+'</span></td>'+
@@ -2068,7 +2068,7 @@ function renderQuiebres(){
 }
 
 // ============================================================
-// VARIABLES GLOBALES DE AUTENTICACIÃN
+// VARIABLES GLOBALES DE AUTENTICACIÓN
 // ============================================================
 let currentUser = null;
 let currentRole = null;
@@ -2081,8 +2081,8 @@ document.getElementById('btnGuardarDatos').addEventListener('click', () => windo
 document.getElementById('btnDemo').addEventListener('click', ()=>{
   PARSED.solicitudesFile = null;
   PARSED.despachosFile = null;
-  setStatus('statusSolicitudes','ok','ð¦ Usando datos de ejemplo (Semana 24)');
-  setStatus('statusDespachos','ok','ð¦ Usando datos de ejemplo (Semana 24)');
+  setStatus('statusSolicitudes','ok','📦 Usando datos de ejemplo (Semana 24)');
+  setStatus('statusDespachos','ok','📦 Usando datos de ejemplo (Semana 24)');
   procesar();
 });
 
@@ -2110,7 +2110,7 @@ document.getElementById('btnLimpiar').addEventListener('click', ()=>{
 });
 
 // ============================================================
-// PESTAÃA ANÃLISIS â filtros independientes propios
+// PESTAÑA ANÁLISIS — filtros independientes propios
 // ============================================================
 var anLocal = [];
 var anFechaDesde = '';
@@ -2144,7 +2144,7 @@ function poblarFiltrosAnalisis(){
 }
 
 function getAnalisisAgregado(){
-  // ExclusiÃ³n: SKUs que empiezan con 3 o 4 se omiten en AnÃ¡lisis para ciertos locales,
+  // Exclusión: SKUs que empiezan con 3 o 4 se omiten en Análisis para ciertos locales,
   // salvo lista blanca de excepciones. Locales 303 y 299 no se tocan.
   const AN_LOCALES_EXCLUYE_3_4 = new Set([316,426,300,302,314,483]);
   const AN_SKU_EXCEPCIONES_3_4 = new Set(['4127003','4121004','4121008','4121009','4121006','4222005','4222009','4222011','4207001','4218021','4218025','4222004','4222010']);
@@ -2185,7 +2185,7 @@ function getAnalisisAgregado(){
   }
 
   // Agregar SKUs que solo tienen programa (sin solicitudes/despachos en el rango filtrado)
-  // OJO: programaFile viene con fecha por dÃ­a (columna 'Fecha'), hay que respetar el mismo
+  // OJO: programaFile viene con fecha por día (columna 'Fecha'), hay que respetar el mismo
   // filtro de fecha/local que se aplica a GRANULAR, si no se cuela historial completo.
   if(PARSED.programaFile) {
     for(const r of PARSED.programaFile) {
@@ -2215,7 +2215,7 @@ function getAnalisisAgregado(){
     }
   }
 
-  // Indexar guÃ­as por sku+sucursal+fecha para poder anexarlas a cada fila agregada
+  // Indexar guías por sku+sucursal+fecha para poder anexarlas a cada fila agregada
   const guiasPorSkuSucursal = new Map();
   for(const linea of DESPACHOS_LINEA){
     const key = linea.sku + '|' + linea.sucursal;
@@ -2253,7 +2253,7 @@ function getAnalisisAgregado(){
     rows = rows.filter(r => r.fill_rate !== null && r.fill_rate <= anPctMax);
   }
 
-  // BÃºsqueda texto
+  // Búsqueda texto
   if(anBuscar){
     const q = normalizarTexto(anBuscar.trim());
     rows = rows.filter(r =>
@@ -2323,7 +2323,7 @@ function printSummary(){
   }
   
   const tableHtml = `
-    <html><head><title>Resumen AnÃ¡lisis SKU</title>
+    <html><head><title>Resumen Análisis SKU</title>
     <style>
       body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; margin: 20px; background:#fff; }
       h1 { color: #1e40af; margin-bottom:10px; font-size:24px; }
@@ -2346,7 +2346,7 @@ function printSummary(){
       .summary-item-value { color: #1d4ed8; font-size: 18px; font-weight: 700; }
     </style>
     </head><body>
-    <h1>ð AnÃ¡lisis SKU â Solicitado vs Despachado</h1>
+    <h1>📊 Análisis SKU — Solicitado vs Despachado</h1>
     <div class="meta">
       <strong>Fecha:</strong> ${new Date().toLocaleString()} | 
       <strong>Total registros:</strong> ${rows.length}
@@ -2356,7 +2356,7 @@ function printSummary(){
       <thead>
         <tr>
           <th>SKU</th>
-          <th>DescripciÃ³n</th>
+          <th>Descripción</th>
           <th>Sucursal</th>
           <th style="text-align:right">Programa</th>
           <th style="text-align:right">Inv. Entrada</th>
@@ -2432,11 +2432,11 @@ function renderAnalisis(){
     const frDisplay = r.fill_rate === null ? 'N/A' : r.fill_rate.toFixed(1)+'%';
     const frPct = r.fill_rate === null ? 100 : Math.min(r.fill_rate,150)/150*100;
     const guiasHtml = r.guias.length === 0
-      ? '<span style="color:#94a3b8;font-size:.76rem;">sin guÃ­a</span>'
+      ? '<span style="color:#94a3b8;font-size:.76rem;">sin guía</span>'
       : r.guias.map(gn => '<span class="guia-chip" data-guia="'+gn+'">'+gn+'</span>').join(' ');
     return '<tr>'+
       '<td><span class="sku">'+r.sku+'</span></td>'+
-      '<td>'+(r.descripcion||'â')+'</td>'+
+      '<td>'+(r.descripcion||'—')+'</td>'+
       '<td>'+r.sucursal+'</td>'+
       '<td style="text-align:right">'+fmt(r.programa)+'</td>'+
       '<td style="text-align:right">'+fmt(r.inventario)+'</td>'+
@@ -2450,7 +2450,7 @@ function renderAnalisis(){
     '</tr>';
   }).join('');
 
-  // Listeners para chips de guÃ­a (delegado, se re-crea cada render)
+  // Listeners para chips de guía (delegado, se re-crea cada render)
   tbody.querySelectorAll('.guia-chip').forEach(chip=>{
     chip.addEventListener('click', ()=>{
       abrirModalGuia(chip.dataset.guia);
@@ -2493,10 +2493,10 @@ document.querySelectorAll('.sort-th').forEach(th=>{
     }
     document.querySelectorAll('.sort-th').forEach(t=>{
       t.classList.remove('active');
-      t.querySelector('.arrow').textContent = 'â¾';
+      t.querySelector('.arrow').textContent = '▾';
     });
     th.classList.add('active');
-    th.querySelector('.arrow').textContent = anSortDir === 'asc' ? 'â´' : 'â¾';
+    th.querySelector('.arrow').textContent = anSortDir === 'asc' ? '▴' : '▾';
     renderAnalisis();
   });
 });
@@ -2517,7 +2517,7 @@ function abrirFiltroColumna(columna){
   const rows = getAnalisisAgregado();
   if(rows.length === 0) return;
   
-  // Obtener valores Ãºnicos de la columna
+  // Obtener valores únicos de la columna
   const valores = Array.from(new Set(rows.map(r => {
     if(columna === 'sku') return r.sku;
     if(columna === 'descripcion') return r.descripcion || '';
@@ -2578,7 +2578,7 @@ function aplicarFiltroColumna(columna){
     return;
   }
   
-  // Agregar filtro al buscador de AnÃ¡lisis
+  // Agregar filtro al buscador de Análisis
   const buscador = document.getElementById('anBuscar');
   if(buscador) buscador.value = valores.join(' | ');
   
@@ -2593,27 +2593,27 @@ function cerrarFiltroColumna(){
 }
 
 // ============================================================
-// MODAL DETALLE DE GUÃA
+// MODAL DETALLE DE GUÍA
 // ============================================================
 function abrirModalGuia(numeroGuia){
   const g = GUIAS_INDEX.get(numeroGuia);
   if(!g){
-    alert('No se encontrÃ³ el detalle de la guÃ­a ' + numeroGuia);
+    alert('No se encontró el detalle de la guía ' + numeroGuia);
     return;
   }
-  document.getElementById('modalGuiaTitulo').textContent = 'ð GuÃ­a ' + g.numero_guia;
+  document.getElementById('modalGuiaTitulo').textContent = '🚚 Guía ' + g.numero_guia;
   document.getElementById('modalGuiaMeta').innerHTML =
-    '<div class="modal-meta-item"><b>Fecha emisiÃ³n:</b> ' + g.fecha + '</div>' +
+    '<div class="modal-meta-item"><b>Fecha emisión:</b> ' + g.fecha + '</div>' +
     '<div class="modal-meta-item"><b>Sucursal:</b> ' + g.sucursal + '</div>' +
-    '<div class="modal-meta-item"><b>Nro. Comanda:</b> ' + (g.numero_comanda||'â') + '</div>' +
-    '<div class="modal-meta-item"><b>Hora cierre:</b> ' + (g.hora_cierre||'â') + '</div>' +
-    '<div class="modal-meta-item"><b>Estado:</b> ' + (g.estado||'â') + '</div>' +
+    '<div class="modal-meta-item"><b>Nro. Comanda:</b> ' + (g.numero_comanda||'—') + '</div>' +
+    '<div class="modal-meta-item"><b>Hora cierre:</b> ' + (g.hora_cierre||'—') + '</div>' +
+    '<div class="modal-meta-item"><b>Estado:</b> ' + (g.estado||'—') + '</div>' +
     '<div class="modal-meta-item"><b>Total SKU:</b> ' + g.total_skus + '</div>' +
     '<div class="modal-meta-item"><b>Total unidades:</b> ' + fmt(g.total_unidades) + '</div>';
 
   const tbody = document.getElementById('modalGuiaBody');
   tbody.innerHTML = g.lineas.map(l =>
-    '<tr><td><span class="sku">'+l.sku+'</span></td><td>'+(l.descripcion||'â')+'</td><td style="text-align:right">'+fmt(l.cantidad)+'</td></tr>'
+    '<tr><td><span class="sku">'+l.sku+'</span></td><td>'+(l.descripcion||'—')+'</td><td style="text-align:right">'+fmt(l.cantidad)+'</td></tr>'
   ).join('');
 
   document.getElementById('modalGuiaOverlay').classList.add('open');
@@ -2627,7 +2627,7 @@ document.getElementById('modalGuiaOverlay').addEventListener('click', e=>{
 });
 
 // ============================================================
-// PESTAÃA GUÃAS DE DESPACHO â filtros independientes propios
+// PESTAÑA GUÍAS DE DESPACHO — filtros independientes propios
 // ============================================================
 var gdLocal = '';
 var gdFechaDesde = '';
@@ -2674,7 +2674,7 @@ function getGuiasFiltradas(){
 function renderGuias(){
   const rows = getGuiasFiltradas();
   const totalGuias = GUIAS_INDEX.size;
-  let countMsg = rows.length + ' guÃ­a' + (rows.length!==1?'s':'') + ' encontrada' + (rows.length!==1?'s':'');
+  let countMsg = rows.length + ' guía' + (rows.length!==1?'s':'') + ' encontrada' + (rows.length!==1?'s':'');
   if(gdBuscar || gdLocal || gdFechaDesde || gdFechaHasta){
     countMsg += ' de ' + totalGuias + ' totales';
   }
@@ -2682,7 +2682,7 @@ function renderGuias(){
 
   const tbody = document.getElementById('guiasBody');
   if(rows.length===0){
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#64748b;padding:1.6rem;">Sin guÃ­as para este filtro</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#64748b;padding:1.6rem;">Sin guías para este filtro</td></tr>';
     return;
   }
 
@@ -2691,10 +2691,10 @@ function renderGuias(){
       '<td><span class="sku">'+g.numero_guia+'</span></td>'+
       '<td>'+g.fecha+'</td>'+
       '<td>'+g.sucursal+'</td>'+
-      '<td>'+(g.numero_comanda||'â')+'</td>'+
+      '<td>'+(g.numero_comanda||'—')+'</td>'+
       '<td style="text-align:right">'+g.total_skus+'</td>'+
       '<td style="text-align:right">'+fmt(g.total_unidades)+'</td>'+
-      '<td><button class="btn-ver-guia" data-guia="'+g.numero_guia+'">Ver detalle â</button></td>'+
+      '<td><button class="btn-ver-guia" data-guia="'+g.numero_guia+'">Ver detalle →</button></td>'+
     '</tr>'
   ).join('');
 
@@ -2723,7 +2723,7 @@ document.getElementById('gdBtnReset').addEventListener('click', ()=>{
 });
 
 // ============================================================
-// DESCARGA DEL DETALLE (respeta filtros activos de la pestaÃ±a AnÃ¡lisis)
+// DESCARGA DEL DETALLE (respeta filtros activos de la pestaña Análisis)
 // ============================================================
 function descargarAnalisisExcel(){
   const rows = getAnalisisAgregado();
@@ -2734,7 +2734,7 @@ function descargarAnalisisExcel(){
 
   const dataExport = rows.map(r => ({
     'SKU': r.sku,
-    'DescripciÃ³n': r.descripcion || '',
+    'Descripción': r.descripcion || '',
     'Sucursal': r.sucursal,
     'Programa': Math.round(r.programa * 10) / 10,
     'Inv. Entrada': Math.round(r.inventario * 10) / 10,
@@ -2742,7 +2742,7 @@ function descargarAnalisisExcel(){
     'Despachado': Math.round(r.despachado * 10) / 10,
     'Diferencia': Math.round((r.solicitado - r.despachado) * 10) / 10,
     '% Cumplimiento': r.fill_rate === null ? 'N/A' : Math.round(r.fill_rate * 10) / 10,
-    'GuÃ­as de Despacho': r.guias.length ? r.guias.join(', ') : ''
+    'Guías de Despacho': r.guias.length ? r.guias.join(', ') : ''
   }));
 
   const ws = XLSX.utils.json_to_sheet(dataExport);
@@ -2766,7 +2766,7 @@ function descargarAnalisisExcel(){
 document.getElementById('anBtnDescargar').addEventListener('click', descargarAnalisisExcel);
 
 // ============================================================
-// TAB STOCK â lÃ³gica completa
+// TAB STOCK — lógica completa
 // ============================================================
 var stLocal = [];
 var stBuscarVal = '';
@@ -2775,7 +2775,7 @@ var stFechaHastaVal = '';
 var stSortCol = 'sucursal';
 var stSortDir = 'asc';
 
-// NOMBRES_OFICIALES invertido: nombre â nÃºmero local
+// NOMBRES_OFICIALES invertido: nombre → número local
 const CODIGOS_POR_NOMBRE = Object.fromEntries(
   Object.entries(NOMBRES_OFICIALES).map(([k,v]) => [v, parseInt(k)])
 );
@@ -2783,10 +2783,10 @@ const CODIGOS_POR_NOMBRE = Object.fromEntries(
 function getStockRows(granularFiltrado) {
   const src = granularFiltrado || GRANULAR;
 
-  // ââ Ãndices de archivos externos ââââââââââââââââââââââââââââââââââââââââââââ
-  const invEntradaIdx = {}; // sku|suc â stock fÃ­sico
-  const invSalidaIdx  = {}; // sku|suc â salida
-  const ventaSemIdx   = {}; // sku|suc â venta
+  // ── Índices de archivos externos ────────────────────────────────────────────
+  const invEntradaIdx = {}; // sku|suc → stock físico
+  const invSalidaIdx  = {}; // sku|suc → salida
+  const ventaSemIdx   = {}; // sku|suc → venta
 
   const normSuc = (cod, nombre) =>
     NOMBRES_OFICIALES[parseInt(cod)] || String(nombre||'').trim().toUpperCase();
@@ -2794,8 +2794,8 @@ function getStockRows(granularFiltrado) {
   if(PARSED.inventariosFile) {
     for(const r of PARSED.inventariosFile) {
       const sku  = String(r['SKU']||'').trim();
-      const suc  = normSuc(r['NÂ° Local']||r['ID Local'], r['Nombre Local']||r['Local']);
-      const val  = parseFloat(r['Stock FÃ­sico']||0);
+      const suc  = normSuc(r['N° Local']||r['ID Local'], r['Nombre Local']||r['Local']);
+      const val  = parseFloat(r['Stock Físico']||0);
       if(!sku || !suc) continue;
       const key  = sku+'|'+suc;
       invEntradaIdx[key] = Math.max(invEntradaIdx[key]||0, val);
@@ -2805,8 +2805,8 @@ function getStockRows(granularFiltrado) {
   if(PARSED.invSalidaFile) {
     for(const r of PARSED.invSalidaFile) {
       const sku  = String(r['SKU']||r['sku']||'').trim();
-      const suc  = normSuc(r['NÂ° Local']||r['ID Local'], r['Nombre Local']||r['Local']);
-      const val  = parseFloat(r['Unidades Salida']||r['Stock FÃ­sico']||r['Salida']||0);
+      const suc  = normSuc(r['N° Local']||r['ID Local'], r['Nombre Local']||r['Local']);
+      const val  = parseFloat(r['Unidades Salida']||r['Stock Físico']||r['Salida']||0);
       if(!sku || !suc) continue;
       const key  = sku+'|'+suc;
       invSalidaIdx[key] = (invSalidaIdx[key]||0) + val;
@@ -2815,10 +2815,10 @@ function getStockRows(granularFiltrado) {
 
   if(PARSED.ventaSemanaFile) {
     for(const r of PARSED.ventaSemanaFile) {
-      const sku  = String(r['CÃ³d. artÃ­culo']||r['SKU']||r['sku']||'').trim();
+      const sku  = String(r['Cód. artículo']||r['SKU']||r['sku']||'').trim();
       const val  = parseFloat(r['Cantidad con insumos']||r['Venta Diaria']||r['Venta Semana']||r['Unidades Vendidas']||0);
       if(!sku || !val) continue;
-      const cod  = parseInt(r['Cod Sucursal']||r['ID Local']||r['NÂ° Local']||0);
+      const cod  = parseInt(r['Cod Sucursal']||r['ID Local']||r['N° Local']||0);
       const suc  = normSuc(cod, r['Sucursal']||r['Local']);
       if(!suc) continue;
       const key  = sku+'|'+suc;
@@ -2826,7 +2826,7 @@ function getStockRows(granularFiltrado) {
     }
   }
 
-  // ââ Map principal: GRANULAR filtrado ââââââââââââââââââââââââââââââââââââââââ
+  // ── Map principal: GRANULAR filtrado ────────────────────────────────────────
   const map = new Map();
   for(const g of src) {
     const key = g.sku+'|'+g.sucursal;
@@ -2844,21 +2844,21 @@ function getStockRows(granularFiltrado) {
     if(g.programa    > e.prog_produccion) e.prog_produccion = g.programa;
   }
 
-  // ââ Ãndice programa ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-  const progIdx = {}; // sku|suc â venta diaria (programa producciÃ³n)
+  // ── Índice programa ──────────────────────────────────────────────────────────
+  const progIdx = {}; // sku|suc → venta diaria (programa producción)
   if(PARSED.programaFile) {
     for(const r of PARSED.programaFile) {
       const sku = String(r['SKU']||'').trim();
       const val = parseFloat(r['Venta Diaria']||r['Programa']||0);
       if(!sku || !val) continue;
-      const suc = normSuc(r['ID Local']||r['NÂ° Local'], r['Local']||r['Nombre Local']);
+      const suc = normSuc(r['ID Local']||r['N° Local'], r['Local']||r['Nombre Local']);
       if(!suc) continue;
       const key = sku+'|'+suc;
       progIdx[key] = (progIdx[key]||0) + val;
     }
   }
 
-  // ââ UniÃ³n: cualquier clave de cualquier archivo externo âââââââââââââââââââââ
+  // ── Unión: cualquier clave de cualquier archivo externo ─────────────────────
   const allKeysRaw = new Set([
     ...Object.keys(invEntradaIdx),
     ...Object.keys(invSalidaIdx),
@@ -2867,7 +2867,7 @@ function getStockRows(granularFiltrado) {
     ...map.keys()
   ]);
 
-  // ExclusiÃ³n: SKUs que empiezan con 3 o 4 se omiten en Stock para ciertos locales,
+  // Exclusión: SKUs que empiezan con 3 o 4 se omiten en Stock para ciertos locales,
   // salvo lista blanca de excepciones. Locales 303 y 299 no se tocan.
   const ST_LOCALES_EXCLUYE_3_4 = new Set([316,426,300,302,314,483]);
   const ST_SKU_EXCEPCIONES_3_4 = new Set(['4127003','4121004','4121008','4121009','4121006','4222005','4222009','4222011','4207001','4218021','4218025','4222004','4222010']);
@@ -2881,12 +2881,12 @@ function getStockRows(granularFiltrado) {
     return false;
   }));
 
-  // DescripciÃ³n desde archivos externos
+  // Descripción desde archivos externos
   const getDesc = sku => {
     for(const file of [PARSED.ventaSemanaFile, PARSED.inventariosFile, PARSED.invSalidaFile]) {
       if(!file) continue;
-      const r = file.find(r => String(r['CÃ³d. artÃ­culo']||r['SKU']||r['sku']||'').trim() === sku);
-      if(r) return String(r['ArtÃ­culo']||r['DescripciÃ³n']||r['descripcion']||'');
+      const r = file.find(r => String(r['Cód. artículo']||r['SKU']||r['sku']||'').trim() === sku);
+      if(r) return String(r['Artículo']||r['Descripción']||r['descripcion']||'');
     }
     return '';
   };
@@ -2935,7 +2935,7 @@ function getStockFiltrado() {
   // Construir rows con GRANULAR ya filtrado
   let rows = getStockRows(granular);
 
-  // Filtrar por local y bÃºsqueda
+  // Filtrar por local y búsqueda
   if(stLocal.length > 0) rows = rows.filter(r => stLocal.includes(r.sucursal));
   if(stBuscarVal) {
     const q = normalizarTexto(stBuscarVal);
@@ -2974,18 +2974,18 @@ function renderStock() {
 
   tbody.innerHTML = rows.map(r => `
     <tr>
-      <td>${r.numero_local || 'â'}</td>
+      <td>${r.numero_local || '—'}</td>
       <td><strong>${r.sucursal}</strong></td>
       <td class="sku">${r.sku}</td>
-      <td>${r.descripcion || 'â'}</td>
-      <td style="text-align:right">${r.inv_entrada > 0 ? fmt(r.inv_entrada) : 'â'}</td>
+      <td>${r.descripcion || '—'}</td>
+      <td style="text-align:right">${r.inv_entrada > 0 ? fmt(r.inv_entrada) : '—'}</td>
       <td style="text-align:right">${fmt(r.solicitado)}</td>
       <td style="text-align:right">${fmt(r.despachado)}</td>
-      <td style="text-align:right">${r.prog_produccion > 0 ? fmt(r.prog_produccion) : 'â'}</td>
-      <td style="text-align:right">${r.venta_semana > 0 ? fmt(r.venta_semana) : 'â'}</td>
+      <td style="text-align:right">${r.prog_produccion > 0 ? fmt(r.prog_produccion) : '—'}</td>
+      <td style="text-align:right">${r.venta_semana > 0 ? fmt(r.venta_semana) : '—'}</td>
       <td style="text-align:right;font-weight:700">${fmt(r.stock_disponible)}</td>
       <td style="text-align:right;${stockColor(r.stock_teorico)}">${fmt(r.stock_teorico)}</td>
-      <td style="text-align:right">${r.inv_salida > 0 ? fmt(r.inv_salida) : 'â'}</td>
+      <td style="text-align:right">${r.inv_salida > 0 ? fmt(r.inv_salida) : '—'}</td>
       <td style="text-align:right;${stockColor(r.diferencia_salida)}">${fmt(r.diferencia_salida)}</td>
     </tr>`).join('');
 }
@@ -3016,19 +3016,19 @@ function descargarStockExcel() {
   const rows = getStockFiltrado();
   if(rows.length === 0) { alert('Sin datos para descargar.'); return; }
   const data = rows.map(r => ({
-    'NÂ° Local': r.numero_local,
+    'N° Local': r.numero_local,
     'Sucursal': r.sucursal,
     'SKU': r.sku,
-    'DescripciÃ³n': r.descripcion,
+    'Descripción': r.descripcion,
     'Inv. Entrada': r.inv_entrada,
     'Solicitado': r.solicitado,
     'Despachado': r.despachado,
-    'Prog. ProducciÃ³n': r.prog_produccion,
+    'Prog. Producción': r.prog_produccion,
     'Venta Semana': r.venta_semana,
     'Stock Disp. (OH+Desp)': r.stock_disponible,
-    'Stock TeÃ³rico': r.stock_teorico,
+    'Stock Teórico': r.stock_teorico,
     'Inv. Salida': r.inv_salida,
-    'Diferencia (Sal-TeÃ³rico)': r.diferencia_salida
+    'Diferencia (Sal-Teórico)': r.diferencia_salida
   }));
   const ws = XLSX.utils.json_to_sheet(data);
   ws['!cols'] = [{wch:8},{wch:16},{wch:10},{wch:32},{wch:10},{wch:10},{wch:10},{wch:14},{wch:12},{wch:18},{wch:12},{wch:10}];
@@ -3066,27 +3066,27 @@ document.getElementById('stTable').querySelectorAll('.sort-th').forEach(th => {
     else { stSortCol = col; stSortDir = 'asc'; }
     document.querySelectorAll('#stTable .sort-th').forEach(t => t.classList.remove('active'));
     th.classList.add('active');
-    th.querySelector('.arrow').textContent = stSortDir === 'asc' ? 'â´' : 'â¾';
+    th.querySelector('.arrow').textContent = stSortDir === 'asc' ? '▴' : '▾';
     renderStock();
   });
 });
 
 // ============================================================
-// FILTROS COLUMNA TAB DETALLE (mismo estilo que AnÃ¡lisis)
+// FILTROS COLUMNA TAB DETALLE (mismo estilo que Análisis)
 // ============================================================
 var dtColFiltros = {}; // { sala:[], nombre:[], sku:[], prod:[], totSol:[], totDes:[], dif:[] }
 
 function abrirFiltroDetalle(columna, rows) {
   if(!rows || !rows.length) return;
 
-  // Valores Ãºnicos de la columna
+  // Valores únicos de la columna
   const valores = [...new Set(rows.map(r => {
     const totSol = Object.values(r.sol).reduce((s,v)=>s+v,0);
     const totDes = Object.values(r.des).reduce((s,v)=>s+v,0);
-    if(columna==='sala')   return String(r.sala||'â');
+    if(columna==='sala')   return String(r.sala||'—');
     if(columna==='nombre') return r.nombre;
     if(columna==='sku')    return r.sku;
-    if(columna==='prod')   return r.prod||'â';
+    if(columna==='prod')   return r.prod||'—';
     if(columna==='totSol') return String(totSol);
     if(columna==='totDes') return String(totDes);
     if(columna==='dif')    return String(totDes-totSol);
@@ -3097,7 +3097,7 @@ function abrirFiltroDetalle(columna, rows) {
   });
 
   const activos = dtColFiltros[columna] || [];
-  const labels  = { sala:'NÂ° Sala', nombre:'Nombre Sala', sku:'SKU', prod:'Producto', totSol:'Total Sol.', totDes:'Total Des.', dif:'Diferencia' };
+  const labels  = { sala:'N° Sala', nombre:'Nombre Sala', sku:'SKU', prod:'Producto', totSol:'Total Sol.', totDes:'Total Des.', dif:'Diferencia' };
 
   const modal = document.createElement('div');
   modal.id = 'dtFilterModal';
@@ -3106,7 +3106,7 @@ function abrirFiltroDetalle(columna, rows) {
       <div style="background:var(--surface);border-radius:var(--radius-lg);max-width:320px;width:90%;max-height:480px;display:flex;flex-direction:column;box-shadow:var(--shadow-lg);border:1px solid var(--border);">
         <div style="padding:1rem 1.2rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
           <span style="font-weight:700;font-size:.9rem;color:var(--ink-1);">Filtrar: ${labels[columna]||columna}</span>
-          <button onclick="cerrarFiltroDetalle()" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--ink-3);">â</button>
+          <button onclick="cerrarFiltroDetalle()" style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--ink-3);">✕</button>
         </div>
         <div style="padding:.6rem .8rem;border-bottom:1px solid var(--border);">
           <input type="text" placeholder="Buscar..." id="dtFilterSearch"
@@ -3121,8 +3121,8 @@ function abrirFiltroDetalle(columna, rows) {
             </label>`).join('')}
         </div>
         <div style="padding:.7rem .8rem;border-top:1px solid var(--border);display:flex;gap:.5rem;">
-          <button onclick="document.querySelectorAll('#dtFilterList input').forEach(c=>c.checked=true)" style="flex:1;padding:.4rem;background:var(--brand-soft);color:var(--brand);border:1px solid #BFDBFE;border-radius:var(--radius-sm);font-size:.78rem;font-weight:700;cursor:pointer;">â Todos</button>
-          <button onclick="document.querySelectorAll('#dtFilterList input').forEach(c=>c.checked=false)" style="flex:1;padding:.4rem;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:.78rem;font-weight:700;cursor:pointer;">â Ninguno</button>
+          <button onclick="document.querySelectorAll('#dtFilterList input').forEach(c=>c.checked=true)" style="flex:1;padding:.4rem;background:var(--brand-soft);color:var(--brand);border:1px solid #BFDBFE;border-radius:var(--radius-sm);font-size:.78rem;font-weight:700;cursor:pointer;">✓ Todos</button>
+          <button onclick="document.querySelectorAll('#dtFilterList input').forEach(c=>c.checked=false)" style="flex:1;padding:.4rem;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:.78rem;font-weight:700;cursor:pointer;">✗ Ninguno</button>
           <button onclick="aplicarFiltroDetalle('${columna}')" style="flex:1;padding:.4rem;background:var(--brand);color:#fff;border:none;border-radius:var(--radius-sm);font-size:.78rem;font-weight:700;cursor:pointer;">Aplicar</button>
         </div>
       </div>
@@ -3146,7 +3146,7 @@ function cerrarFiltroDetalle() {
 function getSemanaActual() {
   const hoy = new Date();
   const dia = hoy.getDay(); // 0=dom,1=lun...6=sab
-  const diff = (dia === 0) ? -6 : 1 - dia; // dÃ­as hasta el lunes
+  const diff = (dia === 0) ? -6 : 1 - dia; // días hasta el lunes
   const lunes = new Date(hoy); lunes.setDate(hoy.getDate() + diff);
   const domingo = new Date(lunes); domingo.setDate(lunes.getDate() + 6);
   const fmt2 = d => d.toISOString().slice(0,10);
@@ -3180,7 +3180,7 @@ function renderDetalle() {
   if(!src.length) {
     document.getElementById('dtThead').innerHTML = '';
     document.getElementById('dtTbody').innerHTML = '<tr><td colspan="6" class="empty-state">Sin datos para este filtro.</td></tr>';
-    document.getElementById('dtResultsCount').textContent = 'â';
+    document.getElementById('dtResultsCount').textContent = '—';
     return;
   }
 
@@ -3229,17 +3229,17 @@ function renderDetalle() {
   }).sort((a,b) => a.nombre.localeCompare(b.nombre,'es')||a.sku.localeCompare(b.sku,'es'));
 
   document.getElementById('dtResultsCount').textContent =
-    rows.length + ' filas Â· ' + fechas.length + ' fechas';
+    rows.length + ' filas · ' + fechas.length + ' fechas';
 
   // Input helper
   // Input helper (definida arriba)
 
-  // Fila 1 â una sola fila: columnas fijas con icono â¼ + grupos
+  // Fila 1 — una sola fila: columnas fijas con icono ▼ + grupos
   const fi = (label, key, cls='') =>
-    `<th class="${cls} filterable-th" data-dtfilter="${key}" style="${cls.includes('th-fix')?'background:var(--surface-2);z-index:6;':''} cursor:pointer; user-select:none;">${label} <span class="filter-icon" title="Filtrar" style="opacity:.6;font-size:.7rem;">ð½</span></th>`;
+    `<th class="${cls} filterable-th" data-dtfilter="${key}" style="${cls.includes('th-fix')?'background:var(--surface-2);z-index:6;':''} cursor:pointer; user-select:none;">${label} <span class="filter-icon" title="Filtrar" style="opacity:.6;font-size:.7rem;">🔽</span></th>`;
 
   const hRow1 =
-    fi('NÂ° Sala',    'sala',    'th-fix-0') +
+    fi('N° Sala',    'sala',    'th-fix-0') +
     fi('Nombre Sala','nombre',  'th-fix-1') +
     fi('SKU',        'sku',     'th-fix-2') +
     fi('Producto',   'prod',    'th-fix-3') +
@@ -3249,7 +3249,7 @@ function renderDetalle() {
     fi('Total Des.', 'totDes',  'th-total') +
     fi('Diferencia', 'dif',     'th-dif');
 
-  // Fila 2 â fechas dinÃ¡micas
+  // Fila 2 — fechas dinámicas
   const hRow2 =
     `<th class="th-fix-0" style="background:var(--surface-2);z-index:6;"></th>` +
     `<th class="th-fix-1" style="background:var(--surface-2);z-index:6;"></th>` +
@@ -3275,26 +3275,26 @@ function renderDetalle() {
   const tbody = rows.map(r => {
     const solCols = fechas.map(f => {
       const v = r.sol[f]||0;
-      return `<td class="td-sol">${v>0?fmt(v):'â'}</td>`;
+      return `<td class="td-sol">${v>0?fmt(v):'—'}</td>`;
     }).join('');
     const desCols = fechas.map(f => {
       const v = r.des[f]||0;
-      return `<td class="td-des">${v>0?fmt(v):'â'}</td>`;
+      return `<td class="td-des">${v>0?fmt(v):'—'}</td>`;
     }).join('');
     const totSol = Object.values(r.sol).reduce((s,v)=>s+v,0);
     const totDes = Object.values(r.des).reduce((s,v)=>s+v,0);
     const dif = totDes - totSol;
     const difCls = dif===0?'td-dif-zero':dif>0?'td-dif-pos':'td-dif-neg';
     return `<tr>
-      <td class="td-fix td-fix-0">${r.sala||'â'}</td>
+      <td class="td-fix td-fix-0">${r.sala||'—'}</td>
       <td class="td-fix td-fix-1">${r.nombre}</td>
       <td class="td-fix td-fix-2">${r.sku}</td>
-      <td class="td-fix td-fix-3">${r.prod||'â'}</td>
+      <td class="td-fix td-fix-3">${r.prod||'—'}</td>
       ${solCols}
       <td class="td-total-sol">${fmt(totSol)}</td>
       ${desCols}
       <td class="td-total-des">${fmt(totDes)}</td>
-      <td class="${difCls}">${dif===0?'â':(dif>0?'+':'')+fmt(dif)}</td>
+      <td class="${difCls}">${dif===0?'✓':(dif>0?'+':'')+fmt(dif)}</td>
     </tr>`;
   }).join('');
 
@@ -3304,7 +3304,7 @@ function renderDetalle() {
 function poblarFiltrosDetalle() {
   const sucursales = [...new Set(GRANULAR.map(g => g.sucursal))].sort();
   setupCustomFilter('dtLocal', sucursales, dtLocal, sel => { dtLocal = sel; renderDetalle(); });
-  // Setear fechas en los inputs si aÃºn no tienen valor
+  // Setear fechas en los inputs si aún no tienen valor
   const inpDesde = document.getElementById('dtFechaDesde');
   const inpHasta = document.getElementById('dtFechaHasta');
   if(!inpDesde.value) inpDesde.value = dtFechaDesde;
@@ -3325,7 +3325,7 @@ function descargarDetalleExcel() {
   }
   const fmtF = f => { const [,m,d]=f.split('-'); return d+'/'+m; };
   const data = [...map.values()].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es')||a.sku.localeCompare(b.sku,'es')).map(r => {
-    const row = { 'NÂ° Sala': r.sala, 'Nombre Sala': r.nombre, 'SKU': r.sku, 'Producto': r.prod };
+    const row = { 'N° Sala': r.sala, 'Nombre Sala': r.nombre, 'SKU': r.sku, 'Producto': r.prod };
     fechas.forEach(f => { row['Sol '+fmtF(f)] = r.sol[f]||0; });
     const totSol = Object.values(r.sol).reduce((s,v)=>s+v,0);
     row['Total Solicitado'] = totSol;
@@ -3364,7 +3364,7 @@ document.getElementById('dtBtnReset').addEventListener('click', () => {
 });
 
 // ============================================================
-// TAB EMPANADAS â SKUs fijos + pivote fechas
+// TAB EMPANADAS — SKUs fijos + pivote fechas
 // ============================================================
 const GR_SKUS = ['2101001','2101005','2101006','2101003','2101010','2101012',
   '2101019','2101016','2101007','2101020','2101018','2101009',
@@ -3408,10 +3408,10 @@ function allFechasRango() {
 
 function buildGrTable(map, skus, fechasSrc, fechasAll) {
   const fmtF = f => { const [,m,d]=f.split('-'); return d+'/'+m; };
-  const rows = skus.map(sku => map.get(sku) || { sku, desc:'â', sol:{} });
+  const rows = skus.map(sku => map.get(sku) || { sku, desc:'—', sol:{} });
   const head = `<thead><tr>
     <th style="background:var(--surface-2);position:sticky;top:0;left:0;z-index:5;min-width:80px;">SKU</th>
-    <th style="background:var(--surface-2);position:sticky;top:0;z-index:4;min-width:160px;">DescripciÃ³n</th>
+    <th style="background:var(--surface-2);position:sticky;top:0;z-index:4;min-width:160px;">Descripción</th>
     ${fechasAll.map(f => {
       const enDatos = fechasSrc.includes(f);
       const bg = enDatos ? '#E8F0FD' : 'var(--surface-2)';
@@ -3426,7 +3426,7 @@ function buildGrTable(map, skus, fechasSrc, fechasAll) {
       <td class="sku" style="position:sticky;left:0;background:var(--surface);z-index:2;">${r.sku}</td>
       <td style="font-weight:600;">${r.desc}</td>
       ${fechasAll.map(f => { const v=r.sol[f]||0; const sty=v?'':'color:var(--ink-4);'; return '<td class="td-sol" style="'+sty+'">'+(v>0?fmt(v):'\u2014')+'</td>'; }).join('')}
-      <td class="td-total-sol">${tot>0?fmt(tot):'â'}</td>
+      <td class="td-total-sol">${tot>0?fmt(tot):'—'}</td>
     </tr>`;
   }).join('')}</tbody>`;
   return `<table style="width:100%;border-collapse:collapse;font-size:.78rem;">${head}${tbody}</table>`;
@@ -3442,14 +3442,14 @@ function renderGuiaRapida() {
     ? buildGrTable(map1, GR_SKUS, fechasSrc, fechasAll)
     : '<div class="empty-state">Sin datos.</div>';
   document.getElementById('grResultsCount').textContent =
-    GR_SKUS.length + ' productos Â· ' + fechasAll.length + ' dÃ­as';
+    GR_SKUS.length + ' productos · ' + fechasAll.length + ' días';
 
   const map2 = buildGrMap(src, GR_SKUS2);
   document.getElementById('grTable2').innerHTML = fechasAll.length
     ? buildGrTable(map2, GR_SKUS2, fechasSrc, fechasAll)
     : '<div class="empty-state">Sin datos.</div>';
   document.getElementById('grResultsCount2').textContent =
-    GR_SKUS2.length + ' productos Â· ' + fechasAll.length + ' dÃ­as';
+    GR_SKUS2.length + ' productos · ' + fechasAll.length + ' días';
 }
 
 function poblarFiltrosGuiaRapida() {
@@ -3469,11 +3469,11 @@ function imprimirGrTabla(divId, titulo) {
   const tabla = document.getElementById(divId)?.querySelector('table');
   if(!tabla) { alert('Sin datos para imprimir.'); return; }
   const fDesde = grFechaDesde||'';
-  const fHasta = grFechaHasta&&grFechaHasta!==grFechaDesde?' â '+grFechaHasta:'';
-  const local  = grLocal.length?' Â· '+grLocal.join(', '):'';
+  const fHasta = grFechaHasta&&grFechaHasta!==grFechaDesde?' → '+grFechaHasta:'';
+  const local  = grLocal.length?' · '+grLocal.join(', '):'';
   const style = `<style>body{font-family:sans-serif;font-size:10px;padding:12px;}h2{font-size:13px;margin-bottom:6px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ccc;padding:3px 5px;}th{font-weight:700;text-align:center;background:#f1f5f9;}td:first-child{font-family:monospace;font-weight:700;}td{text-align:right;}td:nth-child(2){text-align:left;font-weight:600;}.td-total-sol{background:#DBEAFE;font-weight:700;}@media print{@page{margin:10mm;}}</style>`;
   const win = window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html><head>${style}<title>${titulo}</title></head><body><h2>${titulo} â ${fDesde}${fHasta}${local}</h2>${tabla.outerHTML}</body></html>`);
+  win.document.write(`<!DOCTYPE html><html><head>${style}<title>${titulo}</title></head><body><h2>${titulo} — ${fDesde}${fHasta}${local}</h2>${tabla.outerHTML}</body></html>`);
   win.document.close();
   setTimeout(()=>win.print(),400);
 }
@@ -3486,8 +3486,8 @@ function descargarEmpanadasExcel() {
   const wb = XLSX.utils.book_new();
   [[GR_SKUS,'Empanadas'],[GR_SKUS2,'Masas']].forEach(([skus,nombre]) => {
     const map = buildGrMap(src,skus);
-    const rows = skus.map(sku=>map.get(sku)||{sku,desc:'â',sol:{}}).map(r=>{
-      const row={SKU:r.sku,'DescripciÃ³n':r.desc};
+    const rows = skus.map(sku=>map.get(sku)||{sku,desc:'—',sol:{}}).map(r=>{
+      const row={SKU:r.sku,'Descripción':r.desc};
       fechasAll.forEach(f=>{row[fmtF(f)]=r.sol[f]||0;});
       row['Total']=Object.values(r.sol).reduce((s,v)=>s+v,0);
       return row;
@@ -3534,14 +3534,14 @@ if(_grReset) _grReset.addEventListener('click',()=>{
 
 </script>
 
-<!-- ============ CLIENTE DE AUTENTICACIÃN v3 (api/auth.js, sin Redis) ============ -->
+<!-- ============ CLIENTE DE AUTENTICACIÓN v3 (api/auth.js, sin Redis) ============ -->
 <script>
 (function(){
-  // Variables globales declaradas arriba - no redeclarar aquÃ­
+  // Variables globales declaradas arriba - no redeclarar aquí
   // let currentUser = null;
   // let currentRole = null;
 
-  // ââ helpers ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── helpers ────────────────────────────────────────────────────────────────
   async function api(action, body) {
     const opts = {
       method: body ? 'POST' : 'GET',
@@ -3569,7 +3569,7 @@ if(_grReset) _grReset.addEventListener('click',()=>{
     return data;
   }
 
-  // ââ ui âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── ui ─────────────────────────────────────────────────────────────────────
   function mostrarDashboard(username, role, sucursal) {
     currentUser = username; currentRole = role; currentSucursal = sucursal || null;
     window.currentUser = username; window.currentRole = role; window.currentSucursal = sucursal || null;
@@ -3578,18 +3578,18 @@ if(_grReset) _grReset.addEventListener('click',()=>{
     document.getElementById('mainDashboardContainer').style.display = 'block';
 
     // Label rol
-    const lblMap = { admin:'ð¡ï¸ ADMIN', explorer:'ð EXPLORER', editor:'âï¸ EDITOR', viewer_global:'ðï¸ VIEWER', viewer_sucursal:'ðï¸ '+(sucursal||'VIEWER'), lector:'ðï¸ LECTOR' };
+    const lblMap = { admin:'🛡️ ADMIN', explorer:'🔍 EXPLORER', editor:'✏️ EDITOR', viewer_global:'👁️ VIEWER', viewer_sucursal:'👁️ '+(sucursal||'VIEWER'), lector:'👁️ LECTOR' };
     document.getElementById('sessionUserLabel').textContent = username + ' (' + (lblMap[role]||role) + ')';
     document.getElementById('adminPanelBtn').style.display = role === 'admin' ? 'inline-block' : 'none';
 
     // Permisos: quien puede cargar archivos
     const puedeCargar = ['admin','explorer','editor'].includes(role);
 
-    // Tab "Importar Archivos" â solo admin y explorer/editor
+    // Tab "Importar Archivos" — solo admin y explorer/editor
     const tabCarga = document.querySelector('.tab-btn[data-tab="carga"]');
     if (tabCarga) tabCarga.style.display = puedeCargar ? '' : 'none';
 
-    // Dropzones y botones de carga â solo admin y explorer/editor
+    // Dropzones y botones de carga — solo admin y explorer/editor
     document.querySelectorAll('.dropzone').forEach(dz => {
       dz.style.pointerEvents = puedeCargar ? '' : 'none';
       dz.style.opacity       = puedeCargar ? '' : '0.4';
@@ -3599,7 +3599,7 @@ if(_grReset) _grReset.addEventListener('click',()=>{
       if (el) el.style.display = puedeCargar ? '' : 'none';
     });
 
-    // BotÃ³n guardar â admin Y explorer/editor pueden guardar a Supabase
+    // Botón guardar — admin Y explorer/editor pueden guardar a Supabase
     const btnGuardar = document.getElementById('btnGuardarDatos');
     if (btnGuardar) btnGuardar.style.display = puedeCargar ? '' : 'none';
   }
@@ -3613,7 +3613,7 @@ if(_grReset) _grReset.addEventListener('click',()=>{
     document.getElementById('loginScreen').style.display = 'flex';
   }
 
-  // ââ boot: verificar sesiÃ³n activa ââââââââââââââââââââââââââââââââââââââââââ
+  // ── boot: verificar sesión activa ──────────────────────────────────────────
   async function boot() {
     try {
       const d = await api('session');
@@ -3635,7 +3635,7 @@ if(_grReset) _grReset.addEventListener('click',()=>{
     }
   }
 
-  // ââ datos compartidos entre usuarios (GitHub) âââââââââââââââââââââââââââââââ
+  // ── datos compartidos entre usuarios (GitHub) ───────────────────────────────
   let sharedDataCache = null;
 
   async function loadSharedData() {
@@ -3671,21 +3671,21 @@ if(_grReset) _grReset.addEventListener('click',()=>{
           inventario:  Number(r.inventario)  || 0
         }));
         sharedDataCache = { granular: all };
-        console.log('â Supabase: ' + GRANULAR.length + ' filas cargadas');
+        console.log('✅ Supabase: ' + GRANULAR.length + ' filas cargadas');
         poblarFiltros();
         poblarFiltrosAnalisis();
         renderAll();
       } else {
         sharedDataCache = null;
         const badge = document.getElementById('periodoBadge');
-        if (badge) badge.textContent = 'ð Sin datos â Admin debe cargar y guardar archivos';
+        if (badge) badge.textContent = '📅 Sin datos — Admin debe cargar y guardar archivos';
       }
     } catch(e) {
-      console.warn('â ï¸ Error cargando datos:', e.message);
+      console.warn('⚠️ Error cargando datos:', e.message);
       const badge = document.getElementById('periodoBadge');
       const msg = e.message.includes('fetch') 
-        ? 'â ï¸ Sin conexiÃ³n a Supabase â el proyecto puede estar pausado' 
-        : 'â ï¸ Error: ' + e.message;
+        ? '⚠️ Sin conexión a Supabase — el proyecto puede estar pausado' 
+        : '⚠️ Error: ' + e.message;
       if (badge) badge.textContent = msg;
     }
   }
@@ -3702,7 +3702,7 @@ if(_grReset) _grReset.addEventListener('click',()=>{
       });
       if (!delResp.ok) throw new Error('DELETE: ' + await delResp.text());
 
-      // 2. INSERT directo a Supabase en chunks de 500 â evita lÃ­mite 4.5MB de Vercel
+      // 2. INSERT directo a Supabase en chunks de 500 — evita límite 4.5MB de Vercel
       const uploadId  = crypto.randomUUID();
       const uploadedAt = data.processed_at || new Date().toISOString();
       const rows = data.granular.map(r => ({
@@ -3729,7 +3729,7 @@ if(_grReset) _grReset.addEventListener('click',()=>{
         });
         if (!ins.ok) throw new Error('INSERT chunk ' + i + ': ' + await ins.text());
         const done = Math.min(i + CHUNK, rows.length);
-        log('â¹ï¸ Guardando... ' + done + '/' + rows.length + ' filas', 'info');
+        log('ℹ️ Guardando... ' + done + '/' + rows.length + ' filas', 'info');
       }
 
       sharedDataCache = data;
@@ -3740,13 +3740,13 @@ if(_grReset) _grReset.addEventListener('click',()=>{
     }
   }
 
-  // ââ sincronizaciÃ³n multi-ventana (BroadcastChannel) ââââââââââââââââââââââââââ
+  // ── sincronización multi-ventana (BroadcastChannel) ──────────────────────────
   let bc = null;
   let usersCache = null;
   let lastUsersSync = 0;
 
   function initBroadcastChannel() {
-    // ââ BroadcastChannel: misma mÃ¡quina multi-tab âââââââââââââââââââââââââââââ
+    // ── BroadcastChannel: misma máquina multi-tab ─────────────────────────────
     try {
       bc = new BroadcastChannel('fillrate_dashboard');
       bc.onmessage = (evt) => {
@@ -3762,7 +3762,7 @@ if(_grReset) _grReset.addEventListener('click',()=>{
       };
     } catch(e) { console.warn('BroadcastChannel no disponible:', e.message); }
 
-    // ââ Supabase Realtime: distintas mÃ¡quinas âââââââââââââââââââââââââââââââââ
+    // ── Supabase Realtime: distintas máquinas ─────────────────────────────────
     initSupabaseRealtime();
   }
 
@@ -3777,7 +3777,7 @@ if(_grReset) _grReset.addEventListener('click',()=>{
       let heartbeat;
 
       ws.onopen = () => {
-        console.log('â Supabase Realtime conectado');
+        console.log('✅ Supabase Realtime conectado');
         // Suscribirse a cambios en kpi_fill_rate
         ws.send(JSON.stringify({
           topic: 'realtime:public:kpi_fill_rate',
@@ -3796,7 +3796,7 @@ if(_grReset) _grReset.addEventListener('click',()=>{
           const msg = JSON.parse(evt.data);
           // Evento de cambio en tabla kpi_fill_rate
           if (msg.event === 'postgres_changes' || (msg.payload && msg.payload.type === 'INSERT')) {
-            console.log('ð Realtime: datos actualizados â recargando dashboard');
+            console.log('🔄 Realtime: datos actualizados → recargando dashboard');
             loadSharedData();
           }
         } catch(e) {}
@@ -3805,7 +3805,7 @@ if(_grReset) _grReset.addEventListener('click',()=>{
       ws.onerror = (e) => console.warn('Supabase Realtime error:', e);
       ws.onclose = () => {
         clearInterval(heartbeat);
-        // Reconectar tras 10s si sesiÃ³n activa
+        // Reconectar tras 10s si sesión activa
         if (currentUser) setTimeout(initSupabaseRealtime, 10000);
       };
     } catch(e) {
@@ -3819,7 +3819,7 @@ if(_grReset) _grReset.addEventListener('click',()=>{
     }
   }
 
-  // ââ polling periÃ³dico para detectar cambios en usuarios ââââââââââââââââââââââ
+  // ── polling periódico para detectar cambios en usuarios ──────────────────────
   async function syncUsersIfChanged() {
     if (currentRole !== 'admin' || document.getElementById('adminModalOverlay').style.display !== 'flex') {
       return; // solo polling si admin y modal abierto
@@ -3842,14 +3842,14 @@ if(_grReset) _grReset.addEventListener('click',()=>{
   let pollInterval = null;
   function startPolling() {
     if (pollInterval) return;
-    console.log('ð Iniciando polling de usuarios...');
+    console.log('🔄 Iniciando polling de usuarios...');
     pollInterval = setInterval(syncUsersIfChanged, 8000);
   }
   function stopPolling() {
-    if (pollInterval) { clearInterval(pollInterval); pollInterval = null; console.log('â¸ï¸ Polling detenido'); }
+    if (pollInterval) { clearInterval(pollInterval); pollInterval = null; console.log('⏸️ Polling detenido'); }
   }
 
-  // ââ login / logout âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── login / logout ─────────────────────────────────────────────────────────
   window.loginUsuario = async function(e) {
     e.preventDefault();
     const user = document.getElementById('loginUser').value.trim();
@@ -3861,7 +3861,7 @@ if(_grReset) _grReset.addEventListener('click',()=>{
       document.getElementById('loginUser').value = '';
       document.getElementById('loginPass').value = '';
       mostrarDashboard(d.username, d.role, d.sucursal || null);
-    } catch(e) { err.textContent = 'â ' + e.message; }
+    } catch(e) { err.textContent = '❌ ' + e.message; }
   };
 
   window.logoutUsuario = async function() {
@@ -3871,7 +3871,7 @@ if(_grReset) _grReset.addEventListener('click',()=>{
     mostrarLogin();
   };
 
-  // ââ panel admin ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // ── panel admin ────────────────────────────────────────────────────────────
   window.abrirPanelAdmin = async function() {
     if (currentRole !== 'admin') return;
     initBroadcastChannel(); // inicializar canal de broadcast
@@ -3890,7 +3890,7 @@ if(_grReset) _grReset.addEventListener('click',()=>{
       const d = await api('list_users', {});
       renderTabla(d.usuarios || []);
       renderSelect(d.usuarios || []);
-    } catch(e) { showAdminMsg('â ' + e.message, 'error'); }
+    } catch(e) { showAdminMsg('❌ ' + e.message, 'error'); }
   }
 
   function renderTabla(lista) {
@@ -3900,18 +3900,18 @@ if(_grReset) _grReset.addEventListener('click',()=>{
         <td style="padding:10px;border-bottom:1px solid #e0e0e0"><strong>${u.username}</strong></td>
         <td style="padding:10px;border-bottom:1px solid #e0e0e0">${u.role}</td>
         <td style="padding:10px;border-bottom:1px solid #e0e0e0;">
-          <button onclick="resetPasswordUser('${u.username}')" style="background:#4CAF50; color:white; border:none; padding:4px 8px; border-radius:3px; font-size:12px; cursor:pointer;">ð Reset</button>
+          <button onclick="resetPasswordUser('${u.username}')" style="background:#4CAF50; color:white; border:none; padding:4px 8px; border-radius:3px; font-size:12px; cursor:pointer;">🔐 Reset</button>
         </td>
         <td style="padding:10px;border-bottom:1px solid #e0e0e0;">
           <select onchange="cambiarRolUsuario('${u.username}', this.value)" style="font-size:12px; padding:4px; border-radius:3px;">
             <option value="${u.role}">${u.role}</option>
-            ${u.role !== 'lector' ? '<option value="lector">ðï¸ Lector</option>' : ''}
-            ${u.role !== 'editor' ? '<option value="editor">âï¸ Editor</option>' : ''}
-            ${u.role !== 'admin' && u.username !== 'admin' ? '<option value="admin">ð¡ï¸ Admin</option>' : ''}
+            ${u.role !== 'lector' ? '<option value="lector">👁️ Lector</option>' : ''}
+            ${u.role !== 'editor' ? '<option value="editor">✏️ Editor</option>' : ''}
+            ${u.role !== 'admin' && u.username !== 'admin' ? '<option value="admin">🛡️ Admin</option>' : ''}
           </select>
         </td>
         <td style="padding:10px;border-bottom:1px solid #e0e0e0;">
-          ${u.username !== 'admin' ? `<button onclick="eliminarUsuario('${u.username}')" style="background:#f44336; color:white; border:none; padding:4px 8px; border-radius:3px; font-size:12px; cursor:pointer;">ðï¸ Eliminar</button>` : 'â'}
+          ${u.username !== 'admin' ? `<button onclick="eliminarUsuario('${u.username}')" style="background:#f44336; color:white; border:none; padding:4px 8px; border-radius:3px; font-size:12px; cursor:pointer;">🗑️ Eliminar</button>` : '–'}
         </td>
       </tr>`).join('');
   }
@@ -3922,11 +3922,11 @@ if(_grReset) _grReset.addEventListener('click',()=>{
       lista.map(u => `<option value="${u.username}">${u.username} (${u.role})</option>`).join('');
   }
 
-  // ââ gestiÃ³n de usuarios: generador de JSON âââââââââââââââââââââââââââââââââ
+  // ── gestión de usuarios: generador de JSON ─────────────────────────────────
   // Sin Redis, los cambios se hacen actualizando FILLRATE_USERS en Vercel.
   // El panel genera el JSON nuevo y el admin lo pega en Vercel Settings.
 
-  let usersLocal = {}; // copia local para ediciÃ³n
+  let usersLocal = {}; // copia local para edición
 
   window.cargarEditorUsuarios = async function() {
     try {
@@ -3934,11 +3934,11 @@ if(_grReset) _grReset.addEventListener('click',()=>{
       usersLocal = JSON.parse(d.json);
       renderEditorTabla();
       document.getElementById('jsonEditorSection').style.display = 'block';
-    } catch(e) { showAdminMsg('â ' + e.message, 'error'); }
+    } catch(e) { showAdminMsg('❌ ' + e.message, 'error'); }
   };
 
   function sha256Client(str) {
-    // SHA-256 en el cliente (para preview â el hash real lo recalcula el server al verificar)
+    // SHA-256 en el cliente (para preview — el hash real lo recalcula el server al verificar)
     // Usamos SubtleCrypto nativo del navegador
     return crypto.subtle.digest('SHA-256', new TextEncoder().encode(str))
       .then(buf => Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join(''));
@@ -3948,66 +3948,66 @@ if(_grReset) _grReset.addEventListener('click',()=>{
     const user = document.getElementById('newUser').value.trim();
     const pass = document.getElementById('newPass').value;
     const role = document.getElementById('newRole').value;
-    if (!user || !pass) { showAdminMsg('â Usuario y contraseÃ±a requeridos', 'error'); return; }
-    if (!/^[a-zA-Z0-9_.-]{3,32}$/.test(user)) { showAdminMsg('â Usuario invÃ¡lido (solo letras, nÃºmeros, ._-)', 'error'); return; }
-    if (pass.length < 6) { showAdminMsg('â ContraseÃ±a mÃ­nimo 6 caracteres', 'error'); return; }
+    if (!user || !pass) { showAdminMsg('❌ Usuario y contraseña requeridos', 'error'); return; }
+    if (!/^[a-zA-Z0-9_.-]{3,32}$/.test(user)) { showAdminMsg('❌ Usuario inválido (solo letras, números, ._-)', 'error'); return; }
+    if (pass.length < 6) { showAdminMsg('❌ Contraseña mínimo 6 caracteres', 'error'); return; }
     
     try {
       const d = await api('create_user', { username: user, password: pass, role });
       document.getElementById('newUser').value = '';
       document.getElementById('newPass').value = '';
-      showAdminMsg('â ' + d.message, 'success');
-      // Refrescar tabla despuÃ©s de 2 segundos (permite que Vercel redepliegue)
+      showAdminMsg('✅ ' + d.message, 'success');
+      // Refrescar tabla después de 2 segundos (permite que Vercel redepliegue)
       setTimeout(() => refreshAdminPanel(), 2000);
       broadcastMessage({ type: 'users_updated', data: null }); // notificar otras tabs
-    } catch(e) { showAdminMsg('â ' + e.message, 'error'); }
+    } catch(e) { showAdminMsg('❌ ' + e.message, 'error'); }
   };
 
-  // ââ funciones de gestiÃ³n de usuarios (Reset, Cambiar rol, Eliminar) ââââââââââ
+  // ── funciones de gestión de usuarios (Reset, Cambiar rol, Eliminar) ──────────
   window.resetPasswordUser = async function(username) {
-    const newPass = prompt('Nueva contraseÃ±a para ' + username + ':', '');
+    const newPass = prompt('Nueva contraseña para ' + username + ':', '');
     if (!newPass) return;
-    if (newPass.length < 6) { showAdminMsg('â MÃ­nimo 6 caracteres', 'error'); return; }
-    if (!confirm('Â¿Reset contraseÃ±a de ' + username + '?')) return;
+    if (newPass.length < 6) { showAdminMsg('❌ Mínimo 6 caracteres', 'error'); return; }
+    if (!confirm('¿Reset contraseña de ' + username + '?')) return;
     
     try {
       const d = await api('change_password', { username, password: newPass });
-      showAdminMsg('â ' + d.message, 'success');
+      showAdminMsg('✅ ' + d.message, 'success');
       setTimeout(() => refreshAdminPanel(), 2000);
       broadcastMessage({ type: 'users_updated', data: null });
-    } catch(e) { showAdminMsg('â ' + e.message, 'error'); }
+    } catch(e) { showAdminMsg('❌ ' + e.message, 'error'); }
   };
 
   window.cambiarRolUsuario = async function(username, nuevoRol) {
     if (!nuevoRol || nuevoRol === '') return; // no hacer nada si cancela
     try {
       const d = await api('change_role', { username, role: nuevoRol });
-      showAdminMsg('â ' + d.message, 'success');
+      showAdminMsg('✅ ' + d.message, 'success');
       setTimeout(() => refreshAdminPanel(), 2000);
       broadcastMessage({ type: 'users_updated', data: null });
-    } catch(e) { showAdminMsg('â ' + e.message, 'error'); }
+    } catch(e) { showAdminMsg('❌ ' + e.message, 'error'); }
   };
 
   window.eliminarUsuario = async function(username) {
-    if (username === 'admin') { showAdminMsg('â No puedes eliminar admin', 'error'); return; }
-    if (!confirm('Â¿Eliminar usuario "' + username + '"? Esta acciÃ³n es irreversible.')) return;
+    if (username === 'admin') { showAdminMsg('❌ No puedes eliminar admin', 'error'); return; }
+    if (!confirm('¿Eliminar usuario "' + username + '"? Esta acción es irreversible.')) return;
     
     try {
       const d = await api('delete_user', { username });
-      showAdminMsg('â ' + d.message, 'success');
+      showAdminMsg('✅ ' + d.message, 'success');
       setTimeout(() => refreshAdminPanel(), 2000);
       broadcastMessage({ type: 'users_updated', data: null });
-    } catch(e) { showAdminMsg('â ' + e.message, 'error'); }
+    } catch(e) { showAdminMsg('❌ ' + e.message, 'error'); }
   };
 
   window.cambiarContrasena = async function() {
     const user = document.getElementById('changePassUser').value;
     const pass = document.getElementById('newPassword').value;
-    if (!user) { showAdminMsg('â Selecciona usuario', 'error'); return; }
-    if (!pass || pass.length < 6) { showAdminMsg('â MÃ­nimo 6 caracteres', 'error'); return; }
+    if (!user) { showAdminMsg('❌ Selecciona usuario', 'error'); return; }
+    if (!pass || pass.length < 6) { showAdminMsg('❌ Mínimo 6 caracteres', 'error'); return; }
 
     if (!usersLocal[user]) {
-      // cargar si no estÃ¡ en memoria local aÃºn
+      // cargar si no está en memoria local aún
       await cargarEditorUsuarios();
     }
     const hash = await sha256Client(pass);
@@ -4015,23 +4015,23 @@ if(_grReset) _grReset.addEventListener('click',()=>{
     document.getElementById('newPassword').value = '';
     renderEditorTabla();
     actualizarJsonOutput();
-    showAdminMsg('â ContraseÃ±a de "' + user + '" actualizada en el editor. Copia el JSON y pÃ©galo en Vercel.', 'success');
+    showAdminMsg('✅ Contraseña de "' + user + '" actualizada en el editor. Copia el JSON y pégalo en Vercel.', 'success');
   };
 
   window.eliminarUsuarioEditor = function(user) {
-    if (user === 'admin') { showAdminMsg('â No puedes eliminar admin', 'error'); return; }
-    if (!confirm('Â¿Eliminar "' + user + '"?')) return;
+    if (user === 'admin') { showAdminMsg('❌ No puedes eliminar admin', 'error'); return; }
+    if (!confirm('¿Eliminar "' + user + '"?')) return;
     delete usersLocal[user];
     renderEditorTabla();
     actualizarJsonOutput();
-    showAdminMsg('â "' + user + '" eliminado del editor. Copia el JSON y pÃ©galo en Vercel.', 'success');
+    showAdminMsg('✅ "' + user + '" eliminado del editor. Copia el JSON y pégalo en Vercel.', 'success');
   };
 
   window.cambiarRolEditor = function(user, role) {
     if (!usersLocal[user]) return;
     usersLocal[user].role = role;
     actualizarJsonOutput();
-    showAdminMsg('â Rol actualizado. Copia el JSON y pÃ©galo en Vercel.', 'success');
+    showAdminMsg('✅ Rol actualizado. Copia el JSON y pégalo en Vercel.', 'success');
   };
 
   function renderEditorTabla() {
@@ -4040,7 +4040,7 @@ if(_grReset) _grReset.addEventListener('click',()=>{
       <tr>
         <td style="padding:10px;border-bottom:1px solid #e0e0e0"><strong>${user}</strong></td>
         <td style="padding:10px;border-bottom:1px solid #e0e0e0">${d.role}</td>
-        <td style="padding:10px;border-bottom:1px solid #e0e0e0;color:#999;font-size:11px">â¢â¢â¢â¢â¢â¢â¢â¢</td>
+        <td style="padding:10px;border-bottom:1px solid #e0e0e0;color:#999;font-size:11px">••••••••</td>
         <td style="padding:10px;border-bottom:1px solid #e0e0e0">
           <select onchange="cambiarRolEditor('${user}',this.value)" style="padding:5px;font-size:12px">
             <option value="${d.role}" selected>${d.role}</option>
@@ -4050,7 +4050,7 @@ if(_grReset) _grReset.addEventListener('click',()=>{
           </select>
         </td>
         <td style="padding:10px;border-bottom:1px solid #e0e0e0">
-          ${user !== 'admin' ? `<button onclick="eliminarUsuarioEditor('${user}')" style="padding:5px 10px;background:#f44336;color:white;border:none;border-radius:4px;cursor:pointer;font-size:11px">ðï¸</button>` : '<span style="color:#999;font-size:11px">Protegido</span>'}
+          ${user !== 'admin' ? `<button onclick="eliminarUsuarioEditor('${user}')" style="padding:5px 10px;background:#f44336;color:white;border:none;border-radius:4px;cursor:pointer;font-size:11px">🗑️</button>` : '<span style="color:#999;font-size:11px">Protegido</span>'}
         </td>
       </tr>`).join('');
   }
@@ -4062,7 +4062,7 @@ if(_grReset) _grReset.addEventListener('click',()=>{
 
   window.copiarJson = function() {
     const txt = document.getElementById('jsonOutput').textContent;
-    navigator.clipboard.writeText(txt).then(() => showAdminMsg('â JSON copiado al portapapeles', 'success'));
+    navigator.clipboard.writeText(txt).then(() => showAdminMsg('✅ JSON copiado al portapapeles', 'success'));
   };
 
   window.generarContrasena = function() {
@@ -4071,8 +4071,8 @@ if(_grReset) _grReset.addEventListener('click',()=>{
     for (let i = 0; i < 12; i++) p += chars[Math.floor(Math.random() * chars.length)];
     document.getElementById('passwordGenerated').innerHTML =
       `<div style="background:#f0f0f0;padding:12px;border-radius:4px;font-family:monospace;font-size:13px;word-break:break-all">
-        <strong>ContraseÃ±a generada:</strong><br>${p}<br>
-        <button onclick="navigator.clipboard.writeText('${p}').then(()=>alert('â Copiado'))" style="margin-top:8px;padding:6px 12px;background:#667eea;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px">ð Copiar</button>
+        <strong>Contraseña generada:</strong><br>${p}<br>
+        <button onclick="navigator.clipboard.writeText('${p}').then(()=>alert('✅ Copiado'))" style="margin-top:8px;padding:6px 12px;background:#667eea;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px">📋 Copiar</button>
       </div>`;
     const s = document.getElementById('changePassUser');
     if (s && s.value) document.getElementById('newPassword').value = p;
@@ -4087,20 +4087,20 @@ if(_grReset) _grReset.addEventListener('click',()=>{
     setTimeout(() => { d.innerHTML = ''; }, 6000);
   }
 
-  // Exportar guardarDatos como funciÃ³n global
+  // Exportar guardarDatos como función global
   window.guardarDatos = async function() {
     if (!['admin','explorer','editor'].includes(currentRole)) {
-      alert('â Solo Admin o Explorer puede guardar datos compartidos');
+      alert('❌ Solo Admin o Explorer puede guardar datos compartidos');
       return;
     }
     if (!GRANULAR || GRANULAR.length === 0) {
-      alert('â No hay datos procesados. Procesa archivos primero.');
+      alert('❌ No hay datos procesados. Procesa archivos primero.');
       return;
     }
 
     const btn = document.getElementById('btnGuardarDatos');
     btn.disabled = true;
-    btn.textContent = 'â³ Guardando...';
+    btn.textContent = '⏳ Guardando...';
 
     try {
       const granularRows = GRANULAR.map(r => ({
@@ -4116,31 +4116,31 @@ if(_grReset) _grReset.addEventListener('click',()=>{
       };
 
       const payloadKB = Math.round(JSON.stringify(dataToSave).length / 1024);
-      log('â¹ï¸ Enviando ~' + payloadKB + ' KB (' + GRANULAR.length + ' filas) a Supabaseâ¦', 'info');
+      log('ℹ️ Enviando ~' + payloadKB + ' KB (' + GRANULAR.length + ' filas) a Supabase…', 'info');
 
       const result = await saveSharedData(dataToSave);
       if (result && result.ok) {
-        btn.textContent = 'â Guardado';
-        setTimeout(() => { btn.textContent = 'ð¾ Guardar datos compartidos'; btn.disabled = false; }, 2500);
-        log('â ' + (result.message || 'Datos guardados') + ' â todos los usuarios verÃ¡n los datos.', 'ok');
+        btn.textContent = '✅ Guardado';
+        setTimeout(() => { btn.textContent = '💾 Guardar datos compartidos'; btn.disabled = false; }, 2500);
+        log('✅ ' + (result.message || 'Datos guardados') + ' — todos los usuarios verán los datos.', 'ok');
       } else {
         throw new Error((result && result.error) || 'Error desconocido');
       }
     } catch(e) {
-      btn.textContent = 'â Error';
+      btn.textContent = '❌ Error';
       btn.disabled = false;
-      log('â Error guardando: ' + e.message, 'err');
+      log('❌ Error guardando: ' + e.message, 'err');
     }
   };
 
   boot();
 })();
 // ============================================================
-// CAPTURA DE PANTALLA DEL DASHBOARD â PDF
+// CAPTURA DE PANTALLA DEL DASHBOARD → PDF
 // ============================================================
 async function capturarDashboard() {
   const btn = document.getElementById('btnCaptura');
-  btn.textContent = 'â³ Generando PDF...';
+  btn.textContent = '⏳ Generando PDF...';
   btn.disabled = true;
 
   try {
@@ -4158,7 +4158,7 @@ async function capturarDashboard() {
     const imgW    = canvas.width;
     const imgH    = canvas.height;
 
-    // OrientaciÃ³n segÃºn proporciÃ³n
+    // Orientación según proporción
     const landscape = imgW > imgH;
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ orientation: landscape ? 'landscape' : 'portrait', unit: 'px', format: [imgW / 2, imgH / 2] });
@@ -4171,12 +4171,12 @@ async function capturarDashboard() {
     const locLabel  = filtroLocal.length  === 1 ? '_' + filtroLocal[0].replace(/\s+/g, '') : '';
     pdf.save(`FillRate_${fecha}${semLabel}${locLabel}.pdf`);
 
-    btn.textContent = 'â PDF descargado';
-    setTimeout(() => { btn.textContent = 'ð Exportar PDF'; btn.disabled = false; }, 2500);
+    btn.textContent = '✅ PDF descargado';
+    setTimeout(() => { btn.textContent = '📄 Exportar PDF'; btn.disabled = false; }, 2500);
   } catch(e) {
     console.error('Error generando PDF:', e);
-    btn.textContent = 'â Error';
-    setTimeout(() => { btn.textContent = 'ð Exportar PDF'; btn.disabled = false; }, 2000);
+    btn.textContent = '❌ Error';
+    setTimeout(() => { btn.textContent = '📄 Exportar PDF'; btn.disabled = false; }, 2000);
   }
 }
 </script>
