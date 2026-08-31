@@ -897,6 +897,24 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
   <div class="tab-panel" id="tab-guiarapida">
     <div class="toolbar">
       <div class="fgroup">
+        <label>Local / Sucursal</label>
+        <div class="filter-dropdown" id="grLocalDD">
+          <button class="filter-btn" data-placeholder="Seleccionar locales...">Seleccionar locales...</button>
+          <div class="filter-menu" style="display:none">
+            <input class="filter-search" id="grLocalSearch" placeholder="Buscar sucursal...">
+            <div class="filter-controls">
+              <button class="filter-btn-small" id="grLocalAll">✓ Todos</button>
+              <button class="filter-btn-small" id="grLocalNone">✗ Ninguno</button>
+            </div>
+            <div class="filter-options" id="grLocalOptions"></div>
+            <div class="filter-actions">
+              <button class="btn btn-primary" id="grLocalApply">Aplicar</button>
+              <button class="btn btn-secondary" id="grLocalCancel">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="fgroup">
         <label>Fecha Desde</label>
         <input type="date" id="grFechaDesde" class="range-input" style="width:140px;">
       </div>
@@ -905,21 +923,33 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
         <input type="date" id="grFechaHasta" class="range-input" style="width:140px;">
       </div>
       <button class="btn-reset" id="grBtnReset">✕ Limpiar</button>
-      <div style="margin-left:auto;display:flex;gap:.6rem;">
-        <button class="btn btn-primary" onclick="imprimirEmpanadas()">🖨️ Imprimir</button>
+      <div style="margin-left:auto;">
         <button class="btn btn-download btn-primary" onclick="descargarEmpanadasExcel()">⬇ Excel</button>
       </div>
     </div>
-    <div class="panel" id="grPrintArea">
+
+    <!-- Tabla 1: Empanadas -->
+    <div class="panel" style="margin-bottom:1.2rem;">
       <div class="panel-header-row">
         <div>
-          <div class="panel-title">🗂️ Solicitudes por Día</div>
+          <div class="panel-title">🥟 Empanadas</div>
           <div id="grResultsCount" class="results-count">—</div>
         </div>
+        <button class="btn btn-primary" onclick="imprimirGrTabla('grTable1','Empanadas')">🖨️ Imprimir</button>
       </div>
-      <div id="grContent">
-        <div class="empty-state">Carga y procesa los archivos para ver los datos.</div>
+      <div style="overflow-x:auto;" id="grTable1"><div class="empty-state">Carga archivos para ver datos.</div></div>
+    </div>
+
+    <!-- Tabla 2: Masas -->
+    <div class="panel">
+      <div class="panel-header-row">
+        <div>
+          <div class="panel-title">🥐 Masas / Otros</div>
+          <div id="grResultsCount2" class="results-count">—</div>
+        </div>
+        <button class="btn btn-primary" onclick="imprimirGrTabla('grTable2','Masas')">🖨️ Imprimir</button>
       </div>
+      <div style="overflow-x:auto;" id="grTable2"><div class="empty-state">Carga archivos para ver datos.</div></div>
     </div>
   </div>
   <!-- ============ FIN TAB EMPANADAS ============ -->
@@ -1947,9 +1977,11 @@ function buildDayTabs(containerId, varName, dias, renderFn) {
   const items = [{ label:'Semana', fecha:null },
     ...dias.map(f => { const [,m,d]=f.split('-'); return { label: d+'/'+m, fecha: f }; })
   ];
-  cont.innerHTML = items.map(it =>
-    `<span class="day-tab${(actual===it.fecha)?' active':''}" data-fecha="${it.fecha||''}">${it.label}</span>`
-  ).join('');
+  cont.innerHTML = items.map(it => {
+    const cls = 'day-tab' + (actual===it.fecha ? ' active' : '');
+    const fecha = it.fecha || '';
+    return '<span class="' + cls + '" data-fecha="' + fecha + '">' + it.label + '</span>';
+  }).join('');
   cont.querySelectorAll('.day-tab').forEach(tab => {
     tab.addEventListener('click', () => {
       window['_panelDia_' + varName] = tab.dataset.fecha || null;
@@ -3343,12 +3375,14 @@ const GR_SKUS2 = ['1101031','1101034','1101037','1101038','1101039','1101040',
 
 var grFechaDesde = '';
 var grFechaHasta = '';
+var grLocal = [];
 
 function getGrGranular() {
   const allSkus = [...GR_SKUS, ...GR_SKUS2];
   let g = GRANULAR.filter(r => allSkus.includes(r.sku));
   if(grFechaDesde) g = g.filter(r => r.fecha >= grFechaDesde);
   if(grFechaHasta) g = g.filter(r => r.fecha <= grFechaHasta);
+  if(grLocal.length > 0) g = g.filter(r => grLocal.includes(r.sucursal));
   return g;
 }
 
@@ -3363,121 +3397,118 @@ function buildGrMap(src, skus) {
   return map;
 }
 
-function buildGrTable(map, skus, fechas) {
+function allFechasRango() {
+  if(!grFechaDesde || !grFechaHasta) return null;
+  const fechas = [];
+  let d = new Date(grFechaDesde + 'T00:00:00');
+  const fin = new Date(grFechaHasta + 'T00:00:00');
+  while(d <= fin) { fechas.push(d.toISOString().slice(0,10)); d.setDate(d.getDate()+1); }
+  return fechas;
+}
+
+function buildGrTable(map, skus, fechasSrc, fechasAll) {
   const fmtF = f => { const [,m,d]=f.split('-'); return d+'/'+m; };
-  const rows = skus.map(sku => map.get(sku)).filter(Boolean);
-  if(!rows.length) return '<tr><td colspan="20" class="empty-state">Sin datos.</td></tr>';
-
-  const thead = `<thead><tr>
-    <th style="background:var(--surface-2);position:sticky;top:0;z-index:3;">SKU</th>
-    <th style="background:var(--surface-2);position:sticky;top:0;z-index:3;">Descripción</th>
-    ${fechas.map(f=>`<th class="th-grupo-sol" style="position:sticky;top:0;z-index:3;">${fmtF(f)}</th>`).join('')}
-    <th class="th-total" style="position:sticky;top:0;z-index:3;">Total</th>
+  const rows = skus.map(sku => map.get(sku) || { sku, desc:'—', sol:{} });
+  const head = `<thead><tr>
+    <th style="background:var(--surface-2);position:sticky;top:0;left:0;z-index:5;min-width:80px;">SKU</th>
+    <th style="background:var(--surface-2);position:sticky;top:0;z-index:4;min-width:160px;">Descripción</th>
+    ${fechasAll.map(f => {
+      const enDatos = fechasSrc.includes(f);
+      const bg = enDatos ? '#E8F0FD' : 'var(--surface-2)';
+      const col = enDatos ? '#0A5FD6' : 'var(--ink-4)';
+      return `<th style="background:${bg};color:${col};text-align:right;position:sticky;top:0;z-index:4;min-width:52px;">${fmtF(f)}</th>`;
+    }).join('')}
+    <th class="th-total" style="position:sticky;top:0;z-index:4;min-width:58px;">Total</th>
   </tr></thead>`;
-
   const tbody = `<tbody>${rows.map(r => {
     const tot = Object.values(r.sol).reduce((s,v)=>s+v,0);
     return `<tr>
-      <td class="sku">${r.sku}</td>
-      <td style="font-weight:600;">${r.desc||'—'}</td>
-      ${fechas.map(f=>`<td class="td-sol">${r.sol[f]>0?fmt(r.sol[f]):'—'}</td>`).join('')}
-      <td class="td-total-sol">${fmt(tot)}</td>
+      <td class="sku" style="position:sticky;left:0;background:var(--surface);z-index:2;">${r.sku}</td>
+      <td style="font-weight:600;">${r.desc}</td>
+      ${fechasAll.map(f => { const v=r.sol[f]||0; const sty=v?'':'color:var(--ink-4);'; return '<td class="td-sol" style="'+sty+'">'+(v>0?fmt(v):'\u2014')+'</td>'; }).join('')}
+      <td class="td-total-sol">${tot>0?fmt(tot):'—'}</td>
     </tr>`;
   }).join('')}</tbody>`;
-
-  return `<table style="width:100%;border-collapse:collapse;font-size:.78rem;">${thead}${tbody}</table>`;
+  return `<table style="width:100%;border-collapse:collapse;font-size:.78rem;">${head}${tbody}</table>`;
 }
 
 function renderGuiaRapida() {
-  const src   = getGrGranular();
-  const fechas = [...new Set(src.map(g=>g.fecha))].sort();
-  const count = document.getElementById('grResultsCount');
+  const src = getGrGranular();
+  const fechasSrc = [...new Set(src.map(g=>g.fecha))].sort();
+  const fechasAll = allFechasRango() || fechasSrc;
 
-  if(!src.length) {
-    document.getElementById('grContent').innerHTML =
-      '<div class="empty-state">Sin datos para este filtro.</div>';
-    count.textContent = '—';
-    return;
-  }
-
-  count.textContent = fechas.length + ' días';
   const map1 = buildGrMap(src, GR_SKUS);
-  const map2 = buildGrMap(src, GR_SKUS2);
+  document.getElementById('grTable1').innerHTML = fechasAll.length
+    ? buildGrTable(map1, GR_SKUS, fechasSrc, fechasAll)
+    : '<div class="empty-state">Sin datos.</div>';
+  document.getElementById('grResultsCount').textContent =
+    GR_SKUS.length + ' productos · ' + fechasAll.length + ' días';
 
-  document.getElementById('grContent').innerHTML = `
-    <div class="panel" style="margin-bottom:1.2rem;">
-      <div class="panel-title" style="margin-bottom:.7rem;">🥟 Empanadas</div>
-      <div style="overflow-x:auto;">${buildGrTable(map1, GR_SKUS, fechas)}</div>
-    </div>
-    <div class="panel">
-      <div class="panel-title" style="margin-bottom:.7rem;">🥐 Masas / Otros</div>
-      <div style="overflow-x:auto;">${buildGrTable(map2, GR_SKUS2, fechas)}</div>
-    </div>`;
+  const map2 = buildGrMap(src, GR_SKUS2);
+  document.getElementById('grTable2').innerHTML = fechasAll.length
+    ? buildGrTable(map2, GR_SKUS2, fechasSrc, fechasAll)
+    : '<div class="empty-state">Sin datos.</div>';
+  document.getElementById('grResultsCount2').textContent =
+    GR_SKUS2.length + ' productos · ' + fechasAll.length + ' días';
 }
 
 function poblarFiltrosGuiaRapida() {
+  const locales = [...new Set(GRANULAR
+    .filter(r=>[...GR_SKUS,...GR_SKUS2].includes(r.sku))
+    .map(r=>r.sucursal))].sort();
+  setupCustomFilter('grLocal', locales, grLocal, sel => { grLocal=sel; renderGuiaRapida(); });
   const desde = document.getElementById('grFechaDesde');
-  const hasta = document.getElementById('grFechaHasta');
+  const hasta  = document.getElementById('grFechaHasta');
   if(!grFechaDesde && desde && !desde.value) {
-    const { desde: d, hasta: h } = rangoSemanaActual();
-    grFechaDesde = d; grFechaHasta = h;
-    desde.value = d; hasta.value = h;
+    const {desde:d,hasta:h} = rangoSemanaActual();
+    grFechaDesde=d; grFechaHasta=h; desde.value=d; hasta.value=h;
   }
 }
 
-function imprimirEmpanadas() {
-  const area = document.getElementById('grContent');
-  const style = `<style>
-    body{font-family:sans-serif;font-size:11px;padding:12px;}
-    h3{margin:12px 0 6px;}
-    table{width:100%;border-collapse:collapse;margin-bottom:20px;}
-    th,td{border:1px solid #ccc;padding:4px 6px;}
-    th{background:#f1f5f9;font-weight:700;text-align:left;}
-    .td-sol{background:#F5F9FF;text-align:right;}
-    .td-total-sol{background:#DBEAFE;text-align:right;font-weight:700;}
-    .th-grupo-sol{background:#E8F0FD;color:#0A5FD6;text-align:center;}
-    .th-total{background:#0D1B2A;color:#fff;text-align:center;}
-    .sku{font-family:monospace;font-weight:700;}
-  </style>`;
+function imprimirGrTabla(divId, titulo) {
+  const tabla = document.getElementById(divId)?.querySelector('table');
+  if(!tabla) { alert('Sin datos para imprimir.'); return; }
+  const fDesde = grFechaDesde||'';
+  const fHasta = grFechaHasta&&grFechaHasta!==grFechaDesde?' → '+grFechaHasta:'';
+  const local  = grLocal.length?' · '+grLocal.join(', '):'';
+  const style = `<style>body{font-family:sans-serif;font-size:10px;padding:12px;}h2{font-size:13px;margin-bottom:6px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ccc;padding:3px 5px;}th{font-weight:700;text-align:center;background:#f1f5f9;}td:first-child{font-family:monospace;font-weight:700;}td{text-align:right;}td:nth-child(2){text-align:left;font-weight:600;}.td-total-sol{background:#DBEAFE;font-weight:700;}@media print{@page{margin:10mm;}}</style>`;
   const win = window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html><head>${style}<title>Solicitudes</title></head><body>`);
-  win.document.write(`<h2>📋 Solicitudes — ${grFechaDesde||''}${grFechaHasta&&grFechaHasta!==grFechaDesde?' → '+grFechaHasta:''}</h2>`);
-  win.document.write(area.innerHTML);
-  win.document.write('</body></html>');
+  win.document.write(`<!DOCTYPE html><html><head>${style}<title>${titulo}</title></head><body><h2>${titulo} — ${fDesde}${fHasta}${local}</h2>${tabla.outerHTML}</body></html>`);
   win.document.close();
-  win.print();
+  setTimeout(()=>win.print(),400);
 }
 
 function descargarEmpanadasExcel() {
   const src = getGrGranular();
   if(!src.length) { alert('Sin datos.'); return; }
-  const fechas = [...new Set(src.map(g=>g.fecha))].sort();
+  const fechasAll = allFechasRango() || [...new Set(src.map(g=>g.fecha))].sort();
   const fmtF = f => { const [,m,d]=f.split('-'); return d+'/'+m; };
   const wb = XLSX.utils.book_new();
-
-  [[GR_SKUS,'Empanadas'],[GR_SKUS2,'Masas']].forEach(([skus, nombre]) => {
-    const map = buildGrMap(src, skus);
-    const rows = skus.map(sku=>map.get(sku)).filter(Boolean).map(r=>{
-      const row = { SKU:r.sku, Descripción:r.desc };
-      fechas.forEach(f => { row[fmtF(f)] = r.sol[f]||0; });
-      row['Total'] = Object.values(r.sol).reduce((s,v)=>s+v,0);
+  [[GR_SKUS,'Empanadas'],[GR_SKUS2,'Masas']].forEach(([skus,nombre]) => {
+    const map = buildGrMap(src,skus);
+    const rows = skus.map(sku=>map.get(sku)||{sku,desc:'—',sol:{}}).map(r=>{
+      const row={SKU:r.sku,'Descripción':r.desc};
+      fechasAll.forEach(f=>{row[fmtF(f)]=r.sol[f]||0;});
+      row['Total']=Object.values(r.sol).reduce((s,v)=>s+v,0);
       return row;
     });
-    if(rows.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), nombre);
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),nombre);
   });
-  XLSX.writeFile(wb, 'solicitudes_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  XLSX.writeFile(wb,'solicitudes_'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
 
-document.getElementById('grFechaDesde').addEventListener('change', e => { grFechaDesde=e.target.value; renderGuiaRapida(); });
-document.getElementById('grFechaHasta').addEventListener('change', e => { grFechaHasta=e.target.value; renderGuiaRapida(); });
-document.getElementById('grBtnReset').addEventListener('click', () => {
-  const {desde,hasta} = rangoSemanaActual();
-  grFechaDesde=desde; grFechaHasta=hasta;
+document.getElementById('grFechaDesde').addEventListener('change',e=>{grFechaDesde=e.target.value;renderGuiaRapida();});
+document.getElementById('grFechaHasta').addEventListener('change',e=>{grFechaHasta=e.target.value;renderGuiaRapida();});
+document.getElementById('grBtnReset').addEventListener('click',()=>{
+  const {desde,hasta}=rangoSemanaActual();
+  grLocal=[];grFechaDesde=desde;grFechaHasta=hasta;
   document.getElementById('grFechaDesde').value=desde;
   document.getElementById('grFechaHasta').value=hasta;
+  const btn=document.querySelector('#grLocalDD .filter-btn');
+  if(btn)btn.textContent='Seleccionar locales...';
   renderGuiaRapida();
 });
-// ============================================================
+======================================
 (function init(){
   try {
     const seedEl = document.getElementById('seed-data');
