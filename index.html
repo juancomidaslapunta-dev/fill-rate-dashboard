@@ -3403,8 +3403,8 @@ function buildGrMap(src, skus) {
 
 function nombreLocal(cod) { return NOMBRES_OFICIALES[cod] || cod; }
 
-// Orden fijo de locales para la tabla de Empanadas
-const GR_LOCALES_ORDEN = [314, 316, 426, 483, 302, 300, 526, 299, 303];
+// Orden fijo de locales para la tabla de Empanadas (GRANULAR.sucursal guarda el nombre, no el código)
+const GR_LOCALES_ORDEN = [314, 316, 426, 483, 302, 300, 526, 299, 303].map(cod => NOMBRES_OFICIALES[cod]);
 
 // Clasificación de cada SKU (fresco o congelado) para el resumen GRANDES / P.E BLANCAS / P.E NEGRAS
 const GR_CATEGORIA = {};
