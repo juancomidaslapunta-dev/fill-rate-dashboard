@@ -3456,11 +3456,11 @@ function buildGrPivotTable(src) {
     let totRow = 0, freshSum = 0, frozenSum = 0;
     const fCells = locales.map(l => {
       const v = rF.porLocal[l]||0; totRow += v; freshSum += v; colTotFresh[l] += v;
-      return '<td class="td-sol" style="'+(v?'':'color:var(--ink-4);')+'">'+(v>0?fmt(v):'—')+'</td>';
+      return '<td class="td-sol" style="font-size:1.05rem;'+(v?'':'color:var(--ink-4);')+'">'+(v>0?fmt(v):'—')+'</td>';
     }).join('');
     const cCells = locales.map(l => {
       const v = rC ? (rC.porLocal[l]||0) : 0; totRow += v; frozenSum += v; if(rC) colTotFrozen[l] += v;
-      return '<td class="td-sol" style="'+(v?'':'color:var(--ink-4);')+'">'+(v>0?fmt(v):'—')+'</td>';
+      return '<td class="td-sol" style="font-size:1.05rem;'+(v?'':'color:var(--ink-4);')+'">'+(v>0?fmt(v):'—')+'</td>';
     }).join('');
     granTotal += totRow;
     const catF = GR_CATEGORIA[skuF]; if(catF) catTotales[catF] += freshSum;
@@ -3471,21 +3471,21 @@ function buildGrPivotTable(src) {
       ${fCells}
       <td class="sku">${skuC||''}</td>
       ${cCells}
-      <td class="td-total-sol">${totRow>0?fmt(totRow):'—'}</td>
+      <td class="td-total-sol" style="font-size:1.05rem;">${totRow>0?fmt(totRow):'—'}</td>
     </tr>`;
   }).join('')}</tbody>`;
 
   const foot = `<tfoot><tr>
     <td colspan="2" style="font-weight:700;">Total</td>
-    ${locales.map(l=>'<td class="td-total-sol">'+(colTotFresh[l]>0?fmt(colTotFresh[l]):'—')+'</td>').join('')}
+    ${locales.map(l=>'<td class="td-total-sol" style="font-size:1.05rem;">'+(colTotFresh[l]>0?fmt(colTotFresh[l]):'—')+'</td>').join('')}
     <td></td>
-    ${locales.map(l=>'<td class="td-total-sol">'+(colTotFrozen[l]>0?fmt(colTotFrozen[l]):'—')+'</td>').join('')}
-    <td class="td-total-sol">${granTotal>0?fmt(granTotal):'—'}</td>
+    ${locales.map(l=>'<td class="td-total-sol" style="font-size:1.05rem;">'+(colTotFrozen[l]>0?fmt(colTotFrozen[l]):'—')+'</td>').join('')}
+    <td class="td-total-sol" style="font-size:1.05rem;">${granTotal>0?fmt(granTotal):'—'}</td>
   </tr></tfoot>`;
 
-  const tabla = `<table style="width:100%;border-collapse:collapse;font-size:.78rem;">${head}${tbody}${foot}</table>`;
+  const tabla = `<table style="width:100%;border-collapse:collapse;font-size:.94rem;">${head}${tbody}${foot}</table>`;
 
-  const resumen = `<table style="border-collapse:collapse;font-size:.85rem;margin-top:1rem;min-width:260px;">
+  const resumen = `<table style="border-collapse:collapse;font-size:1rem;margin-top:1rem;min-width:260px;">
     <tbody>
       ${['GRANDES','P/E BLANCAS','P/E NEGRAS'].map(cat => `<tr>
         <td style="font-weight:700;padding:4px 12px 4px 0;">${cat}</td>
