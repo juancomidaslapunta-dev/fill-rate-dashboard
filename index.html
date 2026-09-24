@@ -980,6 +980,53 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
       </div>
       <div style="overflow-x:auto;" id="quesoTable"><div class="empty-state">Carga archivos para ver datos.</div></div>
     </div>
+
+    <!-- Tabla: Empanadas P/E congeladas (Packs) por local, sumando las fechas de entrega elegidas -->
+    <style>
+      #packsTable table.packs { border-collapse:collapse; width:100%; font-size:.95rem; color:#000; }
+      #packsTable table.packs th, #packsTable table.packs td { border:1px solid #000; padding:.4rem .55rem; }
+      #packsTable table.packs th { background:#C4D79B; text-align:center; white-space:nowrap; text-transform:none; font-size:.95rem; font-weight:600; color:#000; letter-spacing:0; }
+      #packsTable table.packs td.sku { text-align:right; font-family:inherit; color:#000; font-weight:400; font-size:.95rem; }
+      #packsTable table.packs td.desc { text-align:left; white-space:nowrap; }
+      #packsTable table.packs td.num { text-align:center; }
+      #packsTable table.packs td.tot { text-align:center; font-weight:700; }
+      #packsTable table.packs tfoot td { background:#C4D79B; font-weight:700; text-align:center; }
+      #packsTable table.packs tfoot td.rot { text-align:left; font-weight:600; }
+    </style>
+    <div class="panel" style="margin-top:1.2rem;">
+      <div class="panel-header-row">
+        <div>
+          <div class="panel-title">EMPANADAS P/E CONGELADAS — Solicitud (Packs)</div>
+          <div id="packsCount" class="results-count">—</div>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+          <button class="btn btn-download btn-primary" onclick="descargarPacksExcel()">⬇ Excel</button>
+          <button class="btn btn-primary" onclick="imprimirPacks()">🖨️ Imprimir</button>
+        </div>
+      </div>
+      <div class="toolbar" style="margin-bottom:1rem;">
+        <div class="fgroup">
+          <label>Fechas de entrega</label>
+          <div class="filter-dropdown" id="pfDD">
+            <button class="filter-btn" data-placeholder="Seleccionar fechas...">Seleccionar fechas...</button>
+            <div class="filter-menu" style="display:none">
+              <input class="filter-search" id="pfSearch" placeholder="Buscar fecha...">
+              <div class="filter-controls">
+                <button class="filter-btn-small" id="pfAll">✓ Todas</button>
+                <button class="filter-btn-small" id="pfNone">✗ Ninguna</button>
+              </div>
+              <div class="filter-options" id="pfOptions"></div>
+              <div class="filter-actions">
+                <button class="btn btn-primary" id="pfApply">Aplicar</button>
+                <button class="btn btn-secondary" id="pfCancel">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="btn-reset" id="pfBtnReset">✕ Limpiar</button>
+      </div>
+      <div style="overflow-x:auto;" id="packsTable"><div class="empty-state">Carga archivos para ver datos.</div></div>
+    </div>
   </div>
   <!-- ============ FIN TAB EMPANADAS ============ -->
 
@@ -3556,6 +3603,7 @@ function renderGuiaRapida() {
   document.getElementById('grResultsCount').textContent =
     GR_PARES.length + ' productos' + (grFechaDesde ? ' · ' + grFechaDesde : '');
   renderQueso();
+  renderPacks();
 }
 
 function poblarFiltrosGuiaRapida() {
@@ -3569,6 +3617,7 @@ function poblarFiltrosGuiaRapida() {
     grFechaDesde = hoy; desde.value = hoy;
   }
   poblarFiltroQueso();
+  poblarFiltroPacks();
 }
 
 // ============================================================
@@ -3599,18 +3648,21 @@ function diaSemanaGr(iso) { const [y,m,d] = iso.split('-').map(Number); return D
 function ddmmGr(iso) { const [,m,d] = iso.split('-'); return d+'/'+m; }
 function ddmmyyyyGr(iso) { const [y,m,d] = iso.split('-'); return d+'/'+m+'/'+y; }
 
-function fechasDisponiblesQueso() {
-  return [...new Set(GRANULAR.filter(r => r.sku === SKU_QUESO).map(r => r.fecha))].sort().reverse();
+function fechasDisponiblesGr(skus) {
+  return [...new Set(GRANULAR.filter(r => skus.includes(r.sku)).map(r => r.fecha))].sort().reverse();
 }
 
 // Por defecto: fechas con datos de la semana actual; si no hay, las 2 más recientes
-function seleccionInicialQueso() {
-  const disp = fechasDisponiblesQueso();
+function seleccionInicialGr(skus) {
+  const disp = fechasDisponiblesGr(skus);
   const h = new Date(), dif = (h.getDay()+6)%7, semana = [];
   for(let i=0;i<7;i++) semana.push(isoLocalGr(new Date(h.getFullYear(), h.getMonth(), h.getDate()-dif+i)));
   const deSemana = disp.filter(f => semana.includes(f));
   return deSemana.length ? deSemana : disp.slice(0,2);
 }
+
+function fechasDisponiblesQueso() { return fechasDisponiblesGr([SKU_QUESO]); }
+function seleccionInicialQueso() { return seleccionInicialGr([SKU_QUESO]); }
 
 function calcQueso(fechas) {
   const src = GRANULAR.filter(r => r.sku === SKU_QUESO && fechas.includes(r.fecha));
@@ -3714,6 +3766,140 @@ function imprimirQueso() {
 
 const _qfReset = document.getElementById('qfBtnReset');
 if(_qfReset) _qfReset.addEventListener('click', () => { qfTocado = false; poblarFiltroQueso(); renderQueso(); });
+
+// ============================================================
+// EMPANADAS P/E CONGELADAS (PACKS) — filas = SKU, columnas = locales
+// Filtro propio de varias fechas de entrega; las cantidades de las fechas elegidas se suman.
+// ============================================================
+const PACKS_SKUS = [
+  { sku:'1101005', desc:'Pack Emp. champiñon P/E Cong.'     },
+  { sku:'1101007', desc:'Pack Emp. jamon queso P/E Cong'    },
+  { sku:'1101011', desc:'Pack Emp. pino P/E Cong.'          },
+  { sku:'1101015', desc:'Pack Emp. tomate P/E Cong.'        },
+  { sku:'1101016', desc:'Pack Emp. camarón queso P/E C'     },
+  { sku:'1101020', desc:'Pack Emp. Mechada queso P/E Cg'    },
+  { sku:'1101021', desc:'Pack Emp. queso horno P/E Cong'    },
+];
+const PACKS_LOCALES = [
+  { key:'BULNES CORREA',  label:'BC'        },
+  { key:'RENATO SANCHEZ', label:'RS'        },
+  { key:'PADRE HURTADO',  label:'PH'        },
+  { key:'CHICUREO',       label:'CHIC'      },
+  { key:'QUINCHAMALI',    label:'QUI'       },
+  { key:'VITACURA',       label:'VIT'       },
+  { key:'DEHESA',         label:'DEHESA'    },
+  { key:'MANQUEHUE',      label:'MANQUEHUE' },
+  { key:'LAS LILAS',      label:'LAS LILAS' },
+];
+const PACKS_CODIGOS = PACKS_SKUS.map(p => p.sku);
+var pfFechas = [];
+var pfTocado = false;
+
+function calcPacks(fechas) {
+  const src = GRANULAR.filter(r => PACKS_CODIGOS.includes(r.sku) && fechas.includes(r.fecha));
+  const totCol = PACKS_LOCALES.map(() => 0);
+  let granTotal = 0;
+  const filas = PACKS_SKUS.map(p => {
+    const desc = (GRANULAR.find(r => r.sku === p.sku && r.descripcion) || {}).descripcion || p.desc;
+    const valores = PACKS_LOCALES.map((l,i) => {
+      const v = src.filter(r => r.sku === p.sku && r.sucursal === l.key).reduce((s,r) => s + r.solicitado, 0);
+      totCol[i] += v;
+      return v;
+    });
+    const total = valores.reduce((s,v) => s + v, 0);
+    granTotal += total;
+    return { sku:p.sku, desc, valores, total };
+  });
+  return { filas, totCol, granTotal };
+}
+
+function buildPacksTable(m) {
+  const n = PACKS_LOCALES.length;
+  return `<table class="packs">
+    <thead>
+      <tr>
+        <th colspan="2"></th>
+        <th colspan="${n}">SOLICITUD (Packs)</th>
+        <th rowspan="2">TOTAL</th>
+      </tr>
+      <tr>
+        <th>SKU</th><th style="text-align:left;">SABORES</th>
+        ${PACKS_LOCALES.map(l => `<th>${l.label}</th>`).join('')}
+      </tr>
+    </thead>
+    <tbody>${m.filas.map(f => `<tr>
+      <td class="sku">${f.sku}</td>
+      <td class="desc">${f.desc}</td>
+      ${f.valores.map(v => '<td class="num">'+(v>0?fmt(v):'')+'</td>').join('')}
+      <td class="tot">${fmt(f.total)}</td>
+    </tr>`).join('')}</tbody>
+    <tfoot><tr>
+      <td class="rot" colspan="2">Total</td>
+      ${m.totCol.map(t => '<td>'+fmt(t)+'</td>').join('')}
+      <td>${fmt(m.granTotal)}</td>
+    </tr></tfoot>
+  </table>`;
+}
+
+function renderPacks() {
+  const cont = document.getElementById('packsTable');
+  const cnt = document.getElementById('packsCount');
+  if(!cont) return;
+  if(!GRANULAR.some(r => PACKS_CODIGOS.includes(r.sku))) {
+    cont.innerHTML = '<div class="empty-state">Sin datos de los códigos de empanadas P/E congeladas (packs).</div>';
+    cnt.textContent = '—';
+    return;
+  }
+  const fechas = [...pfFechas].sort();
+  if(!fechas.length) {
+    cont.innerHTML = '<div class="empty-state">Selecciona al menos una fecha de entrega.</div>';
+    cnt.textContent = 'Sin fechas seleccionadas';
+    return;
+  }
+  cont.innerHTML = buildPacksTable(calcPacks(fechas));
+  cnt.textContent = fechas.length + (fechas.length === 1 ? ' fecha' : ' fechas') + ' de entrega · ' + fechas.map(ddmmGr).join(' · ');
+}
+
+function poblarFiltroPacks() {
+  const disp = fechasDisponiblesGr(PACKS_CODIGOS);
+  pfFechas = pfTocado ? pfFechas.filter(f => disp.includes(f)) : seleccionInicialGr(PACKS_CODIGOS);
+  setupCustomFilter('pf', disp, pfFechas, sel => { pfFechas = [...sel]; pfTocado = true; renderPacks(); });
+  const btn = document.querySelector('#pfDD .filter-btn');
+  if(btn) btn.textContent = pfFechas.length ? pfFechas.length + ' seleccionados' : btn.getAttribute('data-placeholder');
+}
+
+function descargarPacksExcel() {
+  const fechas = [...pfFechas].sort();
+  if(!fechas.length) { alert('Selecciona al menos una fecha de entrega.'); return; }
+  const m = calcPacks(fechas);
+  const rows = m.filas.map(f => {
+    const row = { 'SKU': f.sku, 'SABORES': f.desc };
+    PACKS_LOCALES.forEach((l,i) => { row[l.label] = f.valores[i] > 0 ? f.valores[i] : ''; });
+    row['TOTAL'] = f.total;
+    return row;
+  });
+  const tot = { 'SKU': '', 'SABORES': 'Total' };
+  PACKS_LOCALES.forEach((l,i) => { tot[l.label] = m.totCol[i]; });
+  tot['TOTAL'] = m.granTotal;
+  rows.push(tot);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Empanadas P-E congeladas');
+  XLSX.writeFile(wb, 'empanadas_pe_congeladas_'+fechas[0]+(fechas.length>1?'_a_'+fechas[fechas.length-1]:'')+'.xlsx');
+}
+
+function imprimirPacks() {
+  const tabla = document.querySelector('#packsTable table');
+  if(!tabla) { alert('Selecciona al menos una fecha de entrega.'); return; }
+  const f = [...pfFechas].sort();
+  const style = `<style>body{font-family:Calibri,Arial,sans-serif;padding:14px;}h2{font-size:22px;text-align:center;margin:0 0 4px;}p{text-align:center;font-size:12px;margin:0 0 10px;color:#333;}table{border-collapse:collapse;width:100%;font-size:13px;color:#000;}th,td{border:1px solid #000;padding:5px 7px;}th{background:#C4D79B;text-align:center;font-weight:600;-webkit-print-color-adjust:exact;print-color-adjust:exact;}td.sku{text-align:right;}td.desc{text-align:left;white-space:nowrap;}td.num,td.tot{text-align:center;}td.tot{font-weight:700;}tfoot td{background:#C4D79B;font-weight:700;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;}tfoot td.rot{text-align:left;font-weight:600;}@media print{@page{size:landscape;margin:10mm;}}</style>`;
+  const win = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">${style}<title>Empanadas P/E congeladas</title></head><body><h2>EMPANADAS P/E CONGELADAS</h2><p>Entrega: ${f.map(ddmmGr).join(' · ')}</p>${tabla.outerHTML}</body></html>`);
+  win.document.close();
+  win.onload = () => setTimeout(() => win.print(), 150);
+}
+
+const _pfReset = document.getElementById('pfBtnReset');
+if(_pfReset) _pfReset.addEventListener('click', () => { pfTocado = false; poblarFiltroPacks(); renderPacks(); });
 
 function imprimirGrTabla(divId, titulo) {
   const cont = document.getElementById(divId);
