@@ -935,6 +935,51 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
       </div>
       <div style="overflow-x:auto;" id="grTable1"><div class="empty-state">Carga archivos para ver datos.</div></div>
     </div>
+
+    <!-- Tabla: Empanada de queso frita (2101014) por fechas de entrega -->
+    <style>
+      #quesoTable table.queso { border-collapse:collapse; width:100%; font-size:1.1rem; font-weight:700; color:#000; }
+      #quesoTable table.queso th, #quesoTable table.queso td { border:1px solid #000; padding:.85rem .7rem; }
+      #quesoTable table.queso th { text-align:center; background:#fff; white-space:nowrap; text-transform:none; font-size:1.1rem; color:#000; letter-spacing:0; }
+      #quesoTable table.queso th small { display:block; font-weight:600; font-size:.72rem; color:#475569; margin-top:2px; }
+      #quesoTable table.queso td.nombre { text-align:left; text-transform:uppercase; vertical-align:bottom; min-width:150px; }
+      #quesoTable table.queso td.num { text-align:center; }
+      #quesoTable table.queso .tot { background:#f1f5f9; }
+    </style>
+    <div class="panel" style="margin-top:1.2rem;">
+      <div class="panel-header-row">
+        <div>
+          <div class="panel-title">Empanada de queso frita — 2101014</div>
+          <div id="quesoCount" class="results-count">—</div>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+          <button class="btn btn-download btn-primary" onclick="descargarQuesoExcel()">⬇ Excel</button>
+          <button class="btn btn-primary" onclick="imprimirQueso()">🖨️ Imprimir</button>
+        </div>
+      </div>
+      <div class="toolbar" style="margin-bottom:1rem;">
+        <div class="fgroup">
+          <label>Fechas de entrega</label>
+          <div class="filter-dropdown" id="qfDD">
+            <button class="filter-btn" data-placeholder="Seleccionar fechas...">Seleccionar fechas...</button>
+            <div class="filter-menu" style="display:none">
+              <input class="filter-search" id="qfSearch" placeholder="Buscar fecha...">
+              <div class="filter-controls">
+                <button class="filter-btn-small" id="qfAll">✓ Todas</button>
+                <button class="filter-btn-small" id="qfNone">✗ Ninguna</button>
+              </div>
+              <div class="filter-options" id="qfOptions"></div>
+              <div class="filter-actions">
+                <button class="btn btn-primary" id="qfApply">Aplicar</button>
+                <button class="btn btn-secondary" id="qfCancel">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="btn-reset" id="qfBtnReset">✕ Limpiar</button>
+      </div>
+      <div style="overflow-x:auto;" id="quesoTable"><div class="empty-state">Carga archivos para ver datos.</div></div>
+    </div>
   </div>
   <!-- ============ FIN TAB EMPANADAS ============ -->
 
@@ -3510,6 +3555,7 @@ function renderGuiaRapida() {
     : '<div class="empty-state">Sin datos.</div>';
   document.getElementById('grResultsCount').textContent =
     GR_PARES.length + ' productos' + (grFechaDesde ? ' · ' + grFechaDesde : '');
+  renderQueso();
 }
 
 function poblarFiltrosGuiaRapida() {
@@ -3522,7 +3568,152 @@ function poblarFiltrosGuiaRapida() {
     const hoy = new Date().toISOString().slice(0,10);
     grFechaDesde = hoy; desde.value = hoy;
   }
+  poblarFiltroQueso();
 }
+
+// ============================================================
+// EMPANADA DE QUESO FRITA (2101014) — filas = locales, columnas = fechas de entrega
+// Filtro independiente del resto de la pestaña; admite varias fechas.
+// ============================================================
+const SKU_QUESO = '2101014';
+const QUESO_LOCALES = [
+  { key:'DEHESA',         label:'DEHESA'        },
+  { key:'MANQUEHUE',      label:'MANQUEHUE'     },
+  { key:'VITACURA',       label:'VITACURA'      },
+  { key:'QUINCHAMALI',    label:'QUINCHA'       },
+  { key:'BULNES CORREA',  label:'BULNES'        },
+  { key:'PADRE HURTADO',  label:'PADRE HURTADO' },
+  { key:'RENATO SANCHEZ', label:'RENATO'        },
+  { key:'CHICUREO',       label:'CHICUREO'      },
+  { key:'LAS LILAS',      label:'LAS LILAS'     },
+];
+const DIAS_ES = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
+var qfFechas = [];
+var qfTocado = false;
+
+function isoLocalGr(d) {
+  const p = n => String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
+}
+function diaSemanaGr(iso) { const [y,m,d] = iso.split('-').map(Number); return DIAS_ES[new Date(y,m-1,d).getDay()]; }
+function ddmmGr(iso) { const [,m,d] = iso.split('-'); return d+'/'+m; }
+function ddmmyyyyGr(iso) { const [y,m,d] = iso.split('-'); return d+'/'+m+'/'+y; }
+
+function fechasDisponiblesQueso() {
+  return [...new Set(GRANULAR.filter(r => r.sku === SKU_QUESO).map(r => r.fecha))].sort().reverse();
+}
+
+// Por defecto: fechas con datos de la semana actual; si no hay, las 2 más recientes
+function seleccionInicialQueso() {
+  const disp = fechasDisponiblesQueso();
+  const h = new Date(), dif = (h.getDay()+6)%7, semana = [];
+  for(let i=0;i<7;i++) semana.push(isoLocalGr(new Date(h.getFullYear(), h.getMonth(), h.getDate()-dif+i)));
+  const deSemana = disp.filter(f => semana.includes(f));
+  return deSemana.length ? deSemana : disp.slice(0,2);
+}
+
+function calcQueso(fechas) {
+  const src = GRANULAR.filter(r => r.sku === SKU_QUESO && fechas.includes(r.fecha));
+  const totCol = fechas.map(() => 0);
+  let granTotal = 0;
+  const filas = QUESO_LOCALES.map(l => {
+    const valores = fechas.map((f,i) => {
+      const v = src.filter(r => r.sucursal === l.key && r.fecha === f).reduce((s,r) => s + r.solicitado, 0);
+      totCol[i] += v;
+      return v;
+    });
+    const total = valores.reduce((s,v) => s + v, 0);
+    granTotal += total;
+    return { label:l.label, valores, total };
+  });
+  return { filas, totCol, granTotal };
+}
+
+function buildQuesoTable(m, fechas) {
+  const multi = fechas.length > 1;
+  const celda = v => '<td class="num">'+(v>0?fmt(v):'')+'</td>';
+  return `<table class="queso">
+    <thead><tr>
+      <th></th>
+      ${fechas.map(f => `<th>${diaSemanaGr(f)}<small>${ddmmGr(f)}</small></th>`).join('')}
+      ${multi?'<th class="tot">TOTAL</th>':''}
+    </tr></thead>
+    <tbody>${m.filas.map(f => `<tr>
+      <td class="nombre">${f.label}</td>
+      ${f.valores.map(celda).join('')}
+      ${multi?'<td class="num tot">'+(f.total>0?fmt(f.total):'')+'</td>':''}
+    </tr>`).join('')}</tbody>
+    <tfoot><tr>
+      <td class="nombre">TOTAL</td>
+      ${m.totCol.map(celda).join('')}
+      ${multi?'<td class="num tot">'+(m.granTotal>0?fmt(m.granTotal):'')+'</td>':''}
+    </tr></tfoot>
+  </table>`;
+}
+
+function renderQueso() {
+  const cont = document.getElementById('quesoTable');
+  const cnt = document.getElementById('quesoCount');
+  if(!cont) return;
+  if(!GRANULAR.some(r => r.sku === SKU_QUESO)) {
+    cont.innerHTML = '<div class="empty-state">Sin datos del código '+SKU_QUESO+'.</div>';
+    cnt.textContent = '—';
+    return;
+  }
+  const fechas = [...qfFechas].sort();
+  if(!fechas.length) {
+    cont.innerHTML = '<div class="empty-state">Selecciona al menos una fecha de entrega.</div>';
+    cnt.textContent = 'Sin fechas seleccionadas';
+    return;
+  }
+  cont.innerHTML = buildQuesoTable(calcQueso(fechas), fechas);
+  cnt.textContent = fechas.length + (fechas.length === 1 ? ' fecha' : ' fechas') + ' de entrega · ' + fechas.map(ddmmGr).join(' · ');
+}
+
+function poblarFiltroQueso() {
+  const disp = fechasDisponiblesQueso();
+  qfFechas = qfTocado ? qfFechas.filter(f => disp.includes(f)) : seleccionInicialQueso();
+  setupCustomFilter('qf', disp, qfFechas, sel => { qfFechas = [...sel]; qfTocado = true; renderQueso(); });
+  const btn = document.querySelector('#qfDD .filter-btn');
+  if(btn) btn.textContent = qfFechas.length ? qfFechas.length + ' seleccionados' : btn.getAttribute('data-placeholder');
+}
+
+function descargarQuesoExcel() {
+  const fechas = [...qfFechas].sort();
+  if(!fechas.length) { alert('Selecciona al menos una fecha de entrega.'); return; }
+  const m = calcQueso(fechas);
+  const multi = fechas.length > 1;
+  const enc = f => diaSemanaGr(f)+' '+ddmmyyyyGr(f);
+  const num = v => v > 0 ? v : '';
+  const rows = m.filas.map(f => {
+    const row = { 'Local': f.label };
+    fechas.forEach((d,i) => { row[enc(d)] = num(f.valores[i]); });
+    if(multi) row['TOTAL'] = num(f.total);
+    return row;
+  });
+  const tot = { 'Local': 'TOTAL' };
+  fechas.forEach((d,i) => { tot[enc(d)] = num(m.totCol[i]); });
+  if(multi) tot['TOTAL'] = num(m.granTotal);
+  rows.push(tot);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Queso frita');
+  XLSX.writeFile(wb, 'empanada_queso_frita_'+fechas[0]+(multi?'_a_'+fechas[fechas.length-1]:'')+'.xlsx');
+}
+
+function imprimirQueso() {
+  const tabla = document.querySelector('#quesoTable table');
+  if(!tabla) { alert('Selecciona al menos una fecha de entrega.'); return; }
+  const f = [...qfFechas].sort();
+  const horizontal = f.length > 4;
+  const style = `<style>body{font-family:Calibri,Arial,sans-serif;padding:14px;}h2{font-size:15px;margin:0 0 8px;}table{border-collapse:collapse;width:100%;font-size:18px;font-weight:700;color:#000;}th,td{border:1px solid #000;padding:12px 8px;}th{text-align:center;}th small{display:block;font-size:11px;font-weight:600;color:#333;}td.nombre{text-align:left;}td.num{text-align:center;}.tot{background:#f1f5f9;-webkit-print-color-adjust:exact;print-color-adjust:exact;}@media print{@page{size:${horizontal?'landscape':'portrait'};margin:12mm;}}</style>`;
+  const win = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">${style}<title>Empanada queso frita</title></head><body><h2>Empanada de queso frita (${SKU_QUESO}) — ${f.map(ddmmGr).join(' · ')}</h2>${tabla.outerHTML}</body></html>`);
+  win.document.close();
+  win.onload = () => setTimeout(() => win.print(), 150);
+}
+
+const _qfReset = document.getElementById('qfBtnReset');
+if(_qfReset) _qfReset.addEventListener('click', () => { qfTocado = false; poblarFiltroQueso(); renderQueso(); });
 
 function imprimirGrTabla(divId, titulo) {
   const cont = document.getElementById(divId);
