@@ -3403,6 +3403,13 @@ function buildGrMap(src, skus) {
 
 function nombreLocal(cod) { return NOMBRES_OFICIALES[cod] || cod; }
 
+// Abreviaturas de local para la tabla de Empanadas
+const GR_ABREV = {
+  'QUINCHAMALI':'QUI', 'VITACURA':'VIT', 'RENATO SANCHEZ':'RS', 'MANQUEHUE':'MAN',
+  'DEHESA':'DEHESA', 'BULNES CORREA':'BC', 'CHICUREO':'CHI', 'LAS LILAS':'LL', 'PADRE HURTADO':'PH'
+};
+function abrevLocal(nombre) { return GR_ABREV[nombre] || nombre; }
+
 // Orden fijo de locales para la tabla de Empanadas (GRANULAR.sucursal guarda el nombre, no el código)
 const GR_LOCALES_ORDEN = [314, 316, 426, 483, 302, 300, 526, 299, 303].map(cod => NOMBRES_OFICIALES[cod]);
 
@@ -3432,9 +3439,9 @@ function buildGrPivotTable(src) {
     <tr>
       <th style="background:var(--surface-2);min-width:80px;">SKU</th>
       <th style="background:var(--surface-2);min-width:160px;">Descripción</th>
-      ${locales.map(l => `<th style="background:#E8F0FD;color:#0A5FD6;text-align:right;min-width:80px;">${nombreLocal(l)}</th>`).join('')}
+      ${locales.map(l => `<th style="background:#E8F0FD;color:#0A5FD6;text-align:right;min-width:60px;" title="${l}">${abrevLocal(l)}</th>`).join('')}
       <th style="background:var(--surface-2);min-width:80px;">SKU</th>
-      ${locales.map(l => `<th style="background:#FDEBE8;color:#C2410C;text-align:right;min-width:80px;">${nombreLocal(l)}</th>`).join('')}
+      ${locales.map(l => `<th style="background:#FDEBE8;color:#C2410C;text-align:right;min-width:60px;" title="${l}">${abrevLocal(l)}</th>`).join('')}
     </tr>
   </thead>`;
 
