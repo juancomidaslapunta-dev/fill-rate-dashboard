@@ -981,17 +981,17 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
       <div style="overflow-x:auto;" id="quesoTable"><div class="empty-state">Carga archivos para ver datos.</div></div>
     </div>
 
-    <!-- Tabla: Empanadas P/E congeladas (Packs) por local, sumando las fechas de entrega elegidas -->
+    <!-- Tablas de solicitud por local (Packs P/E congeladas y Cocktail): filtro propio de varias fechas, cantidades sumadas -->
     <style>
-      #packsTable table.packs { border-collapse:collapse; width:100%; font-size:.95rem; color:#000; }
-      #packsTable table.packs th, #packsTable table.packs td { border:1px solid #000; padding:.4rem .55rem; }
-      #packsTable table.packs th { background:#C4D79B; text-align:center; white-space:nowrap; text-transform:none; font-size:.95rem; font-weight:600; color:#000; letter-spacing:0; }
-      #packsTable table.packs td.sku { text-align:right; font-family:inherit; color:#000; font-weight:400; font-size:.95rem; }
-      #packsTable table.packs td.desc { text-align:left; white-space:nowrap; }
-      #packsTable table.packs td.num { text-align:center; }
-      #packsTable table.packs td.tot { text-align:center; font-weight:700; }
-      #packsTable table.packs tfoot td { background:#C4D79B; font-weight:700; text-align:center; }
-      #packsTable table.packs tfoot td.rot { text-align:left; font-weight:600; }
+      .sol-wrap table.sol { border-collapse:collapse; width:100%; font-size:.95rem; color:#000; }
+      .sol-wrap table.sol th, .sol-wrap table.sol td { border:1px solid #000; padding:.4rem .55rem; }
+      .sol-wrap table.sol th { background:var(--sol-bg); text-align:center; white-space:nowrap; text-transform:none; font-size:.95rem; font-weight:600; color:#000; letter-spacing:0; }
+      .sol-wrap table.sol td.sku { text-align:right; font-family:inherit; color:#000; font-weight:400; font-size:.95rem; }
+      .sol-wrap table.sol td.desc { text-align:left; white-space:nowrap; }
+      .sol-wrap table.sol td.num { text-align:center; }
+      .sol-wrap table.sol td.tot { text-align:center; font-weight:700; }
+      .sol-wrap table.sol tfoot td { background:var(--sol-bg); font-weight:700; text-align:center; }
+      .sol-wrap table.sol tfoot td.rot { text-align:left; font-weight:600; }
     </style>
     <div class="panel" style="margin-top:1.2rem;">
       <div class="panel-header-row">
@@ -1000,8 +1000,8 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
           <div id="packsCount" class="results-count">—</div>
         </div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-          <button class="btn btn-download btn-primary" onclick="descargarPacksExcel()">⬇ Excel</button>
-          <button class="btn btn-primary" onclick="imprimirPacks()">🖨️ Imprimir</button>
+          <button class="btn btn-download btn-primary" onclick="descargarSolExcel('packs')">⬇ Excel</button>
+          <button class="btn btn-primary" onclick="imprimirSol('packs')">🖨️ Imprimir</button>
         </div>
       </div>
       <div class="toolbar" style="margin-bottom:1rem;">
@@ -1025,7 +1025,42 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
         </div>
         <button class="btn-reset" id="pfBtnReset">✕ Limpiar</button>
       </div>
-      <div style="overflow-x:auto;" id="packsTable"><div class="empty-state">Carga archivos para ver datos.</div></div>
+      <div class="sol-wrap" style="overflow-x:auto;--sol-bg:#C4D79B;" id="packsTable"><div class="empty-state">Carga archivos para ver datos.</div></div>
+    </div>
+
+    <div class="panel" style="margin-top:1.2rem;">
+      <div class="panel-header-row">
+        <div>
+          <div class="panel-title">EMPANADAS COCKTAIL — Solicitud (Granel)</div>
+          <div id="cocktailCount" class="results-count">—</div>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+          <button class="btn btn-download btn-primary" onclick="descargarSolExcel('cocktail')">⬇ Excel</button>
+          <button class="btn btn-primary" onclick="imprimirSol('cocktail')">🖨️ Imprimir</button>
+        </div>
+      </div>
+      <div class="toolbar" style="margin-bottom:1rem;">
+        <div class="fgroup">
+          <label>Fechas de entrega</label>
+          <div class="filter-dropdown" id="ckDD">
+            <button class="filter-btn" data-placeholder="Seleccionar fechas...">Seleccionar fechas...</button>
+            <div class="filter-menu" style="display:none">
+              <input class="filter-search" id="ckSearch" placeholder="Buscar fecha...">
+              <div class="filter-controls">
+                <button class="filter-btn-small" id="ckAll">✓ Todas</button>
+                <button class="filter-btn-small" id="ckNone">✗ Ninguna</button>
+              </div>
+              <div class="filter-options" id="ckOptions"></div>
+              <div class="filter-actions">
+                <button class="btn btn-primary" id="ckApply">Aplicar</button>
+                <button class="btn btn-secondary" id="ckCancel">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="btn-reset" id="ckBtnReset">✕ Limpiar</button>
+      </div>
+      <div class="sol-wrap" style="overflow-x:auto;--sol-bg:#B8CCE4;" id="cocktailTable"><div class="empty-state">Carga archivos para ver datos.</div></div>
     </div>
   </div>
   <!-- ============ FIN TAB EMPANADAS ============ -->
@@ -3603,7 +3638,7 @@ function renderGuiaRapida() {
   document.getElementById('grResultsCount').textContent =
     GR_PARES.length + ' productos' + (grFechaDesde ? ' · ' + grFechaDesde : '');
   renderQueso();
-  renderPacks();
+  Object.keys(TABLAS_SOL).forEach(renderSol);
 }
 
 function poblarFiltrosGuiaRapida() {
@@ -3617,7 +3652,7 @@ function poblarFiltrosGuiaRapida() {
     grFechaDesde = hoy; desde.value = hoy;
   }
   poblarFiltroQueso();
-  poblarFiltroPacks();
+  Object.keys(TABLAS_SOL).forEach(poblarFiltroSol);
 }
 
 // ============================================================
@@ -3768,40 +3803,64 @@ const _qfReset = document.getElementById('qfBtnReset');
 if(_qfReset) _qfReset.addEventListener('click', () => { qfTocado = false; poblarFiltroQueso(); renderQueso(); });
 
 // ============================================================
-// EMPANADAS P/E CONGELADAS (PACKS) — filas = SKU, columnas = locales
-// Filtro propio de varias fechas de entrega; las cantidades de las fechas elegidas se suman.
+// TABLAS DE SOLICITUD POR LOCAL — filas = SKU, columnas = locales
+// (Empanadas P/E congeladas en Packs y Empanadas Cocktail en Granel)
+// Cada tabla tiene su propio filtro de varias fechas de entrega; las cantidades de las fechas elegidas se suman.
 // ============================================================
-const PACKS_SKUS = [
-  { sku:'1101005', desc:'Pack Emp. champiñon P/E Cong.'     },
-  { sku:'1101007', desc:'Pack Emp. jamon queso P/E Cong'    },
-  { sku:'1101011', desc:'Pack Emp. pino P/E Cong.'          },
-  { sku:'1101015', desc:'Pack Emp. tomate P/E Cong.'        },
-  { sku:'1101016', desc:'Pack Emp. camarón queso P/E C'     },
-  { sku:'1101020', desc:'Pack Emp. Mechada queso P/E Cg'    },
-  { sku:'1101021', desc:'Pack Emp. queso horno P/E Cong'    },
+const SOL_LOCALES = [
+  { key:'BULNES CORREA',  label:'BULNES C'    },
+  { key:'RENATO SANCHEZ', label:'RENATO S'    },
+  { key:'PADRE HURTADO',  label:'PADRE H'     },
+  { key:'CHICUREO',       label:'CHICUREO'    },
+  { key:'QUINCHAMALI',    label:'QUINCHAMALI' },
+  { key:'VITACURA',       label:'VITACURA'    },
+  { key:'DEHESA',         label:'DEHESA'      },
+  { key:'MANQUEHUE',      label:'MANQ'        },
+  { key:'LAS LILAS',      label:'LAS LILAS'   },
 ];
-const PACKS_LOCALES = [
-  { key:'BULNES CORREA',  label:'BC'        },
-  { key:'RENATO SANCHEZ', label:'RS'        },
-  { key:'PADRE HURTADO',  label:'PH'        },
-  { key:'CHICUREO',       label:'CHIC'      },
-  { key:'QUINCHAMALI',    label:'QUI'       },
-  { key:'VITACURA',       label:'VIT'       },
-  { key:'DEHESA',         label:'DEHESA'    },
-  { key:'MANQUEHUE',      label:'MANQUEHUE' },
-  { key:'LAS LILAS',      label:'LAS LILAS' },
-];
-const PACKS_CODIGOS = PACKS_SKUS.map(p => p.sku);
-var pfFechas = [];
-var pfTocado = false;
 
-function calcPacks(fechas) {
-  const src = GRANULAR.filter(r => PACKS_CODIGOS.includes(r.sku) && fechas.includes(r.fecha));
-  const totCol = PACKS_LOCALES.map(() => 0);
+const TABLAS_SOL = {
+  packs: {
+    prefix:'pf', titulo:'EMPANADAS P/E CONGELADAS', grupo:'SOLICITUD (Packs)', totalLabel:'TOTAL',
+    color:'#C4D79B', archivo:'empanadas_pe_congeladas', hoja:'Empanadas P-E congeladas',
+    vacio:'Sin datos de los códigos de empanadas P/E congeladas (packs).',
+    skus:[
+      { sku:'1101005', desc:'Pack Emp. champiñon P/E Cong.'  },
+      { sku:'1101007', desc:'Pack Emp. jamon queso P/E Cong' },
+      { sku:'1101011', desc:'Pack Emp. pino P/E Cong.'       },
+      { sku:'1101015', desc:'Pack Emp. tomate P/E Cong.'     },
+      { sku:'1101016', desc:'Pack Emp. camarón queso P/E C'  },
+      { sku:'1101020', desc:'Pack Emp. Mechada queso P/E Cg' },
+      { sku:'1101021', desc:'Pack Emp. queso horno P/E Cong' },
+    ],
+    fechas:[], tocado:false,
+  },
+  cocktail: {
+    prefix:'ck', titulo:'EMPANADAS COCKTAIL', grupo:'SOLICITUD (GRANEL)', totalLabel:'SALDO',
+    color:'#B8CCE4', archivo:'empanadas_cocktail', hoja:'Empanadas cocktail',
+    vacio:'Sin datos de los códigos de empanadas cocktail.',
+    skus:[
+      { sku:'2110004', desc:'Emp. camaron queso cocktail' },
+      { sku:'2110005', desc:'Emp. champiñón cocktail'     },
+      { sku:'2110007', desc:'Emp. jamon queso cocktail'   },
+      { sku:'2110028', desc:'Emp. mechada queso cocktail' },
+      { sku:'2110010', desc:'Emp. pino cocktail'          },
+      { sku:'2110027', desc:'Emp. queso horno cocktail'   },
+      { sku:'2110014', desc:'Emp. tomate cocktail'        },
+    ],
+    fechas:[], tocado:false,
+  },
+};
+const solCodigos = t => t.skus.map(p => p.sku);
+
+function calcSol(t, fechas) {
+  const codigos = solCodigos(t);
+  const src = GRANULAR.filter(r => codigos.includes(r.sku) && fechas.includes(r.fecha));
+  const totCol = SOL_LOCALES.map(() => 0);
   let granTotal = 0;
-  const filas = PACKS_SKUS.map(p => {
+  const filas = t.skus.map(p => {
     const desc = (GRANULAR.find(r => r.sku === p.sku && r.descripcion) || {}).descripcion || p.desc;
-    const valores = PACKS_LOCALES.map((l,i) => {
+    const valores = SOL_LOCALES.map((l,i) => {
       const v = src.filter(r => r.sku === p.sku && r.sucursal === l.key).reduce((s,r) => s + r.solicitado, 0);
       totCol[i] += v;
       return v;
@@ -3813,18 +3872,18 @@ function calcPacks(fechas) {
   return { filas, totCol, granTotal };
 }
 
-function buildPacksTable(m) {
-  const n = PACKS_LOCALES.length;
-  return `<table class="packs">
+function buildSolTable(t, m) {
+  const n = SOL_LOCALES.length;
+  return `<table class="sol">
     <thead>
       <tr>
         <th colspan="2"></th>
-        <th colspan="${n}">SOLICITUD (Packs)</th>
-        <th rowspan="2">TOTAL</th>
+        <th colspan="${n}">${t.grupo}</th>
+        <th rowspan="2">${t.totalLabel}</th>
       </tr>
       <tr>
         <th>SKU</th><th style="text-align:left;">SABORES</th>
-        ${PACKS_LOCALES.map(l => `<th>${l.label}</th>`).join('')}
+        ${SOL_LOCALES.map(l => `<th>${l.label}</th>`).join('')}
       </tr>
     </thead>
     <tbody>${m.filas.map(f => `<tr>
@@ -3835,71 +3894,78 @@ function buildPacksTable(m) {
     </tr>`).join('')}</tbody>
     <tfoot><tr>
       <td class="rot" colspan="2">Total</td>
-      ${m.totCol.map(t => '<td>'+fmt(t)+'</td>').join('')}
+      ${m.totCol.map(x => '<td>'+fmt(x)+'</td>').join('')}
       <td>${fmt(m.granTotal)}</td>
     </tr></tfoot>
   </table>`;
 }
 
-function renderPacks() {
-  const cont = document.getElementById('packsTable');
-  const cnt = document.getElementById('packsCount');
+function renderSol(k) {
+  const t = TABLAS_SOL[k];
+  const cont = document.getElementById(k+'Table');
+  const cnt = document.getElementById(k+'Count');
   if(!cont) return;
-  if(!GRANULAR.some(r => PACKS_CODIGOS.includes(r.sku))) {
-    cont.innerHTML = '<div class="empty-state">Sin datos de los códigos de empanadas P/E congeladas (packs).</div>';
+  if(!GRANULAR.some(r => solCodigos(t).includes(r.sku))) {
+    cont.innerHTML = '<div class="empty-state">'+t.vacio+'</div>';
     cnt.textContent = '—';
     return;
   }
-  const fechas = [...pfFechas].sort();
+  const fechas = [...t.fechas].sort();
   if(!fechas.length) {
     cont.innerHTML = '<div class="empty-state">Selecciona al menos una fecha de entrega.</div>';
     cnt.textContent = 'Sin fechas seleccionadas';
     return;
   }
-  cont.innerHTML = buildPacksTable(calcPacks(fechas));
+  cont.innerHTML = buildSolTable(t, calcSol(t, fechas));
   cnt.textContent = fechas.length + (fechas.length === 1 ? ' fecha' : ' fechas') + ' de entrega · ' + fechas.map(ddmmGr).join(' · ');
 }
 
-function poblarFiltroPacks() {
-  const disp = fechasDisponiblesGr(PACKS_CODIGOS);
-  pfFechas = pfTocado ? pfFechas.filter(f => disp.includes(f)) : seleccionInicialGr(PACKS_CODIGOS);
-  setupCustomFilter('pf', disp, pfFechas, sel => { pfFechas = [...sel]; pfTocado = true; renderPacks(); });
-  const btn = document.querySelector('#pfDD .filter-btn');
-  if(btn) btn.textContent = pfFechas.length ? pfFechas.length + ' seleccionados' : btn.getAttribute('data-placeholder');
+function poblarFiltroSol(k) {
+  const t = TABLAS_SOL[k];
+  const disp = fechasDisponiblesGr(solCodigos(t));
+  t.fechas = t.tocado ? t.fechas.filter(f => disp.includes(f)) : seleccionInicialGr(solCodigos(t));
+  setupCustomFilter(t.prefix, disp, t.fechas, sel => { t.fechas = [...sel]; t.tocado = true; renderSol(k); });
+  const btn = document.querySelector('#'+t.prefix+'DD .filter-btn');
+  if(btn) btn.textContent = t.fechas.length ? t.fechas.length + ' seleccionados' : btn.getAttribute('data-placeholder');
 }
 
-function descargarPacksExcel() {
-  const fechas = [...pfFechas].sort();
+function descargarSolExcel(k) {
+  const t = TABLAS_SOL[k];
+  const fechas = [...t.fechas].sort();
   if(!fechas.length) { alert('Selecciona al menos una fecha de entrega.'); return; }
-  const m = calcPacks(fechas);
+  const m = calcSol(t, fechas);
   const rows = m.filas.map(f => {
     const row = { 'SKU': f.sku, 'SABORES': f.desc };
-    PACKS_LOCALES.forEach((l,i) => { row[l.label] = f.valores[i] > 0 ? f.valores[i] : ''; });
-    row['TOTAL'] = f.total;
+    SOL_LOCALES.forEach((l,i) => { row[l.label] = f.valores[i] > 0 ? f.valores[i] : ''; });
+    row[t.totalLabel] = f.total;
     return row;
   });
   const tot = { 'SKU': '', 'SABORES': 'Total' };
-  PACKS_LOCALES.forEach((l,i) => { tot[l.label] = m.totCol[i]; });
-  tot['TOTAL'] = m.granTotal;
+  SOL_LOCALES.forEach((l,i) => { tot[l.label] = m.totCol[i]; });
+  tot[t.totalLabel] = m.granTotal;
   rows.push(tot);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Empanadas P-E congeladas');
-  XLSX.writeFile(wb, 'empanadas_pe_congeladas_'+fechas[0]+(fechas.length>1?'_a_'+fechas[fechas.length-1]:'')+'.xlsx');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), t.hoja);
+  XLSX.writeFile(wb, t.archivo+'_'+fechas[0]+(fechas.length>1?'_a_'+fechas[fechas.length-1]:'')+'.xlsx');
 }
 
-function imprimirPacks() {
-  const tabla = document.querySelector('#packsTable table');
+function imprimirSol(k) {
+  const t = TABLAS_SOL[k];
+  const tabla = document.querySelector('#'+k+'Table table');
   if(!tabla) { alert('Selecciona al menos una fecha de entrega.'); return; }
-  const f = [...pfFechas].sort();
-  const style = `<style>body{font-family:Calibri,Arial,sans-serif;padding:14px;}h2{font-size:22px;text-align:center;margin:0 0 4px;}p{text-align:center;font-size:12px;margin:0 0 10px;color:#333;}table{border-collapse:collapse;width:100%;font-size:13px;color:#000;}th,td{border:1px solid #000;padding:5px 7px;}th{background:#C4D79B;text-align:center;font-weight:600;-webkit-print-color-adjust:exact;print-color-adjust:exact;}td.sku{text-align:right;}td.desc{text-align:left;white-space:nowrap;}td.num,td.tot{text-align:center;}td.tot{font-weight:700;}tfoot td{background:#C4D79B;font-weight:700;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;}tfoot td.rot{text-align:left;font-weight:600;}@media print{@page{size:landscape;margin:10mm;}}</style>`;
+  const f = [...t.fechas].sort();
+  const style = `<style>body{font-family:Calibri,Arial,sans-serif;padding:14px;}h2{font-size:22px;text-align:center;margin:0 0 4px;}p{text-align:center;font-size:12px;margin:0 0 10px;color:#333;}table{border-collapse:collapse;width:100%;font-size:13px;color:#000;}th,td{border:1px solid #000;padding:5px 7px;}th{background:${t.color};text-align:center;font-weight:600;-webkit-print-color-adjust:exact;print-color-adjust:exact;}td.sku{text-align:right;}td.desc{text-align:left;white-space:nowrap;}td.num,td.tot{text-align:center;}td.tot{font-weight:700;}tfoot td{background:${t.color};font-weight:700;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;}tfoot td.rot{text-align:left;font-weight:600;}@media print{@page{size:landscape;margin:10mm;}}</style>`;
   const win = window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">${style}<title>Empanadas P/E congeladas</title></head><body><h2>EMPANADAS P/E CONGELADAS</h2><p>Entrega: ${f.map(ddmmGr).join(' · ')}</p>${tabla.outerHTML}</body></html>`);
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">${style}<title>${t.titulo}</title></head><body><h2>${t.titulo}</h2><p>Entrega: ${f.map(ddmmGr).join(' · ')}</p>${tabla.outerHTML}</body></html>`);
   win.document.close();
   win.onload = () => setTimeout(() => win.print(), 150);
 }
 
-const _pfReset = document.getElementById('pfBtnReset');
-if(_pfReset) _pfReset.addEventListener('click', () => { pfTocado = false; poblarFiltroPacks(); renderPacks(); });
+Object.keys(TABLAS_SOL).forEach(k => {
+  const t = TABLAS_SOL[k];
+  const btn = document.getElementById(t.prefix+'BtnReset');
+  if(btn) btn.addEventListener('click', () => { t.tocado = false; poblarFiltroSol(k); renderSol(k); });
+});
 
 function imprimirGrTabla(divId, titulo) {
   const cont = document.getElementById(divId);
