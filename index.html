@@ -1137,6 +1137,59 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
       </div>
       <div class="sol-wrap" style="overflow-x:auto;--sol-bg:#B8CCE4;" id="otrosTable"><div class="empty-state">Carga archivos para ver datos.</div></div>
     </div>
+
+    <div class="panel" style="margin-top:1.2rem;">
+      <div class="panel-header-row">
+        <div>
+          <div class="panel-title">LASAÑAS — Solicitud</div>
+          <div id="lasanasCount" class="results-count">—</div>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+          <button class="btn btn-download btn-primary" onclick="descargarSolExcel('lasanas')">⬇ Excel</button>
+          <button class="btn btn-primary" onclick="imprimirSol('lasanas')">🖨️ Imprimir</button>
+        </div>
+      </div>
+      <div class="toolbar" style="margin-bottom:1rem;">
+        <div class="fgroup">
+          <label>Fechas de entrega</label>
+          <div class="filter-dropdown" id="laDD">
+            <button class="filter-btn" data-placeholder="Seleccionar fechas...">Seleccionar fechas...</button>
+            <div class="filter-menu" style="display:none">
+              <input class="filter-search" id="laSearch" placeholder="Buscar fecha...">
+              <div class="filter-controls">
+                <button class="filter-btn-small" id="laAll">✓ Todas</button>
+                <button class="filter-btn-small" id="laNone">✗ Ninguna</button>
+              </div>
+              <div class="filter-options" id="laOptions"></div>
+              <div class="filter-actions">
+                <button class="btn btn-primary" id="laApply">Aplicar</button>
+                <button class="btn btn-secondary" id="laCancel">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="fgroup">
+          <label>Local / Sucursal</label>
+          <div class="filter-dropdown" id="laLocalDD">
+            <button class="filter-btn" data-placeholder="Todos los locales">Todos los locales</button>
+            <div class="filter-menu" style="display:none">
+              <input class="filter-search" id="laLocalSearch" placeholder="Buscar local...">
+              <div class="filter-controls">
+                <button class="filter-btn-small" id="laLocalAll">✓ Todos</button>
+                <button class="filter-btn-small" id="laLocalNone">✗ Ninguno</button>
+              </div>
+              <div class="filter-options" id="laLocalOptions"></div>
+              <div class="filter-actions">
+                <button class="btn btn-primary" id="laLocalApply">Aplicar</button>
+                <button class="btn btn-secondary" id="laLocalCancel">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="btn-reset" id="laBtnReset">✕ Limpiar</button>
+      </div>
+      <div class="sol-wrap" style="overflow-x:auto;--sol-bg:#D9D9D9;" id="lasanasTable"><div class="empty-state">Carga archivos para ver datos.</div></div>
+    </div>
   </div>
   <!-- ============ FIN TAB OTROS ============ -->
 
@@ -3950,17 +4003,50 @@ const TABLAS_SOL = {
     ],
     fechas:[], tocado:false,
   },
+  lasanas: {
+    prefix:'la', titulo:'LASAÑAS', grupo:'SOLICITUD', totalLabel:'TOTAL',
+    color:'#D9D9D9', archivo:'lasanas', hoja:'Lasañas',
+    vacio:'Sin datos de los códigos de Lasañas.',
+    localFiltro:true, localSel:[],
+    skus:[
+      { sku:'2102001', desc:'Lasaña alcachofa jamon.'      },
+      { sku:'2102013', desc:'Lasaña alcachofa jamon med.'  },
+      { sku:'2102019', desc:'Lasaña alcachofa jamon ter.'  },
+      { sku:'2102003', desc:'Lasaña bolognesa'             },
+      { sku:'2102014', desc:'Lasaña bolognesa med.'        },
+      { sku:'2102020', desc:'Lasaña bolognesa ter.'        },
+      { sku:'2102004', desc:'Lasaña bolognesa ind'         },
+      { sku:'2102005', desc:'Lasaña camaron jaiba'         },
+      { sku:'2102015', desc:'Lasaña camaron jaiba med.'    },
+      { sku:'2102021', desc:'Lasaña camaron jaiba ter.'    },
+      { sku:'2102006', desc:'Lasaña cam jaiba ind'         },
+      { sku:'2102007', desc:'Lasaña espinaca-champiñon'    },
+      { sku:'2102016', desc:'Lasaña espinaca-champ med.'   },
+      { sku:'2102022', desc:'Lasaña espinaca-champ ter.'   },
+      { sku:'2102009', desc:'Lasaña provenzal'             },
+      { sku:'2102018', desc:'Lasaña provenzal med.'        },
+      { sku:'2102011', desc:'Lasaña pollo'                 },
+      { sku:'2102017', desc:'Lasaña pollo med.'             },
+      { sku:'2102025', desc:'Lasaña italiana'              },
+      { sku:'2102026', desc:'Lasaña italiana med.'         },
+    ],
+    fechas:[], tocado:false,
+  },
 };
 const solCodigos = t => t.skus.map(p => p.sku);
+const localesDe = t => (t.localFiltro && t.localSel && t.localSel.length)
+  ? SOL_LOCALES.filter(l => t.localSel.includes(l.key))
+  : SOL_LOCALES;
 
 function calcSol(t, fechas) {
   const codigos = solCodigos(t);
+  const locales = localesDe(t);
   const src = GRANULAR.filter(r => codigos.includes(r.sku) && fechas.includes(r.fecha));
-  const totCol = SOL_LOCALES.map(() => 0);
+  const totCol = locales.map(() => 0);
   let granTotal = 0;
   const filas = t.skus.map(p => {
     const desc = (GRANULAR.find(r => r.sku === p.sku && r.descripcion) || {}).descripcion || p.desc;
-    const valores = SOL_LOCALES.map((l,i) => {
+    const valores = locales.map((l,i) => {
       const v = src.filter(r => r.sku === p.sku && r.sucursal === l.key).reduce((s,r) => s + r.solicitado, 0);
       totCol[i] += v;
       return v;
@@ -3969,11 +4055,11 @@ function calcSol(t, fechas) {
     granTotal += total;
     return { sku:p.sku, desc, valores, total };
   });
-  return { filas, totCol, granTotal };
+  return { filas, totCol, granTotal, locales };
 }
 
 function buildSolTable(t, m) {
-  const n = SOL_LOCALES.length;
+  const n = m.locales.length;
   return `<table class="sol">
     <thead>
       <tr>
@@ -3983,7 +4069,7 @@ function buildSolTable(t, m) {
       </tr>
       <tr>
         <th>SKU</th><th style="text-align:left;">SABORES</th>
-        ${SOL_LOCALES.map(l => `<th>${l.label}</th>`).join('')}
+        ${m.locales.map(l => `<th>${l.label}</th>`).join('')}
       </tr>
     </thead>
     <tbody>${m.filas.map(f => `<tr>
@@ -4027,6 +4113,15 @@ function poblarFiltroSol(k) {
   setupCustomFilter(t.prefix, disp, t.fechas, sel => { t.fechas = [...sel]; t.tocado = true; renderSol(k); });
   const btn = document.querySelector('#'+t.prefix+'DD .filter-btn');
   if(btn) btn.textContent = t.fechas.length ? t.fechas.length + ' seleccionados' : btn.getAttribute('data-placeholder');
+  if(t.localFiltro) poblarFiltroLocalSol(k);
+}
+
+function poblarFiltroLocalSol(k) {
+  const t = TABLAS_SOL[k];
+  const opciones = SOL_LOCALES.map(l => l.key);
+  setupCustomFilter(t.prefix+'Local', opciones, t.localSel, sel => { t.localSel = [...sel]; renderSol(k); });
+  const btn = document.querySelector('#'+t.prefix+'LocalDD .filter-btn');
+  if(btn) btn.textContent = t.localSel.length ? t.localSel.length + ' seleccionados' : btn.getAttribute('data-placeholder');
 }
 
 function descargarSolExcel(k) {
@@ -4036,12 +4131,12 @@ function descargarSolExcel(k) {
   const m = calcSol(t, fechas);
   const rows = m.filas.map(f => {
     const row = { 'SKU': f.sku, 'SABORES': f.desc };
-    SOL_LOCALES.forEach((l,i) => { row[l.label] = f.valores[i] > 0 ? f.valores[i] : ''; });
+    m.locales.forEach((l,i) => { row[l.label] = f.valores[i] > 0 ? f.valores[i] : ''; });
     row[t.totalLabel] = f.total;
     return row;
   });
   const tot = { 'SKU': '', 'SABORES': 'Total' };
-  SOL_LOCALES.forEach((l,i) => { tot[l.label] = m.totCol[i]; });
+  m.locales.forEach((l,i) => { tot[l.label] = m.totCol[i]; });
   tot[t.totalLabel] = m.granTotal;
   rows.push(tot);
   const wb = XLSX.utils.book_new();
@@ -4064,7 +4159,7 @@ function imprimirSol(k) {
 Object.keys(TABLAS_SOL).forEach(k => {
   const t = TABLAS_SOL[k];
   const btn = document.getElementById(t.prefix+'BtnReset');
-  if(btn) btn.addEventListener('click', () => { t.tocado = false; poblarFiltroSol(k); renderSol(k); });
+  if(btn) btn.addEventListener('click', () => { t.tocado = false; if(t.localFiltro) t.localSel = []; poblarFiltroSol(k); renderSol(k); });
 });
 
 function imprimirGrTabla(divId, titulo) {
