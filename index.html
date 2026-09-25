@@ -1062,6 +1062,41 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
       </div>
       <div class="sol-wrap" style="overflow-x:auto;--sol-bg:#B8CCE4;" id="cocktailTable"><div class="empty-state">Carga archivos para ver datos.</div></div>
     </div>
+
+    <div class="panel" style="margin-top:1.2rem;">
+      <div class="panel-header-row">
+        <div>
+          <div class="panel-title">EMPANADAS COCKTAIL CONGELADAS — Solicitud (Packs)</div>
+          <div id="cocktailCongCount" class="results-count">—</div>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+          <button class="btn btn-download btn-primary" onclick="descargarSolExcel('cocktailCong')">⬇ Excel</button>
+          <button class="btn btn-primary" onclick="imprimirSol('cocktailCong')">🖨️ Imprimir</button>
+        </div>
+      </div>
+      <div class="toolbar" style="margin-bottom:1rem;">
+        <div class="fgroup">
+          <label>Fechas de entrega</label>
+          <div class="filter-dropdown" id="ccDD">
+            <button class="filter-btn" data-placeholder="Seleccionar fechas...">Seleccionar fechas...</button>
+            <div class="filter-menu" style="display:none">
+              <input class="filter-search" id="ccSearch" placeholder="Buscar fecha...">
+              <div class="filter-controls">
+                <button class="filter-btn-small" id="ccAll">✓ Todas</button>
+                <button class="filter-btn-small" id="ccNone">✗ Ninguna</button>
+              </div>
+              <div class="filter-options" id="ccOptions"></div>
+              <div class="filter-actions">
+                <button class="btn btn-primary" id="ccApply">Aplicar</button>
+                <button class="btn btn-secondary" id="ccCancel">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="btn-reset" id="ccBtnReset">✕ Limpiar</button>
+      </div>
+      <div class="sol-wrap" style="overflow-x:auto;--sol-bg:#C4D79B;" id="cocktailCongTable"><div class="empty-state">Carga archivos para ver datos.</div></div>
+    </div>
   </div>
   <!-- ============ FIN TAB EMPANADAS ============ -->
 
@@ -3847,6 +3882,21 @@ const TABLAS_SOL = {
       { sku:'2110010', desc:'Emp. pino cocktail'          },
       { sku:'2110027', desc:'Emp. queso horno cocktail'   },
       { sku:'2110014', desc:'Emp. tomate cocktail'        },
+    ],
+    fechas:[], tocado:false,
+  },
+  cocktailCong: {
+    prefix:'cc', titulo:'EMPANADAS COCKTAIL CONGELADAS', grupo:'SOLICITUD (Packs)', totalLabel:'TOTAL',
+    color:'#C4D79B', archivo:'empanadas_cocktail_congeladas', hoja:'Empanadas cocktail congeladas',
+    vacio:'Sin datos de los códigos de empanadas cocktail congeladas (packs).',
+    skus:[
+      { sku:'1110004', desc:'Pack Emp. camaron queso cock. C' },
+      { sku:'1110005', desc:'Pack Emp. champiñón cock. C'     },
+      { sku:'1110007', desc:'Pack Emp. jamón queso cock. C'   },
+      { sku:'1110028', desc:'Pack Emp. mechada queso cock.C'  },
+      { sku:'1110010', desc:'Pack Emp. pino cock.C'           },
+      { sku:'1110027', desc:'Pack Emp. queso horno cock.C'    },
+      { sku:'1110014', desc:'Pack Emp. tomate cock.C'         },
     ],
     fechas:[], tocado:false,
   },
