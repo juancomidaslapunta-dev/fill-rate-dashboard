@@ -919,6 +919,23 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
         <label>Fecha Envío</label>
         <input type="date" id="grFechaDesde" class="range-input" style="width:140px;">
       </div>
+      <div class="fgroup">
+        <label>Categoría</label>
+        <div class="filter-dropdown" id="grCatDD">
+          <button class="filter-btn" data-placeholder="Frescas y ultracongeladas">Frescas y ultracongeladas</button>
+          <div class="filter-menu" style="display:none">
+            <div class="filter-controls">
+              <button class="filter-btn-small" id="grCatAll">✓ Todas</button>
+              <button class="filter-btn-small" id="grCatNone">✗ Ninguna</button>
+            </div>
+            <div class="filter-options" id="grCatOptions"></div>
+            <div class="filter-actions">
+              <button class="btn btn-primary" id="grCatApply">Aplicar</button>
+              <button class="btn btn-secondary" id="grCatCancel">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      </div>
       <button class="btn-reset" id="grBtnReset">✕ Limpiar</button>
       <div style="margin-left:auto;">
         <button class="btn btn-download btn-primary" onclick="descargarEmpanadasExcel()">⬇ Excel</button>
@@ -3637,8 +3654,21 @@ const GR_PARES = [
 var grFechaDesde = '';
 var grLocal = [];
 
+// Filtro de categoría de la tabla Frescas / Ultracongeladas (sin selección = ambas)
+const GR_CATS = ['Frescas', 'Ultracongeladas'];
+var grCat = [];
+function grVerCat() {
+  const todas = grCat.length === 0;
+  return { verF: todas || grCat.includes('Frescas'), verC: todas || grCat.includes('Ultracongeladas') };
+}
+function grCatLabel() {
+  const { verF, verC } = grVerCat();
+  return verF && verC ? '' : (verF ? 'Solo frescas' : 'Solo ultracongeladas');
+}
+
 function getGrGranular() {
-  const allSkus = [...GR_SKUS, ...GR_SKUS2];
+  const { verF, verC } = grVerCat();
+  const allSkus = [...(verF ? GR_SKUS : []), ...(verC ? GR_SKUS2 : [])];
   let g = GRANULAR.filter(r => allSkus.includes(r.sku));
   if(grFechaDesde) g = g.filter(r => r.fecha === grFechaDesde);
   if(grLocal.length > 0) g = g.filter(r => grLocal.includes(r.sucursal));
@@ -3683,20 +3713,24 @@ function buildGrPivotTable(src) {
   const presentes = new Set(src.map(r=>r.sucursal));
   const locales = GR_LOCALES_ORDEN.filter(l => presentes.has(l));
 
+  // Con una sola categoría se ocultan las columnas de la otra (y la columna SKU intermedia)
+  const { verF, verC } = grVerCat();
+  const ambas = verF && verC;
+
   const head = `<thead>
     <tr>
       <th colspan="2" style="background:var(--surface-2);"></th>
-      <th colspan="${locales.length}" style="background:#E8F0FD;text-align:center;">FRESCAS</th>
-      <th style="background:var(--surface-2);"></th>
-      <th colspan="${locales.length}" style="background:#FDEBE8;text-align:center;">ULTRACONGELADAS</th>
+      ${verF ? `<th colspan="${locales.length}" style="background:#E8F0FD;text-align:center;">FRESCAS</th>` : ''}
+      ${ambas ? '<th style="background:var(--surface-2);"></th>' : ''}
+      ${verC ? `<th colspan="${locales.length}" style="background:#FDEBE8;text-align:center;">ULTRACONGELADAS</th>` : ''}
       <th rowspan="2" class="th-total" style="min-width:58px;">Total</th>
     </tr>
     <tr>
       <th style="background:var(--surface-2);min-width:80px;">SKU</th>
       <th style="background:var(--surface-2);min-width:160px;">Descripción</th>
-      ${locales.map(l => `<th style="background:#E8F0FD;color:#0A5FD6;text-align:right;min-width:60px;" title="${l}">${abrevLocal(l)}</th>`).join('')}
-      <th style="background:var(--surface-2);min-width:80px;">SKU</th>
-      ${locales.map(l => `<th style="background:#FDEBE8;color:#C2410C;text-align:right;min-width:60px;" title="${l}">${abrevLocal(l)}</th>`).join('')}
+      ${verF ? locales.map(l => `<th style="background:#E8F0FD;color:#0A5FD6;text-align:right;min-width:60px;" title="${l}">${abrevLocal(l)}</th>`).join('') : ''}
+      ${ambas ? '<th style="background:var(--surface-2);min-width:80px;">SKU</th>' : ''}
+      ${verC ? locales.map(l => `<th style="background:#FDEBE8;color:#C2410C;text-align:right;min-width:60px;" title="${l}">${abrevLocal(l)}</th>`).join('') : ''}
     </tr>
   </thead>`;
 
@@ -3721,21 +3755,22 @@ function buildGrPivotTable(src) {
     const catF = GR_CATEGORIA[skuF]; if(catF) catTotales[catF] += freshSum;
     const catC = skuC ? GR_CATEGORIA[skuC] : null; if(catC) catTotales[catC] += frozenSum;
     if(totRow === 0) return ''; // oculta filas totalmente en blanco
+    const rP = verF ? rF : rC; // SKU/Descripción de la fila: el fresco, o el ultracongelado si solo se ve esa categoría
     return `<tr>
-      <td class="sku">${rF.sku}</td>
-      <td style="font-weight:600;text-align:left;">${rF.desc}</td>
-      ${fCells}
-      <td class="sku">${skuC||''}</td>
-      ${cCells}
+      <td class="sku">${rP.sku}</td>
+      <td style="font-weight:600;text-align:left;">${rP.desc}</td>
+      ${verF ? fCells : ''}
+      ${ambas ? `<td class="sku">${skuC||''}</td>` : ''}
+      ${verC ? cCells : ''}
       <td class="td-total-sol" style="font-size:1.05rem;">${totRow>0?fmt(totRow):''}</td>
     </tr>`;
   }).join('')}</tbody>`;
 
   const foot = `<tfoot><tr>
     <td colspan="2" style="font-weight:700;">Total</td>
-    ${locales.map(l=>'<td class="td-total-sol" style="font-size:1.05rem;">'+(colTotFresh[l]>0?fmt(colTotFresh[l]):'')+'</td>').join('')}
-    <td></td>
-    ${locales.map(l=>'<td class="td-total-sol" style="font-size:1.05rem;">'+(colTotFrozen[l]>0?fmt(colTotFrozen[l]):'')+'</td>').join('')}
+    ${verF ? locales.map(l=>'<td class="td-total-sol" style="font-size:1.05rem;">'+(colTotFresh[l]>0?fmt(colTotFresh[l]):'')+'</td>').join('') : ''}
+    ${ambas ? '<td></td>' : ''}
+    ${verC ? locales.map(l=>'<td class="td-total-sol" style="font-size:1.05rem;">'+(colTotFrozen[l]>0?fmt(colTotFrozen[l]):'')+'</td>').join('') : ''}
     <td class="td-total-sol" style="font-size:1.05rem;">${granTotal>0?fmt(granTotal):''}</td>
   </tr></tfoot>`;
 
@@ -3764,7 +3799,7 @@ function renderGuiaRapida() {
     ? buildGrPivotTable(src)
     : '<div class="empty-state">Sin datos.</div>';
   document.getElementById('grResultsCount').textContent =
-    GR_PARES.length + ' productos' + (grFechaDesde ? ' · ' + grFechaDesde : '');
+    GR_PARES.length + ' productos' + (grFechaDesde ? ' · ' + grFechaDesde : '') + (grCatLabel() ? ' · ' + grCatLabel() : '');
   renderQueso();
   Object.keys(TABLAS_SOL).forEach(renderSol);
 }
@@ -3774,6 +3809,7 @@ function poblarFiltrosGuiaRapida() {
     .filter(r=>[...GR_SKUS,...GR_SKUS2].includes(r.sku))
     .map(r=>r.sucursal))].sort();
   setupCustomFilter('grLocal', locales, grLocal, sel => { grLocal=sel; renderGuiaRapida(); });
+  setupCustomFilter('grCat', GR_CATS, grCat, sel => { grCat=[...sel]; renderGuiaRapida(); });
   const desde = document.getElementById('grFechaDesde');
   if(!grFechaDesde && desde && !desde.value) {
     const hoy = new Date().toISOString().slice(0,10);
@@ -4167,7 +4203,7 @@ function imprimirGrTabla(divId, titulo) {
   const tablas = cont?.querySelectorAll('table');
   if(!tablas || !tablas.length) { alert('Sin datos para imprimir.'); return; }
   const fecha = grFechaDesde||'';
-  const local  = grLocal.length?' · '+grLocal.join(', '):'';
+  const local  = (grLocal.length?' · '+grLocal.join(', '):'') + (grCatLabel()?' · '+grCatLabel():'');
   const style = `<style>body{font-family:sans-serif;font-size:10px;padding:12px;}h2{font-size:13px;margin-bottom:6px;}table{width:100%;border-collapse:collapse;margin-bottom:10px;}th,td{border:1px solid #475569;padding:.3em .5em;}th{font-weight:700;text-align:center;background:#f1f5f9;}td.sku{font-family:monospace;font-weight:700;}td{text-align:right;}td:nth-child(2){text-align:left;}.td-total-sol{background:#DBEAFE;font-weight:700;}@media print{@page{size:landscape;margin:10mm;}}</style>`;
   const win = window.open('','_blank');
   const html = [...tablas].map(t=>t.outerHTML).join('');
@@ -4198,14 +4234,15 @@ function descargarEmpanadasExcel() {
   const mapFrozen = buildGrMap(src, GR_SKUS2);
   const presentesXls = new Set(src.map(r=>r.sucursal));
   const locales = GR_LOCALES_ORDEN.filter(l => presentesXls.has(l));
-  const rows = GR_PARES.map(([skuF, skuC]) => {
+  const { verF, verC } = grVerCat();
+  const rows = GR_PARES.filter(([, skuC]) => verF || skuC).map(([skuF, skuC]) => {
     const rF = mapFresh.get(skuF) || { sku:skuF, desc:'—', porLocal:{} };
     const rC = skuC ? (mapFrozen.get(skuC) || { sku:skuC, desc:'—', porLocal:{} }) : null;
-    const row = { 'SKU Fresco':rF.sku, 'Descripción':rF.desc };
+    const row = verF ? { 'SKU Fresco':rF.sku, 'Descripción':rF.desc } : { 'SKU Congelado':rC.sku, 'Descripción':rC.desc };
     let tot = 0;
-    locales.forEach(l=>{ const v=rF.porLocal[l]||0; tot+=v; row['Fresca · '+nombreLocal(l)]=v; });
-    row['SKU Congelado'] = skuC||'';
-    locales.forEach(l=>{ const v=rC?(rC.porLocal[l]||0):0; tot+=v; row['Ultracong. · '+nombreLocal(l)]=v; });
+    if(verF) locales.forEach(l=>{ const v=rF.porLocal[l]||0; tot+=v; row['Fresca · '+nombreLocal(l)]=v; });
+    if(verF && verC) row['SKU Congelado'] = skuC||'';
+    if(verC) locales.forEach(l=>{ const v=rC?(rC.porLocal[l]||0):0; tot+=v; row['Ultracong. · '+nombreLocal(l)]=v; });
     row['Total']=tot;
     return row;
   });
@@ -4222,6 +4259,10 @@ if(_grReset) _grReset.addEventListener('click',()=>{
   if(_grDesde) _grDesde.value=grFechaDesde;
   const btn=document.querySelector('#grLocalDD .filter-btn');
   if(btn)btn.textContent='Seleccionar locales...';
+  grCat=[];
+  setupCustomFilter('grCat', GR_CATS, grCat, sel => { grCat=[...sel]; renderGuiaRapida(); });
+  const btnCat=document.querySelector('#grCatDD .filter-btn');
+  if(btnCat)btnCat.textContent=btnCat.getAttribute('data-placeholder');
   renderGuiaRapida();
 });
 (function init(){
