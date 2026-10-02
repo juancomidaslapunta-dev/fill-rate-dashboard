@@ -1467,7 +1467,9 @@ function handleFile(file, statusId, kind){
   reader.onload = function(e){
     try {
       const data = new Uint8Array(e.target.result);
-      const wb = XLSX.read(data, { type:'array', cellDates:false });
+      // CSV: raw:true evita que SheetJS convierta fechas ISO a serial con zona horaria (corría el día)
+      const esCsv = kind === 'solicitudes' && /\.csv$/i.test(file.name);
+      const wb = XLSX.read(data, esCsv ? { type:'array', raw:true, codepage:65001 } : { type:'array', cellDates:false });
       const sheetName = wb.SheetNames[0];
       const ws = wb.Sheets[sheetName];
       const rows = XLSX.utils.sheet_to_json(ws, { defval:null });
@@ -1562,10 +1564,67 @@ function findColumn(row, candidates){
   return null;
 }
 
+// Fecha de pedido: serial Excel, Date o texto dd-mm-yyyy / dd/mm/yyyy (formato chileno)
+function fechaPedidoISO(v){
+  if(typeof v === 'string'){
+    const m = v.trim().match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/);
+    if(m) return m[3] + '-' + m[2].padStart(2,'0') + '-' + m[1].padStart(2,'0');
+  }
+  return toISODate(v);
+}
+
+function normalizarSolicitudesPedido(rows){
+  let validas = 0, rechazadas = 0, sinSolicitud = 0, excluidosEstado = 0, excluidosPlantilla = 0;
+  const out = [];
+  for(const row of rows){
+    const k = {};
+    Object.keys(row).forEach(c => { k[c.trim().toUpperCase()] = row[c]; });
+
+    // Solo pedidos EMITIDO y sin plantillas de materias primas
+    if(String(k['ESTADO'] ?? '').trim().toUpperCase() !== 'EMITIDO'){ excluidosEstado++; continue; }
+    if(String(k['PLANTILLA'] ?? '').toUpperCase().includes('MATERIAS PRIMAS')){ excluidosPlantilla++; continue; }
+
+    let codigoLimpio = parseInt(String(k['CODIGO'] ?? '').replace(/^0+/,'') || '0', 10);
+    if(!CODIGOS_OFICIALES.has(codigoLimpio)){
+      // Local sin código en el archivo (ej. "SIN CODIGO" para Las Lilas): buscar por nombre de tienda
+      const tienda = String(k['TIENDA SOLICITANTE'] ?? '').trim().toUpperCase();
+      const porNombre = Object.keys(NOMBRES_OFICIALES).find(c => {
+        const n = String(NOMBRES_OFICIALES[c]).toUpperCase();
+        return tienda === n || tienda.replace(/^LA\s+/,'') === n.replace(/^LA\s+/,'');
+      });
+      if(porNombre) codigoLimpio = parseInt(porNombre, 10);
+    }
+    if(!codigoLimpio || !CODIGOS_OFICIALES.has(codigoLimpio)){ rechazadas++; continue; }
+
+    // Cantidad solicitada: columna SOLICITUD (si no existe, CANTIDAD)
+    const cantidad = parseFloat(k['SOLICITUD'] ?? k['CANTIDAD']);
+    if(!cantidad || isNaN(cantidad) || cantidad <= 0){ sinSolicitud++; rechazadas++; continue; }
+
+    const fecha = fechaPedidoISO(k['FECHA REQUERIDA']);
+    if(!fecha){ rechazadas++; continue; }
+
+    out.push({
+      sku: String(k['SKU'] ?? '').trim(),
+      descripcion: k['PRODUCTO'] || '',
+      fecha: fecha,
+      sucursal: NOMBRES_OFICIALES[codigoLimpio],
+      cantidad: cantidad
+    });
+    validas++;
+  }
+  return { out, validas, rechazadas, sinSolicitud, excluidosEstado, excluidosPlantilla, formato:'pedido' };
+}
+
 function normalizarSolicitudesRows(rows){
   let validas = 0, rechazadas = 0;
   const out = [];
   if(!rows || rows.length === 0) return { out, validas, rechazadas };
+
+  // Formato "pedido" (ID, EMISION, CODIGO=local, TIENDA SOLICITANTE, FECHA REQUERIDA, SKU, PRODUCTO, SOLICITUD...)
+  // En este formato CODIGO es el código del local, no el SKU.
+  const headers = Object.keys(rows[0]).map(k => k.trim().toUpperCase());
+  const esFormatoPedido = headers.includes('FECHA REQUERIDA') && headers.includes('TIENDA SOLICITANTE') && headers.includes('SKU');
+  if(esFormatoPedido) return normalizarSolicitudesPedido(rows);
 
   const colCodigo = findColumn(rows[0], ['Código','Codigo','SKU','Cód. Artículo']);
   const colDesc = findColumn(rows[0], ['Descripción','Descripcion','Artículo']);
@@ -1698,6 +1757,7 @@ function procesar(){
     dq.total_raw = solRows.length;
     dq.validas = r.validas;
     dq.rechazadas = r.rechazadas;
+    if(r.formato === 'pedido') log('Formato pedido: ' + r.excluidosEstado + ' filas excluidas por estado distinto de EMITIDO, ' + r.excluidosPlantilla + ' por plantilla Materias Primas', 'info');
     log('Solicitudes: ' + r.validas + ' válidas, ' + r.rechazadas + ' rechazadas (sucursal no mapeada, cantidad vacía/cero, o fecha inválida)', r.rechazadas > 0 ? 'warn' : 'ok');
   } else {
     log('No se cargó archivo de Solicitudes — usando seed de ejemplo', 'warn');
