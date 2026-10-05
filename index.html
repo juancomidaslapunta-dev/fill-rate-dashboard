@@ -4066,6 +4066,7 @@ const TABLAS_SOL = {
     prefix:'ck', titulo:'EMPANADAS COCKTAIL', grupo:'SOLICITUD (GRANEL)', totalLabel:'SALDO',
     color:'#B8CCE4', archivo:'empanadas_cocktail', hoja:'Empanadas cocktail',
     vacio:'Sin datos de los códigos de empanadas cocktail.',
+    packEnGranel:{ locales:['CHICUREO','LAS LILAS'], prefijo:'1', factor:10 },
     skus:[
       { sku:'2110004', desc:'Emp. camaron queso cocktail' },
       { sku:'2110005', desc:'Emp. champiñón cocktail'     },
@@ -4146,7 +4147,14 @@ function calcSol(t, fechas) {
   const filas = t.skus.map(p => {
     const desc = (GRANULAR.find(r => r.sku === p.sku && r.descripcion) || {}).descripcion || p.desc;
     const valores = locales.map((l,i) => {
-      const v = src.filter(r => r.sku === p.sku && r.sucursal === l.key).reduce((s,r) => s + r.solicitado, 0);
+      let v = src.filter(r => r.sku === p.sku && r.sucursal === l.key).reduce((s,r) => s + r.solicitado, 0);
+      // Locales que piden en packs: se suman los packs del mismo sabor (SKU 1xxxxxx) × unidades por pack
+      const pk = t.packEnGranel;
+      if(pk && pk.locales.includes(l.key)) {
+        const skuPack = pk.prefijo + p.sku.slice(1);
+        const packs = GRANULAR.filter(r => r.sku === skuPack && r.sucursal === l.key && fechas.includes(r.fecha)).reduce((s,r) => s + r.solicitado, 0);
+        v += packs * pk.factor;
+      }
       totCol[i] += v;
       return v;
     });
