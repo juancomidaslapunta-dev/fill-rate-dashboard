@@ -1011,7 +1011,10 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
       .sol-wrap table.sol tfoot td { background:var(--sol-bg); font-weight:700; text-align:center; }
       .sol-wrap table.sol tfoot td.rot { text-align:left; font-weight:600; }
     </style>
-    <div class="panel" style="margin-top:1.2rem;">
+    <div style="margin-top:1.2rem;display:flex;justify-content:flex-end;">
+      <button class="btn btn-primary" onclick="imprimirSolJuntas(['packs','cocktail','cocktailCong'])">🖨️ Imprimir las 3 solicitudes en una hoja</button>
+    </div>
+    <div class="panel" style="margin-top:.6rem;">
       <div class="panel-header-row">
         <div>
           <div class="panel-title">EMPANADAS P/E CONGELADAS — Solicitud (Packs)</div>
@@ -4248,6 +4251,24 @@ function imprimirSol(k) {
   const style = `<style>body{font-family:Calibri,Arial,sans-serif;padding:14px;}h2{font-size:22px;text-align:center;margin:0 0 4px;}p{text-align:center;font-size:12px;margin:0 0 10px;color:#333;}table{border-collapse:collapse;width:100%;font-size:13px;color:#000;}th,td{border:1px solid #000;padding:5px 7px;}th{background:${t.color};text-align:center;font-weight:600;-webkit-print-color-adjust:exact;print-color-adjust:exact;}td.sku{text-align:right;}td.desc{text-align:left;white-space:nowrap;}td.num,td.tot{text-align:center;}td.tot{font-weight:700;}tfoot td{background:${t.color};font-weight:700;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;}tfoot td.rot{text-align:left;font-weight:600;}@media print{@page{size:landscape;margin:10mm;}}</style>`;
   const win = window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">${style}<title>${t.titulo}</title></head><body><h2>${t.titulo}</h2><p>Entrega: ${f.map(ddmmGr).join(' · ')}</p>${tabla.outerHTML}</body></html>`);
+  win.document.close();
+  win.onload = () => setTimeout(() => win.print(), 150);
+}
+
+// Varias tablas de solicitud en una sola hoja (horizontal, compacta)
+function imprimirSolJuntas(keys) {
+  const bloques = [];
+  for(const k of keys) {
+    const t = TABLAS_SOL[k];
+    const tabla = document.querySelector('#'+k+'Table table');
+    if(!tabla) continue;
+    const f = [...t.fechas].sort();
+    bloques.push(`<section class="blq" style="--c:${t.color}"><h2>${t.titulo} — ${t.grupo.charAt(0) + t.grupo.slice(1).toLowerCase()} <span>Entrega: ${f.map(ddmmGr).join(' · ')}</span></h2>${tabla.outerHTML}</section>`);
+  }
+  if(!bloques.length) { alert('Selecciona al menos una fecha de entrega en las tablas.'); return; }
+  const style = `<style>body{font-family:Calibri,Arial,sans-serif;margin:0;padding:0;}.blq{margin-bottom:9px;page-break-inside:avoid;break-inside:avoid;}h2{font-size:14px;margin:0 0 3px;}h2 span{font-size:11px;font-weight:400;color:#333;margin-left:8px;}table{border-collapse:collapse;width:100%;font-size:11px;color:#000;}th,td{border:1px solid #000;padding:2px 5px;line-height:1.25;}th{background:var(--c);text-align:center;font-weight:600;-webkit-print-color-adjust:exact;print-color-adjust:exact;}td.sku{text-align:right;}td.desc{text-align:left;white-space:nowrap;}td.num,td.tot{text-align:center;}td.tot{font-weight:700;}tfoot td{background:var(--c);font-weight:700;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;}tfoot td.rot{text-align:left;font-weight:600;}@media print{@page{size:landscape;margin:8mm;}}</style>`;
+  const win = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">${style}<title>Solicitud empanadas</title></head><body>${bloques.join('')}</body></html>`);
   win.document.close();
   win.onload = () => setTimeout(() => win.print(), 150);
 }
