@@ -4156,10 +4156,10 @@ function calcSol(t, fechas) {
         const skuPack = pk.prefijo + p.sku.slice(1);
         const packs = GRANULAR.filter(r => r.sku === skuPack && r.sucursal === l.key && fechas.includes(r.fecha)).reduce((s,r) => s + r.solicitado, 0);
         v += packs * pk.factor;
-        // Packs mixtos: 1 pack = N unidades de cada sabor a granel (ej. queso horno/pino carne = 5 + 5)
-        for(const ex of (pk.mixtos && pk.mixtos[p.sku]) || []) {
-          v += GRANULAR.filter(r => r.sku === ex.sku && r.sucursal === l.key && fechas.includes(r.fecha)).reduce((s,r) => s + r.solicitado, 0) * ex.factor;
-        }
+      }
+      // Packs mixtos (todos los locales): 1 pack = N unidades de cada sabor a granel (ej. queso horno/pino carne = 5 + 5)
+      for(const ex of (pk && pk.mixtos && pk.mixtos[p.sku]) || []) {
+        v += GRANULAR.filter(r => r.sku === ex.sku && r.sucursal === l.key && fechas.includes(r.fecha)).reduce((s,r) => s + r.solicitado, 0) * ex.factor;
       }
       totCol[i] += v;
       return v;
