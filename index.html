@@ -4090,6 +4090,7 @@ const TABLAS_SOL = {
       { sku:'1110010', desc:'Pack Emp. pino cock.C'           },
       { sku:'1110027', desc:'Pack Emp. queso horno cock.C'    },
       { sku:'1110014', desc:'Pack Emp. tomate cock.C'         },
+      { sku:'1110063', desc:'Pack Emp. queso horno/pino carne cock. Cg' },
     ],
     fechas:[], tocado:false,
   },
@@ -4271,10 +4272,15 @@ function imprimirSolJuntas(keys) {
     const tabla = document.querySelector('#'+k+'Table table');
     if(!tabla) continue;
     const f = [...t.fechas].sort();
-    bloques.push(`<section class="blq" style="--c:${t.color}"><h2>${t.titulo} — ${t.grupo.charAt(0) + t.grupo.slice(1).toLowerCase()} <span>Entrega: ${f.map(ddmmGr).join(' · ')}</span></h2>${tabla.outerHTML}</section>`);
+    // Mismo ancho de columnas en todas las tablas para que queden alineadas entre sí
+    const n = tabla.querySelectorAll('thead tr:nth-child(2) th').length - 2;
+    const wLoc = ((100 - 5 - 27 - 5) / n).toFixed(3);
+    const cols = '<colgroup><col style="width:5%"><col style="width:27%">' + '<col style="width:'+wLoc+'%">'.repeat(n) + '<col style="width:5%"></colgroup>';
+    const html = tabla.outerHTML.replace(/(<table[^>]*>)/, '$1' + cols);
+    bloques.push(`<section class="blq" style="--c:${t.color}"><h2>${t.titulo} — ${t.grupo.charAt(0) + t.grupo.slice(1).toLowerCase()} <span>Entrega: ${f.map(ddmmGr).join(' · ')}</span></h2>${html}</section>`);
   }
   if(!bloques.length) { alert('Selecciona al menos una fecha de entrega en las tablas.'); return; }
-  const style = `<style>body{font-family:Calibri,Arial,sans-serif;margin:0;padding:0;}.blq{margin-bottom:9px;page-break-inside:avoid;break-inside:avoid;}h2{font-size:14px;margin:0 0 3px;}h2 span{font-size:11px;font-weight:400;color:#333;margin-left:8px;}table{border-collapse:collapse;width:100%;font-size:11px;color:#000;}th,td{border:1px solid #000;padding:2px 5px;line-height:1.25;}th{background:var(--c);text-align:center;font-weight:600;-webkit-print-color-adjust:exact;print-color-adjust:exact;}td.sku{text-align:right;}td.desc{text-align:left;white-space:nowrap;}td.num,td.tot{text-align:center;}td.tot{font-weight:700;}tfoot td{background:var(--c);font-weight:700;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;}tfoot td.rot{text-align:left;font-weight:600;}@media print{@page{size:landscape;margin:8mm;}}</style>`;
+  const style = `<style>body{font-family:Calibri,Arial,sans-serif;margin:0;padding:0;}.blq{margin-bottom:9px;page-break-inside:avoid;break-inside:avoid;}h2{font-size:14px;margin:0 0 3px;}h2 span{font-size:11px;font-weight:400;color:#333;margin-left:8px;}table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:11px;color:#000;}th,td{border:1px solid #000;padding:2px 3px;line-height:1.25;overflow:hidden;}th{background:var(--c);text-align:center;font-weight:600;font-size:10px;white-space:nowrap;-webkit-print-color-adjust:exact;print-color-adjust:exact;}td.sku{text-align:right;}td.desc{text-align:left;white-space:nowrap;}td.num,td.tot{text-align:center;}td.tot{font-weight:700;}tfoot td{background:var(--c);font-weight:700;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;}tfoot td.rot{text-align:left;font-weight:600;}@media print{@page{size:landscape;margin:8mm;}}</style>`;
   const win = window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">${style}<title>Solicitud empanadas</title></head><body>${bloques.join('')}</body></html>`);
   win.document.close();
