@@ -4136,6 +4136,16 @@ const TABLAS_SOL = {
   },
 };
 const solCodigos = t => t.skus.map(p => p.sku);
+// Códigos que definen las fechas disponibles: los propios + los packs que se convierten a granel
+// (así una fecha con solo packs también se puede seleccionar y se muestra)
+const solCodigosFechas = t => {
+  const pk = t.packEnGranel;
+  if(!pk) return solCodigos(t);
+  const extra = new Set(solCodigos(t));
+  t.skus.forEach(p => extra.add(pk.prefijo + p.sku.slice(1)));
+  Object.values(pk.mixtos || {}).flat().forEach(ex => extra.add(ex.sku));
+  return [...extra];
+};
 const localesDe = t => (t.localFiltro && t.localSel && t.localSel.length)
   ? SOL_LOCALES.filter(l => t.localSel.includes(l.key))
   : SOL_LOCALES;
@@ -4204,7 +4214,7 @@ function renderSol(k) {
   const cont = document.getElementById(k+'Table');
   const cnt = document.getElementById(k+'Count');
   if(!cont) return;
-  if(!GRANULAR.some(r => solCodigos(t).includes(r.sku))) {
+  if(!GRANULAR.some(r => solCodigosFechas(t).includes(r.sku))) {
     cont.innerHTML = '<div class="empty-state">'+t.vacio+'</div>';
     cnt.textContent = '—';
     return;
@@ -4221,8 +4231,8 @@ function renderSol(k) {
 
 function poblarFiltroSol(k) {
   const t = TABLAS_SOL[k];
-  const disp = fechasDisponiblesGr(solCodigos(t));
-  t.fechas = t.tocado ? t.fechas.filter(f => disp.includes(f)) : seleccionInicialGr(solCodigos(t));
+  const disp = fechasDisponiblesGr(solCodigosFechas(t));
+  t.fechas = t.tocado ? t.fechas.filter(f => disp.includes(f)) : seleccionInicialGr(solCodigosFechas(t));
   setupCustomFilter(t.prefix, disp, t.fechas, sel => { t.fechas = [...sel]; t.tocado = true; renderSol(k); });
   const btn = document.querySelector('#'+t.prefix+'DD .filter-btn');
   if(btn) btn.textContent = t.fechas.length ? t.fechas.length + ' seleccionados' : btn.getAttribute('data-placeholder');
