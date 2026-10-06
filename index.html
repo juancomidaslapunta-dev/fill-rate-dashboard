@@ -4066,7 +4066,8 @@ const TABLAS_SOL = {
     prefix:'ck', titulo:'EMPANADAS COCKTAIL', grupo:'SOLICITUD (GRANEL)', totalLabel:'SALDO',
     color:'#B8CCE4', archivo:'empanadas_cocktail', hoja:'Empanadas cocktail',
     vacio:'Sin datos de los códigos de empanadas cocktail.',
-    packEnGranel:{ locales:['CHICUREO','LAS LILAS'], prefijo:'1', factor:10 },
+    packEnGranel:{ locales:['CHICUREO','LAS LILAS'], prefijo:'1', factor:10,
+      mixtos:{ '2110027':[{ sku:'1110063', factor:5 }], '2110010':[{ sku:'1110063', factor:5 }] } },
     skus:[
       { sku:'2110004', desc:'Emp. camaron queso cocktail' },
       { sku:'2110005', desc:'Emp. champiñón cocktail'     },
@@ -4155,6 +4156,10 @@ function calcSol(t, fechas) {
         const skuPack = pk.prefijo + p.sku.slice(1);
         const packs = GRANULAR.filter(r => r.sku === skuPack && r.sucursal === l.key && fechas.includes(r.fecha)).reduce((s,r) => s + r.solicitado, 0);
         v += packs * pk.factor;
+        // Packs mixtos: 1 pack = N unidades de cada sabor a granel (ej. queso horno/pino carne = 5 + 5)
+        for(const ex of (pk.mixtos && pk.mixtos[p.sku]) || []) {
+          v += GRANULAR.filter(r => r.sku === ex.sku && r.sucursal === l.key && fechas.includes(r.fecha)).reduce((s,r) => s + r.solicitado, 0) * ex.factor;
+        }
       }
       totCol[i] += v;
       return v;
