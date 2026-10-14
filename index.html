@@ -936,6 +936,24 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
           </div>
         </div>
       </div>
+      <div class="fgroup">
+        <label>SKU</label>
+        <div class="filter-dropdown" id="grSkuDD">
+          <button class="filter-btn" data-placeholder="Todos los SKU">Todos los SKU</button>
+          <div class="filter-menu" style="display:none; min-width:340px;">
+            <input class="filter-search" id="grSkuSearch" placeholder="Buscar SKU o sabor...">
+            <div class="filter-controls">
+              <button class="filter-btn-small" id="grSkuAll">✓ Todos</button>
+              <button class="filter-btn-small" id="grSkuNone">✗ Ninguno</button>
+            </div>
+            <div class="filter-options" id="grSkuOptions"></div>
+            <div class="filter-actions">
+              <button class="btn btn-primary" id="grSkuApply">Aplicar</button>
+              <button class="btn btn-secondary" id="grSkuCancel">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      </div>
       <button class="btn-reset" id="grBtnReset">✕ Limpiar</button>
       <div style="margin-left:auto;">
         <button class="btn btn-download btn-primary" onclick="descargarEmpanadasExcel()">⬇ Excel</button>
@@ -3714,6 +3732,28 @@ const GR_PARES = [
   ['2101024', null],
 ];
 
+// Nombre de respaldo por SKU: si el archivo cargado no trae descripción (o el producto solo tiene datos en la
+// otra versión, fresca/ultracongelada), la tabla igual muestra el nombre.
+const GR_NOMBRES = {
+  '1101031':'EMP. PINO SIN HUEVO GDE. ULTRACONG. - 1 UN', '1101034':'EMP. CHAMPIÑON P/E CONG. - 1 UN',
+  '1101037':'EMP. CAMARÓN QUESO P/E CONG. - 1 UN', '1101038':'EMP. JAMON QUESO P/E CONG. - 1 UN',
+  '1101039':'EMP. MECHADA QUESO P/E CONG. - 1 UN', '1101040':'EMP. NAPOLITANA P/E CONG. - 1 UN',
+  '1101041':'EMP. PALMITOS P/E CONG. - 1 UN', '1101042':'EMP. PINO P/E CONG. - 1 UN',
+  '1101044':'EMP. QUESO HORNO P/E CONG. - 1 UN', '1101045':'EMP. QUESO ORÉGANO P/E CONG. - 1 UN',
+  '1101046':'EMP. TOMATE P/E CONG - 1 UN',
+  '2101001':'EMP. ALCACHOFA P/E - 1 UN', '2101003':'Emp. camaron - 1 UN', '2101005':'Emp. champiñon P/E - 1 UN',
+  '2101006':'Emp. espinacas P/E - 1 UN', '2101007':'Emp. jamon queso P/E - 1 UN', '2101009':'Emp. palmitos P/E - 1 UN',
+  '2101010':'EMP. PINO - 1 UN', '2101011':'Emp. pino P/E - 1 UN', '2101012':'EMP. POLLO MERQUEN - 1 UN',
+  '2101015':'Emp. tomate P/E - 1 UN', '2101016':'Emp. camarón queso P/E - 1 UN', '2101017':'Emp. queso orégano P/E - 1 UN',
+  '2101018':'Emp. napolitana P/E - 1 UN', '2101019':'Emp. aji gallina P/E - 1 UN', '2101020':'EMP. MECHADA QUESO P/E - 1 UN',
+  '2101021':'Emp. queso horno P/E - 1 UN', '2101023':'EMP. BERENJENA CHAMPIÑON P/E - 1 UN', '2101024':'EMP.PINO NOT MEAT P/E - 1 UN',
+};
+// Nombre del SKU: el del archivo (de cualquier fecha/local) o, si no hay, el de respaldo
+function nombreGrSku(sku) {
+  const g = GRANULAR.find(r => r.sku === sku && r.descripcion);
+  return (g ? String(g.descripcion).replace(/\s+/g, ' ').trim() : '') || GR_NOMBRES[sku] || '';
+}
+
 var grFechaDesde = '';
 var grLocal = [];
 
@@ -3729,9 +3769,19 @@ function grCatLabel() {
   return verF && verC ? '' : (verF ? 'Solo frescas' : 'Solo ultracongeladas');
 }
 
+// Filtro por SKU: cada opción es un producto (SKU fresco / SKU ultracongelado · descripción); sin selección = todos
+var grSku = [];
+var GR_SKU_MAP = {};
+function grSkuSeleccion() {
+  const s = new Set();
+  grSku.forEach(label => (GR_SKU_MAP[label] || []).forEach(x => s.add(x)));
+  return s;
+}
+
 function getGrGranular() {
   const { verF, verC } = grVerCat();
-  const allSkus = [...(verF ? GR_SKUS : []), ...(verC ? GR_SKUS2 : [])];
+  let allSkus = [...(verF ? GR_SKUS : []), ...(verC ? GR_SKUS2 : [])];
+  if(grSku.length) { const sel = grSkuSeleccion(); allSkus = allSkus.filter(s => sel.has(s)); }
   let g = GRANULAR.filter(r => allSkus.includes(r.sku));
   if(grFechaDesde) g = g.filter(r => r.fecha === grFechaDesde);
   if(grLocal.length > 0) g = g.filter(r => grLocal.includes(r.sucursal));
@@ -3803,8 +3853,10 @@ function buildGrPivotTable(src) {
   const catTotales = { 'GRANDES':0, 'P/E BLANCAS':0, 'P/E NEGRAS':0 };
 
   const tbody = `<tbody>${GR_PARES.map(([skuF, skuC]) => {
-    const rF = mapFresh.get(skuF) || { sku:skuF, desc:'—', porLocal:{} };
-    const rC = skuC ? (mapFrozen.get(skuC) || { sku:skuC, desc:'—', porLocal:{} }) : null;
+    const rF = mapFresh.get(skuF) || { sku:skuF, desc:'', porLocal:{} };
+    const rC = skuC ? (mapFrozen.get(skuC) || { sku:skuC, desc:'', porLocal:{} }) : null;
+    if(!rF.desc) rF.desc = nombreGrSku(skuF) || '—';
+    if(rC && !rC.desc) rC.desc = nombreGrSku(skuC) || '—';
     let totRow = 0, freshSum = 0, frozenSum = 0;
     const fCells = locales.map(l => {
       const v = rF.porLocal[l]||0; totRow += v; freshSum += v; colTotFresh[l] += v;
@@ -3862,9 +3914,23 @@ function renderGuiaRapida() {
     ? buildGrPivotTable(src)
     : '<div class="empty-state">Sin datos.</div>';
   document.getElementById('grResultsCount').textContent =
-    GR_PARES.length + ' productos' + (grFechaDesde ? ' · ' + grFechaDesde : '') + (grCatLabel() ? ' · ' + grCatLabel() : '');
+    (grSku.length ? grSku.length + ' de ' + GR_PARES.length : GR_PARES.length) + ' productos' + (grFechaDesde ? ' · ' + grFechaDesde : '') + (grCatLabel() ? ' · ' + grCatLabel() : '');
   renderQueso();
   Object.keys(TABLAS_SOL).forEach(renderSol);
+}
+
+function poblarFiltroGrSku() {
+  GR_SKU_MAP = {};
+  const opciones = GR_PARES.map(([skuF, skuC]) => {
+    const desc = nombreGrSku(skuF) || (skuC ? nombreGrSku(skuC) : '');
+    const label = skuF + (skuC ? ' / ' + skuC : '') + (desc ? ' · ' + desc : '');
+    GR_SKU_MAP[label] = skuC ? [skuF, skuC] : [skuF];
+    return label;
+  });
+  grSku = grSku.filter(l => GR_SKU_MAP[l]);
+  setupCustomFilter('grSku', opciones, grSku, sel => { grSku = [...sel]; renderGuiaRapida(); });
+  const btn = document.querySelector('#grSkuDD .filter-btn');
+  if(btn) btn.textContent = grSku.length ? grSku.length + ' seleccionados' : btn.getAttribute('data-placeholder');
 }
 
 function poblarFiltrosGuiaRapida() {
@@ -3873,6 +3939,7 @@ function poblarFiltrosGuiaRapida() {
     .map(r=>r.sucursal))].sort();
   setupCustomFilter('grLocal', locales, grLocal, sel => { grLocal=sel; renderGuiaRapida(); });
   setupCustomFilter('grCat', GR_CATS, grCat, sel => { grCat=[...sel]; renderGuiaRapida(); });
+  poblarFiltroGrSku();
   const desde = document.getElementById('grFechaDesde');
   if(!grFechaDesde && desde && !desde.value) {
     const hoy = new Date().toISOString().slice(0,10);
@@ -4313,7 +4380,7 @@ function imprimirGrTabla(divId, titulo) {
   const tablas = cont?.querySelectorAll('table');
   if(!tablas || !tablas.length) { alert('Sin datos para imprimir.'); return; }
   const fecha = grFechaDesde||'';
-  const local  = (grLocal.length?' · '+grLocal.join(', '):'') + (grCatLabel()?' · '+grCatLabel():'');
+  const local  = (grLocal.length?' · '+grLocal.join(', '):'') + (grCatLabel()?' · '+grCatLabel():'') + (grSku.length?' · '+grSku.length+' SKU':'');
   const style = `<style>body{font-family:sans-serif;font-size:10px;padding:12px;}h2{font-size:13px;margin-bottom:6px;}table{width:100%;border-collapse:collapse;margin-bottom:10px;}th,td{border:1px solid #475569;padding:.3em .5em;}th{font-weight:700;text-align:center;background:#f1f5f9;}td.sku{font-family:monospace;font-weight:700;}td{text-align:right;}td:nth-child(2){text-align:left;}.td-total-sol{background:#DBEAFE;font-weight:700;}@media print{@page{size:landscape;margin:10mm;}}</style>`;
   const win = window.open('','_blank');
   const html = [...tablas].map(t=>t.outerHTML).join('');
@@ -4346,8 +4413,10 @@ function descargarEmpanadasExcel() {
   const locales = GR_LOCALES_ORDEN.filter(l => presentesXls.has(l));
   const { verF, verC } = grVerCat();
   const rows = GR_PARES.filter(([, skuC]) => verF || skuC).map(([skuF, skuC]) => {
-    const rF = mapFresh.get(skuF) || { sku:skuF, desc:'—', porLocal:{} };
-    const rC = skuC ? (mapFrozen.get(skuC) || { sku:skuC, desc:'—', porLocal:{} }) : null;
+    const rF = mapFresh.get(skuF) || { sku:skuF, desc:'', porLocal:{} };
+    const rC = skuC ? (mapFrozen.get(skuC) || { sku:skuC, desc:'', porLocal:{} }) : null;
+    if(!rF.desc) rF.desc = nombreGrSku(skuF) || '—';
+    if(rC && !rC.desc) rC.desc = nombreGrSku(skuC) || '—';
     const row = verF ? { 'SKU Fresco':rF.sku, 'Descripción':rF.desc } : { 'SKU Congelado':rC.sku, 'Descripción':rC.desc };
     let tot = 0;
     if(verF) locales.forEach(l=>{ const v=rF.porLocal[l]||0; tot+=v; row['Fresca · '+nombreLocal(l)]=v; });
@@ -4373,6 +4442,8 @@ if(_grReset) _grReset.addEventListener('click',()=>{
   setupCustomFilter('grCat', GR_CATS, grCat, sel => { grCat=[...sel]; renderGuiaRapida(); });
   const btnCat=document.querySelector('#grCatDD .filter-btn');
   if(btnCat)btnCat.textContent=btnCat.getAttribute('data-placeholder');
+  grSku=[];
+  poblarFiltroGrSku();
   renderGuiaRapida();
 });
 (function init(){
