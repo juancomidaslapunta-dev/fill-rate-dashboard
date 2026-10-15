@@ -1228,6 +1228,59 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
       </div>
       <div class="sol-wrap" style="overflow-x:auto;--sol-bg:#D9D9D9;" id="lasanasTable"><div class="empty-state">Carga archivos para ver datos.</div></div>
     </div>
+
+    <div class="panel" style="margin-top:1.2rem;">
+      <div class="panel-header-row">
+        <div>
+          <div class="panel-title">QUICHES FRESCOS — Solicitud</div>
+          <div id="quichesCount" class="results-count">—</div>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+          <button class="btn btn-download btn-primary" onclick="descargarSolExcel('quiches')">⬇ Excel</button>
+          <button class="btn btn-primary" onclick="imprimirSol('quiches')">🖨️ Imprimir</button>
+        </div>
+      </div>
+      <div class="toolbar" style="margin-bottom:1rem;">
+        <div class="fgroup">
+          <label>Fechas de entrega</label>
+          <div class="filter-dropdown" id="quDD">
+            <button class="filter-btn" data-placeholder="Seleccionar fechas...">Seleccionar fechas...</button>
+            <div class="filter-menu" style="display:none">
+              <input class="filter-search" id="quSearch" placeholder="Buscar fecha...">
+              <div class="filter-controls">
+                <button class="filter-btn-small" id="quAll">✓ Todas</button>
+                <button class="filter-btn-small" id="quNone">✗ Ninguna</button>
+              </div>
+              <div class="filter-options" id="quOptions"></div>
+              <div class="filter-actions">
+                <button class="btn btn-primary" id="quApply">Aplicar</button>
+                <button class="btn btn-secondary" id="quCancel">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="fgroup">
+          <label>Local / Sucursal</label>
+          <div class="filter-dropdown" id="quLocalDD">
+            <button class="filter-btn" data-placeholder="Todos los locales">Todos los locales</button>
+            <div class="filter-menu" style="display:none">
+              <input class="filter-search" id="quLocalSearch" placeholder="Buscar local...">
+              <div class="filter-controls">
+                <button class="filter-btn-small" id="quLocalAll">✓ Todos</button>
+                <button class="filter-btn-small" id="quLocalNone">✗ Ninguno</button>
+              </div>
+              <div class="filter-options" id="quLocalOptions"></div>
+              <div class="filter-actions">
+                <button class="btn btn-primary" id="quLocalApply">Aplicar</button>
+                <button class="btn btn-secondary" id="quLocalCancel">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="btn-reset" id="quBtnReset">✕ Limpiar</button>
+      </div>
+      <div class="sol-wrap" style="overflow-x:auto;--sol-bg:#D9D9D9;" id="quichesTable"><div class="empty-state">Carga archivos para ver datos.</div></div>
+    </div>
   </div>
   <!-- ============ FIN TAB OTROS ============ -->
 
@@ -4201,6 +4254,25 @@ const TABLAS_SOL = {
     ],
     fechas:[], tocado:false,
   },
+};
+TABLAS_SOL.quiches = {
+  prefix:'qu', titulo:'QUICHES FRESCOS', grupo:'SOLICITUD', totalLabel:'TOTAL',
+  color:'#D9D9D9', archivo:'quiches_frescos', hoja:'Quiches frescos',
+  vacio:'Sin datos de los códigos de Quiches.',
+  localFiltro:true, localSel:[],
+  skus:[
+    { sku:'2104001', desc:'Quiche alcachofa gde.'            },
+    { sku:'2104002', desc:'Quiche alcachofa med.'            },
+    { sku:'2104013', desc:'Quiche champ esp ric pim gde.'    },
+    { sku:'2104014', desc:'Quiche champ esp ric pim med.'    },
+    { sku:'2104028', desc:'Quiche jamon/queso gde.'          },
+    { sku:'2104029', desc:'Quiche jamon/queso med.'          },
+    { sku:'2104049', desc:'Quiche tomate gde.'               },
+    { sku:'2104050', desc:'Quiche tomate med.'               },
+    { sku:'2104025', desc:'Quiche jamón queso tocino gde.'   },
+    { sku:'2104026', desc:'Quiche jamón queso tocino med.'   },
+  ],
+  fechas:[], tocado:false,
 };
 const solCodigos = t => t.skus.map(p => p.sku);
 // Códigos que definen las fechas disponibles: los propios + los packs que se convierten a granel
