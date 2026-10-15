@@ -150,6 +150,11 @@ select[multiple] option { padding:.22rem; }
 .kpi-card.green { border-top-color:var(--green);  } .kpi-card.green::after { background:var(--green);  }
 .kpi-card.purple{ border-top-color:var(--violet); } .kpi-card.purple::after{ background:var(--violet); }
 .kpi-card.red   { border-top-color:var(--red);    } .kpi-card.red::after   { background:var(--red);    }
+.kpi-card.orange{ border-top-color:#ea580c; } .kpi-card.orange::after{ background:#ea580c; }
+.kpi-card.teal  { border-top-color:#0d9488; } .kpi-card.teal::after  { background:#0d9488; }
+.kpi-card.slate { border-top-color:#475569; } .kpi-card.slate::after { background:#475569; }
+.kpi-grid-7 { grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); }
+.kpi-grid-7 .kpi-value { font-size:1.6rem; }
 .kpi-top { display:flex; justify-content:space-between; align-items:flex-start; }
 .kpi-title { font-size:.68rem; font-weight:700; letter-spacing:.06em; color:var(--ink-3); text-transform:uppercase; }
 .kpi-icon { font-size:1.25rem; opacity:.7; }
@@ -178,6 +183,12 @@ tbody tr:hover { background:var(--surface-2); }
 .bar-track { flex:1; background:var(--surface-2); border-radius:.4rem; height:10px; overflow:hidden; }
 .bar-fill  { height:100%; border-radius:.4rem; transition:width .5s cubic-bezier(.4,0,.2,1); }
 .bar-value { width:56px; text-align:right; font-size:.75rem; font-weight:700; flex-shrink:0; }
+.brecha-row { display:grid; grid-template-columns:minmax(110px,1.2fr) minmax(70px,1.4fr) 62px 62px 68px; gap:.65rem; align-items:center; padding:.5rem 0; border-bottom:1px solid var(--border-soft); }
+.brecha-row:last-child { border-bottom:none; }
+.brecha-head { font-size:.7rem; font-weight:700; color:var(--ink-3); border-bottom:1px solid var(--border); padding:.35rem 0; }
+.brecha-head div:nth-child(n+3) { text-align:right; }
+.brecha-local { font-size:.78rem; font-weight:600; color:var(--ink-2); text-transform:uppercase; }
+.brecha-num { text-align:right; font-size:.8rem; font-weight:700; font-variant-numeric:tabular-nums; }
 .empty-state { text-align:center; color:var(--ink-4); padding:2rem; font-size:.82rem; }
 .footer-note { text-align:center; color:var(--ink-4); font-size:.73rem; margin-top:1.5rem; padding-bottom:1rem; line-height:1.6; }
 .summary-box { background:var(--surface); border-radius:var(--radius-lg); padding:1.2rem; margin-bottom:1rem; border:1px solid var(--border-soft); box-shadow:var(--shadow-sm); }
@@ -730,26 +741,41 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
       <button class="btn-reset" id="btnResetFiltros">✕ Limpiar filtros</button>
     </div>
 
-    <div class="kpi-grid">
-      <div class="kpi-card blue">
-        <div class="kpi-top"><span class="kpi-title">Fill Rate</span><span class="kpi-icon">📈</span></div>
-        <div class="kpi-value" id="kpiFillRate">—</div>
-        <div class="kpi-unit">Σ Despachado / Σ Solicitado</div>
-      </div>
-      <div class="kpi-card green">
+    <div class="kpi-grid kpi-grid-7">
+      <div class="kpi-card slate">
         <div class="kpi-top"><span class="kpi-title">Solicitado</span><span class="kpi-icon">📦</span></div>
         <div class="kpi-value" id="kpiSolicitado">—</div>
-        <div class="kpi-unit">unidades en el filtro actual</div>
+        <div class="kpi-unit">unidades en el período</div>
       </div>
       <div class="kpi-card purple">
         <div class="kpi-top"><span class="kpi-title">Despachado</span><span class="kpi-icon">🚚</span></div>
         <div class="kpi-value" id="kpiDespachado">—</div>
-        <div class="kpi-unit">unidades en el filtro actual</div>
+        <div class="kpi-unit">unidades en el período</div>
       </div>
       <div class="kpi-card red">
-        <div class="kpi-top"><span class="kpi-title">Diferencia</span><span class="kpi-icon">⚠️</span></div>
-        <div class="kpi-value" id="kpiGap">—</div>
-        <div class="kpi-unit">unidades no despachadas</div>
+        <div class="kpi-top"><span class="kpi-title">De menos</span><span class="kpi-icon">⬇️</span></div>
+        <div class="kpi-value" id="kpiDeMenos" style="color:var(--red);">—</div>
+        <div class="kpi-unit">unidades sin despachar</div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-top"><span class="kpi-title">De más</span><span class="kpi-icon">⬆️</span></div>
+        <div class="kpi-value" id="kpiDeMas" style="color:#ea580c;">—</div>
+        <div class="kpi-unit">unidades extra despachadas</div>
+      </div>
+      <div class="kpi-card blue">
+        <div class="kpi-top"><span class="kpi-title">Fill Rate</span><span class="kpi-icon">📈</span></div>
+        <div class="kpi-value" id="kpiFillRate">—</div>
+        <div class="kpi-unit">Despachado / Solicitado (volumen)</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-top"><span class="kpi-title">Exacto</span><span class="kpi-icon">🎯</span></div>
+        <div class="kpi-value" id="kpiExacto">—</div>
+        <div class="kpi-unit">SKU solicitado cumplido</div>
+      </div>
+      <div class="kpi-card teal">
+        <div class="kpi-top"><span class="kpi-title">Ajustado</span><span class="kpi-icon">🔁</span></div>
+        <div class="kpi-value" id="kpiAjustado">—</div>
+        <div class="kpi-unit" id="kpiAjustadoNota">Exacto + sustituciones válidas</div>
       </div>
     </div>
 
@@ -762,7 +788,7 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
 
     <div class="grid-2">
       <div class="panel">
-        <div class="panel-title">🏬 Fill Rate por Sucursal</div>
+        <div class="panel-title">🏬 Locales con mayor brecha</div>
         <div class="day-tabs" id="sucursalDayTabs"></div>
         <div id="sucursalBars"></div>
       </div>
@@ -2152,11 +2178,11 @@ function poblarFiltros(){
   });
 }
 
-function getFiltrado(){
+function getFiltrado(ignorarDia){
   return GRANULAR.filter(g=>{
     if(filtroLocal.length > 0 && !filtroLocal.includes(g.sucursal)) return false;
     if(filtroSemana.length > 0 && !filtroSemana.includes(String(isoWeekOf(g.fecha)))) return false;
-    if(filtroDia.length > 0 && !filtroDia.includes(g.fecha)) return false;
+    if(!ignorarDia && filtroDia.length > 0 && !filtroDia.includes(g.fecha)) return false;
     return true;
   });
 }
@@ -2215,24 +2241,81 @@ function renderHeader(){
     '⚠️ <b>Data Quality:</b> de ' + fmt(dq.total_raw) + ' registros de solicitud cargados, <b>' + fmt(dq.rechazadas) + ' (' + dq.pct_rechazo + '%)</b> se excluyeron por sucursal no mapeada, cantidad vacía/cero o fecha inválida. Se excluyeron además <b>' + fmt(dq.insumos_excluidos_unid) + '</b> unidades despachadas de SKU de insumos/bodega que no pertenecen al flujo de Solicitudes.';
 }
 
+// Lunes de la semana de una fecha ISO (clave única de semana, sin colisiones entre años)
+function lunesDeSemana(fecha){
+  const d = new Date(fecha + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+  return d.toISOString().slice(0,10);
+}
+
+// Catálogo de equivalencias (fresco <-> ultracongelado), en ambos sentidos; sale de GR_PARES
+function equivalenciasSku(){
+  const eq = new Map();
+  for(const [fresco, congelado] of GR_PARES){
+    if(fresco && congelado){ eq.set(fresco, congelado); eq.set(congelado, fresco); }
+  }
+  return eq;
+}
+
+// Agrega filas por SEMANA + SUCURSAL + SKU (suma todos los días de la semana)
+function agregarSemanaSucursalSku(rows){
+  const m = new Map();
+  for(const g of rows){
+    const key = lunesDeSemana(g.fecha) + '|' + g.sucursal + '|' + g.sku;
+    let e = m.get(key);
+    if(!e){ e = { semana:lunesDeSemana(g.fecha), sucursal:g.sucursal, sku:g.sku, sol:0, desp:0 }; m.set(key, e); }
+    e.sol += g.solicitado; e.desp += g.despachado;
+  }
+  return m;
+}
+
+// Indicadores de cumplimiento a partir de un agregado semana+sucursal+SKU.
+// cumplidas = Σ min(sol, desp); compensadas = faltantes cubiertos con excedentes del SKU equivalente
+// de la misma semana y sucursal (cada excedente se usa una sola vez; nunca entre semanas ni sucursales).
+function cumplimientoSemanal(agg, equiv){
+  let solicitado = 0, despachado = 0, cumplidas = 0, deMenos = 0, deMas = 0, compensadas = 0;
+  for(const e of agg.values()){
+    solicitado += e.sol; despachado += e.desp;
+    cumplidas += Math.min(e.sol, e.desp);
+    deMenos += Math.max(0, e.sol - e.desp);
+    deMas += Math.max(0, e.desp - e.sol);
+  }
+  const visto = new Set();
+  for(const [key, e] of agg){
+    const par = equiv.get(e.sku);
+    if(!par || visto.has(key)) continue;
+    const otro = agg.get(e.semana + '|' + e.sucursal + '|' + par);
+    visto.add(key);
+    if(!otro) continue;
+    visto.add(e.semana + '|' + e.sucursal + '|' + par);
+    compensadas += Math.min(Math.max(0, e.sol - e.desp), Math.max(0, otro.desp - otro.sol));
+    compensadas += Math.min(Math.max(0, otro.sol - otro.desp), Math.max(0, e.desp - e.sol));
+  }
+  return { solicitado, despachado, cumplidas, deMenos, deMas, compensadas };
+}
+
+function calcIndicadores(){
+  const equiv = equivalenciasSku();
+  const periodo = cumplimientoSemanal(agregarSemanaSucursalSku(getFiltrado()), equiv);
+  // Ajustado: semana completa (ignora el filtro de día; respeta local y semana)
+  const hayDia = filtroDia.length > 0;
+  const semanaCompleta = hayDia ? cumplimientoSemanal(agregarSemanaSucursalSku(getFiltrado(true)), equiv) : periodo;
+  return { periodo, semanaCompleta, hayDia };
+}
+
 function renderKPIs(){
-  const filtrado = getFiltrado();
-  const sol  = filtrado.reduce((a,g)=>a+g.solicitado,0);
-  const desp = filtrado.reduce((a,g)=>a+g.despachado,0);
-  const gap  = sol - desp;
-  const fr   = sol > 0 ? (desp/sol*100) : 0;
+  const { periodo: p, semanaCompleta: s, hayDia } = calcIndicadores();
+  const pct = (a, b) => b > 0 ? (a / b * 100).toFixed(1) + '%' : '—';
 
-  document.getElementById('kpiFillRate').textContent  = fr.toFixed(1) + '%';
-  document.getElementById('kpiSolicitado').textContent = fmt(sol);
-  document.getElementById('kpiDespachado').textContent = fmt(desp);
-
-  const kpiGap = document.getElementById('kpiGap');
-  kpiGap.textContent = (gap > 0 ? '-' : '') + fmt(Math.abs(gap));
-  kpiGap.style.color = gap > 0 ? 'var(--red)' : gap < 0 ? 'var(--green)' : 'var(--ink-1)';
-
-  // Actualizar subtítulo del card diferencia
-  const unit = document.querySelector('#kpiGap + .kpi-unit, .kpi-card.red .kpi-unit');
-  if(unit) unit.textContent = gap > 0 ? 'unidades sin despachar' : gap < 0 ? 'unidades sobre lo solicitado' : 'todo despachado ✓';
+  document.getElementById('kpiSolicitado').textContent = fmt(p.solicitado);
+  document.getElementById('kpiDespachado').textContent = fmt(p.despachado);
+  document.getElementById('kpiDeMenos').textContent = fmt(p.deMenos);
+  document.getElementById('kpiDeMas').textContent = fmt(p.deMas);
+  document.getElementById('kpiFillRate').textContent = pct(p.despachado, p.solicitado);
+  document.getElementById('kpiExacto').textContent = pct(p.cumplidas, p.solicitado);
+  document.getElementById('kpiAjustado').textContent = pct(s.cumplidas + s.compensadas, s.solicitado);
+  document.getElementById('kpiAjustadoNota').textContent = (hayDia ? 'Semana completa · ' : 'Exacto + sustituciones · ')
+    + fmt(s.compensadas) + ' und compensadas' + (hayDia ? ' · base ' + fmt(s.solicitado) : '');
 }
 
 function renderCharts(){
@@ -2413,30 +2496,44 @@ function renderSucursalBars(){
   const diasDisp = [...new Set(getFiltrado().map(g=>g.fecha))].sort();
   buildDayTabs('sucursalDayTabs', 'sucursal', diasDisp, renderSucursalBars);
 
-  const filtrado = getSucursalFiltrado();
-  const porSucursal = new Map();
-  for(const g of filtrado){
-    if(!porSucursal.has(g.sucursal)) porSucursal.set(g.sucursal, { solicitado:0, despachado:0 });
-    const e = porSucursal.get(g.sucursal);
-    e.solicitado += g.solicitado;
-    e.despachado += g.despachado;
-  }
-  const arr = Array.from(porSucursal.entries()).map(([sucursal,v])=>({
-    sucursal, solicitado:v.solicitado, despachado:v.despachado,
-    fill_rate: v.solicitado>0 ? (v.despachado/v.solicitado*100) : 0
-  })).sort((a,b)=>a.fill_rate-b.fill_rate);
+  // Agrupa filas por local
+  const porLocal = rows => {
+    const m = new Map();
+    for(const g of rows){ if(!m.has(g.sucursal)) m.set(g.sucursal, []); m.get(g.sucursal).push(g); }
+    return m;
+  };
+  const equiv = equivalenciasSku();
+  const periodo = porLocal(getSucursalFiltrado());
+  const semana  = porLocal(getFiltrado(true)); // Ajustado: semana completa (ignora el día)
+
+  const arr = Array.from(periodo.entries()).map(([sucursal, rows])=>{
+    const p = cumplimientoSemanal(agregarSemanaSucursalSku(rows), equiv);
+    const s = cumplimientoSemanal(agregarSemanaSucursalSku(semana.get(sucursal) || rows), equiv);
+    return {
+      sucursal,
+      fill_rate: p.solicitado > 0 ? p.despachado / p.solicitado * 100 : 0,
+      exacto:    p.solicitado > 0 ? p.cumplidas  / p.solicitado * 100 : 0,
+      ajustado:  s.solicitado > 0 ? (s.cumplidas + s.compensadas) / s.solicitado * 100 : 0
+    };
+  }).sort((a,b)=>a.fill_rate-b.fill_rate);
 
   const cont = document.getElementById('sucursalBars');
   if(arr.length===0){ cont.innerHTML = '<div class="empty-state">Sin datos para este filtro</div>'; return; }
 
-  cont.innerHTML = arr.map(s=>{
-    const w = Math.min(s.fill_rate,150)/150*100;
-    return '<div class="bar-row">'+
-      '<div class="bar-label">'+s.sucursal+'</div>'+
-      '<div class="bar-track"><div class="bar-fill" style="width:'+w+'%; background:'+barColor(s.fill_rate)+'"></div></div>'+
-      '<div class="bar-value"><span class="fr-pill '+frClass(s.fill_rate)+'">'+s.fill_rate.toFixed(1)+'%</span></div>'+
-    '</div>';
-  }).join('');
+  const pc = v => v.toFixed(1).replace('.', ',') + '%';
+  const color = v => v < 80 ? '#dc2626' : v < 95 ? '#d97706' : v <= 105 ? '#059669' : '#2563eb';
+  cont.innerHTML =
+    '<div class="brecha-row brecha-head"><div>Local / Sucursal</div><div></div><div>Fill Rate</div><div>Exacto</div><div>Ajustado</div></div>' +
+    arr.map(s=>{
+      const w = Math.min(s.fill_rate,150)/150*100;
+      return '<div class="brecha-row">'+
+        '<div class="brecha-local">'+s.sucursal+'</div>'+
+        '<div class="bar-track"><div class="bar-fill" style="width:'+w+'%; background:'+barColor(s.fill_rate)+'"></div></div>'+
+        '<div class="brecha-num" style="color:'+color(s.fill_rate)+'">'+pc(s.fill_rate)+'</div>'+
+        '<div class="brecha-num" style="color:'+color(s.exacto)+'">'+pc(s.exacto)+'</div>'+
+        '<div class="brecha-num" style="color:#2563eb">'+pc(s.ajustado)+'</div>'+
+      '</div>';
+    }).join('');
 }
 
 function renderQuiebres(){
