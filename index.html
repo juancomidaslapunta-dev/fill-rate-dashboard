@@ -2251,10 +2251,10 @@ function lunesDeSemana(fecha){
 }
 
 // Catálogo de equivalencias para el Fill Rate Ajustado: Empanadas Congeladas <-> P/E (fresco).
-// Cada fila es [SKU congelado, SKU fresco / P/E]. Un congelado puede equivaler a más de un P/E (1101042).
+// Cada fila es [SKU congelado, SKU fresco / P/E]. Sin símil (no se congelan): 2101003, 2101012 y 2101024.
 // Las sustituciones se aplican en ambos sentidos y solo entre congelado y P/E, nunca P/E con P/E.
 const EQUIV_CONGELADO_PE = [
-  ['1101033','2101001'], ['1101034','2101005'], ['1101035','2101006'], ['1101042','2101010'],
+  ['1101033','2101001'], ['1101034','2101005'], ['1101035','2101006'], ['1101031','2101010'],
   ['1101042','2101011'], ['1101036','2101019'], ['1101037','2101016'], ['1101038','2101007'],
   ['1101039','2101020'], ['1101040','2101018'], ['1101041','2101009'], ['1101044','2101021'],
   ['1101043','2101023'], ['1101045','2101017'], ['1101046','2101015'],
@@ -3897,18 +3897,18 @@ const GR_SKUS = ['2101001','2101005','2101006','2101003','2101010','2101012',
   '2101019','2101016','2101007','2101020','2101018','2101009',
   '2101011','2101021','2101017','2101015','2101023','2101024'];
 
-const GR_SKUS2 = ['1101031','1101034','1101037','1101038','1101039','1101040',
-  '1101041','1101042','1101044','1101045','1101046'];
+const GR_SKUS2 = ['1101031','1101033','1101034','1101035','1101036','1101037','1101038','1101039','1101040',
+  '1101041','1101042','1101043','1101044','1101045','1101046'];
 
 // Emparejamiento fila a fila: SKU fresco -> SKU ultracongelado equivalente (o null si no tiene par)
 const GR_PARES = [
-  ['2101001', null],
+  ['2101001', '1101033'],
   ['2101005', '1101034'],
-  ['2101006', null],
+  ['2101006', '1101035'],
   ['2101003', null],
   ['2101010', '1101031'],
   ['2101012', null],
-  ['2101019', null],
+  ['2101019', '1101036'],
   ['2101016', '1101037'],
   ['2101007', '1101038'],
   ['2101020', '1101039'],
@@ -3918,7 +3918,7 @@ const GR_PARES = [
   ['2101021', '1101044'],
   ['2101017', '1101045'],
   ['2101015', '1101046'],
-  ['2101023', null],
+  ['2101023', '1101043'],
   ['2101024', null],
 ];
 
@@ -3926,6 +3926,8 @@ const GR_PARES = [
 // otra versión, fresca/ultracongelada), la tabla igual muestra el nombre.
 const GR_NOMBRES = {
   '1101031':'EMP. PINO SIN HUEVO GDE. ULTRACONG. - 1 UN', '1101034':'EMP. CHAMPIÑON P/E CONG. - 1 UN',
+  '1101033':'EMP. ALCACHOFA P/E CONG. - 1 UN', '1101035':'EMP. ESPINACAS P/E CONG. - 1 UN',
+  '1101036':'EMP. AJÍ GALLINA P/E CONG. - 1 UN', '1101043':'EMP. BERENJENA CHAMPIÑÓN P/E CONG. - 1 UN',
   '1101037':'EMP. CAMARÓN QUESO P/E CONG. - 1 UN', '1101038':'EMP. JAMON QUESO P/E CONG. - 1 UN',
   '1101039':'EMP. MECHADA QUESO P/E CONG. - 1 UN', '1101040':'EMP. NAPOLITANA P/E CONG. - 1 UN',
   '1101041':'EMP. PALMITOS P/E CONG. - 1 UN', '1101042':'EMP. PINO P/E CONG. - 1 UN',
@@ -4007,7 +4009,8 @@ const GR_CATEGORIA = {};
 ['1101037','1101038','1101039','1101040','1101041','1101042','1101044','1101045','1101046',
  '2101019','2101016','2101007','2101020','2101018','2101009','2101011','2101021','2101017','2101015']
   .forEach(s => GR_CATEGORIA[s] = 'P/E BLANCAS');
-['1101034','2101001','2101005','2101006','2101023'].forEach(s => GR_CATEGORIA[s] = 'P/E NEGRAS');
+['1101033','1101034','1101035','1101043','2101001','2101005','2101006','2101023'].forEach(s => GR_CATEGORIA[s] = 'P/E NEGRAS');
+GR_CATEGORIA['1101036'] = 'P/E BLANCAS';
 
 function buildGrPivotTable(src) {
   const mapFresh = buildGrMap(src, GR_SKUS);
