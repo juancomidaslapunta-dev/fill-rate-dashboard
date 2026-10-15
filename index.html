@@ -2250,13 +2250,29 @@ function lunesDeSemana(fecha){
   return d.toISOString().slice(0,10);
 }
 
-// Catálogo de equivalencias (fresco <-> ultracongelado), en ambos sentidos; sale de GR_PARES
+// Catálogo de equivalencias para el Fill Rate Ajustado: Empanadas Congeladas <-> P/E (fresco).
+// Cada fila es [SKU congelado, SKU fresco / P/E]. Un congelado puede equivaler a más de un P/E (1101042).
+// Las sustituciones se aplican en ambos sentidos y solo entre congelado y P/E, nunca P/E con P/E.
+const EQUIV_CONGELADO_PE = [
+  ['1101033','2101001'], ['1101034','2101005'], ['1101035','2101006'], ['1101042','2101010'],
+  ['1101042','2101011'], ['1101036','2101019'], ['1101037','2101016'], ['1101038','2101007'],
+  ['1101039','2101020'], ['1101040','2101018'], ['1101041','2101009'], ['1101044','2101021'],
+  ['1101043','2101023'], ['1101045','2101017'], ['1101046','2101015'],
+  // Lasañas — Congeladas <-> Frescas
+  ['1102001','2102001'], ['1102013','2102013'], ['1102019','2102019'], ['1102003','2102003'],
+  ['1102014','2102014'], ['1102004','2102004'], ['1102020','2102020'], ['1102005','2102005'],
+  ['1102015','2102015'], ['1102006','2102006'], ['1102021','2102021'], ['1102007','2102007'],
+  ['1102016','2102016'], ['1102022','2102022'], ['1102025','2102025'], ['1102026','2102026'],
+  ['1102011','2102011'], ['1102017','2102017'], ['1102009','2102009'], ['1102018','2102018'],
+];
+// Agrupa el catálogo por SKU congelado: [{ congelado, pe:[...] }]
 function equivalenciasSku(){
-  const eq = new Map();
-  for(const [fresco, congelado] of GR_PARES){
-    if(fresco && congelado){ eq.set(fresco, congelado); eq.set(congelado, fresco); }
+  const m = new Map();
+  for(const [c, p] of EQUIV_CONGELADO_PE){
+    if(!m.has(c)) m.set(c, { congelado:c, pe:[] });
+    m.get(c).pe.push(p);
   }
-  return eq;
+  return [...m.values()];
 }
 
 // Agrega filas por SEMANA + SUCURSAL + SKU (suma todos los días de la semana)
@@ -2282,16 +2298,20 @@ function cumplimientoSemanal(agg, equiv){
     deMenos += Math.max(0, e.sol - e.desp);
     deMas += Math.max(0, e.desp - e.sol);
   }
-  const visto = new Set();
-  for(const [key, e] of agg){
-    const par = equiv.get(e.sku);
-    if(!par || visto.has(key)) continue;
-    const otro = agg.get(e.semana + '|' + e.sucursal + '|' + par);
-    visto.add(key);
-    if(!otro) continue;
-    visto.add(e.semana + '|' + e.sucursal + '|' + par);
-    compensadas += Math.min(Math.max(0, e.sol - e.desp), Math.max(0, otro.desp - otro.sol));
-    compensadas += Math.min(Math.max(0, otro.sol - otro.desp), Math.max(0, e.desp - e.sol));
+  // Compensación por semana + sucursal y grupo de equivalencia (congelado vs sus P/E):
+  // faltante P/E se cubre con excedente del congelado, y faltante del congelado con excedente de P/E.
+  // Cada excedente se usa una sola vez (el mínimo por grupo), así no se duplican unidades.
+  const semSuc = new Set();
+  for(const e of agg.values()) semSuc.add(e.semana + '|' + e.sucursal);
+  const falt = e => e ? Math.max(0, e.sol - e.desp) : 0;
+  const exc  = e => e ? Math.max(0, e.desp - e.sol) : 0;
+  for(const ss of semSuc){
+    for(const g of equiv){
+      const c = agg.get(ss + '|' + g.congelado);
+      let faltP = 0, excP = 0;
+      for(const p of g.pe){ const e = agg.get(ss + '|' + p); faltP += falt(e); excP += exc(e); }
+      compensadas += Math.min(faltP, exc(c)) + Math.min(falt(c), excP);
+    }
   }
   return { solicitado, despachado, cumplidas, deMenos, deMas, compensadas };
 }
