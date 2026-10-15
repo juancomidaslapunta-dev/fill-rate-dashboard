@@ -775,9 +775,10 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
       <div class="kpi-card teal">
         <div class="kpi-top"><span class="kpi-title">Ajustado</span><span class="kpi-icon">🔁</span></div>
         <div class="kpi-value" id="kpiAjustado">—</div>
-        <div class="kpi-unit" id="kpiAjustadoNota">Exacto + sustituciones válidas</div>
+        <div class="kpi-unit" id="kpiAjustadoNota">Exacto + sustituciones potenciales</div>
       </div>
     </div>
+    <div id="kpiControles" style="font-size:.72rem;color:var(--ink-4);margin:-.9rem 0 1.2rem;"></div>
 
     <div class="panel" style="margin-bottom:1.2rem;">
       <div class="panel-title">📊 Solicitado vs Despachado + Evolución Fill Rate (%)</div>
@@ -2325,9 +2326,25 @@ function calcIndicadores(){
   return { periodo, semanaCompleta, hayDia };
 }
 
+// Controles de consistencia de los indicadores. Devuelve la lista de incumplimientos (vacía = todo OK).
+// p = período filtrado; s = semana completa (base del Ajustado). Exacto <= Ajustado se valida sobre la
+// misma base (semana completa), porque con filtro de día el Exacto del período usa otro denominador.
+function validarIndicadores(p, s){
+  const eps = 1e-6, fallas = [];
+  if(Math.abs(p.despachado - (p.solicitado - p.deMenos + p.deMas)) > eps) fallas.push('Despachado ≠ Solicitado − De menos + De más');
+  if(s.solicitado > 0){
+    const ex = s.cumplidas / s.solicitado, aj = (s.cumplidas + s.compensadas) / s.solicitado;
+    if(ex > aj + eps) fallas.push('Exacto > Ajustado');
+    if(aj > 1 + eps) fallas.push('Ajustado > 100%');
+  }
+  if(s.compensadas > s.deMenos + eps) fallas.push('Compensadas exceden los faltantes');
+  if(s.compensadas > s.deMas + eps) fallas.push('Compensadas exceden los excedentes');
+  return fallas;
+}
+
 function renderKPIs(){
   const { periodo: p, semanaCompleta: s, hayDia } = calcIndicadores();
-  const pct = (a, b) => b > 0 ? (a / b * 100).toFixed(1) + '%' : '—';
+  const pct = (a, b) => b > 0 ? (a / b * 100).toFixed(1) + '%' : 'N/A';
 
   document.getElementById('kpiSolicitado').textContent = fmt(p.solicitado);
   document.getElementById('kpiDespachado').textContent = fmt(p.despachado);
@@ -2336,8 +2353,18 @@ function renderKPIs(){
   document.getElementById('kpiFillRate').textContent = pct(p.despachado, p.solicitado);
   document.getElementById('kpiExacto').textContent = pct(p.cumplidas, p.solicitado);
   document.getElementById('kpiAjustado').textContent = pct(s.cumplidas + s.compensadas, s.solicitado);
-  document.getElementById('kpiAjustadoNota').textContent = (hayDia ? 'Semana completa · ' : 'Exacto + sustituciones · ')
-    + fmt(s.compensadas) + ' und compensadas' + (hayDia ? ' · base ' + fmt(s.solicitado) : '');
+  document.getElementById('kpiAjustadoNota').textContent = (hayDia ? 'Semana completa · ' : 'Exacto + sustituciones potenciales · ')
+    + fmt(s.compensadas) + ' und potenciales' + (hayDia ? ' · base ' + fmt(s.solicitado) + ' · Exacto semana ' + pct(s.cumplidas, s.solicitado) : '');
+
+  const fallas = validarIndicadores(p, s);
+  const ctl = document.getElementById('kpiControles');
+  if(ctl){
+    ctl.style.color = fallas.length ? 'var(--red)' : 'var(--ink-4)';
+    ctl.textContent = (fallas.length ? '⚠ Controles: ' + fallas.join(' · ') : '✓ Controles de consistencia OK')
+      + ' · Las sustituciones son potenciales (no confirmadas) y no modifican los datos originales.'
+      + (hayDia ? ' · Ajustado y su Exacto usan la semana completa; el resto, los días filtrados.' : '');
+    if(fallas.length) console.warn('Indicadores inconsistentes:', fallas);
+  }
 }
 
 function renderCharts(){
@@ -2533,27 +2560,27 @@ function renderSucursalBars(){
     const s = cumplimientoSemanal(agregarSemanaSucursalSku(semana.get(sucursal) || rows), equiv);
     return {
       sucursal,
-      fill_rate: p.solicitado > 0 ? p.despachado / p.solicitado * 100 : 0,
-      exacto:    p.solicitado > 0 ? p.cumplidas  / p.solicitado * 100 : 0,
-      ajustado:  s.solicitado > 0 ? (s.cumplidas + s.compensadas) / s.solicitado * 100 : 0
+      fill_rate: p.solicitado > 0 ? p.despachado / p.solicitado * 100 : null,
+      exacto:    p.solicitado > 0 ? p.cumplidas  / p.solicitado * 100 : null,
+      ajustado:  s.solicitado > 0 ? (s.cumplidas + s.compensadas) / s.solicitado * 100 : null
     };
-  }).sort((a,b)=>a.fill_rate-b.fill_rate);
+  }).sort((a,b)=>(a.fill_rate ?? Infinity)-(b.fill_rate ?? Infinity));
 
   const cont = document.getElementById('sucursalBars');
   if(arr.length===0){ cont.innerHTML = '<div class="empty-state">Sin datos para este filtro</div>'; return; }
 
-  const pc = v => v.toFixed(1).replace('.', ',') + '%';
-  const color = v => v < 80 ? '#dc2626' : v < 95 ? '#d97706' : v <= 105 ? '#059669' : '#2563eb';
+  const pc = v => v == null ? 'N/A' : v.toFixed(1).replace('.', ',') + '%';
+  const color = v => v == null ? '#94a3b8' : v < 80 ? '#dc2626' : v < 95 ? '#d97706' : v <= 105 ? '#059669' : '#2563eb';
   cont.innerHTML =
     '<div class="brecha-row brecha-head"><div>Local / Sucursal</div><div></div><div>Fill Rate</div><div>Exacto</div><div>Ajustado</div></div>' +
     arr.map(s=>{
-      const w = Math.min(s.fill_rate,150)/150*100;
+      const w = s.fill_rate == null ? 0 : Math.min(s.fill_rate,150)/150*100;
       return '<div class="brecha-row">'+
         '<div class="brecha-local">'+s.sucursal+'</div>'+
-        '<div class="bar-track"><div class="bar-fill" style="width:'+w+'%; background:'+barColor(s.fill_rate)+'"></div></div>'+
+        '<div class="bar-track"><div class="bar-fill" style="width:'+w+'%; background:'+(s.fill_rate == null ? '#cbd5e1' : barColor(s.fill_rate))+'"></div></div>'+
         '<div class="brecha-num" style="color:'+color(s.fill_rate)+'">'+pc(s.fill_rate)+'</div>'+
         '<div class="brecha-num" style="color:'+color(s.exacto)+'">'+pc(s.exacto)+'</div>'+
-        '<div class="brecha-num" style="color:#2563eb">'+pc(s.ajustado)+'</div>'+
+        '<div class="brecha-num" style="color:'+(s.ajustado == null ? '#94a3b8' : '#2563eb')+'">'+pc(s.ajustado)+'</div>'+
       '</div>';
     }).join('');
 }
