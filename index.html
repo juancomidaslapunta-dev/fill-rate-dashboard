@@ -1698,8 +1698,10 @@ function normalizarSolicitudesPedido(rows){
     const k = {};
     Object.keys(row).forEach(c => { k[c.trim().toUpperCase()] = row[c]; });
 
-    // Solo pedidos EMITIDO y sin plantillas de materias primas
-    if(String(k['ESTADO'] ?? '').trim().toUpperCase() !== 'EMITIDO'){ excluidosEstado++; continue; }
+    // Se descartan los pedidos RECHAZADO (y anulados) y las plantillas de materias primas.
+    // Un pedido pasa de EMITIDO a DESPACHADO PARCIAL / DESPACHADO al despacharse: sigue siendo una solicitud válida.
+    const estadoPedido = String(k['ESTADO'] ?? '').trim().toUpperCase();
+    if(estadoPedido === 'RECHAZADO' || estadoPedido === 'ANULADO' || estadoPedido === 'CANCELADO'){ excluidosEstado++; continue; }
     if(String(k['PLANTILLA'] ?? '').toUpperCase().includes('MATERIAS PRIMAS')){ excluidosPlantilla++; continue; }
 
     let codigoLimpio = parseInt(String(k['CODIGO'] ?? '').replace(/^0+/,'') || '0', 10);
@@ -1875,7 +1877,7 @@ function procesar(){
     dq.total_raw = solRows.length;
     dq.validas = r.validas;
     dq.rechazadas = r.rechazadas;
-    if(r.formato === 'pedido') log('Formato pedido: ' + r.excluidosEstado + ' filas excluidas por estado distinto de EMITIDO, ' + r.excluidosPlantilla + ' por plantilla Materias Primas', 'info');
+    if(r.formato === 'pedido') log('Formato pedido: ' + r.excluidosEstado + ' filas excluidas por estado RECHAZADO/ANULADO, ' + r.excluidosPlantilla + ' por plantilla Materias Primas', 'info');
     log('Solicitudes: ' + r.validas + ' válidas, ' + r.rechazadas + ' rechazadas (sucursal no mapeada, cantidad vacía/cero, o fecha inválida)', r.rechazadas > 0 ? 'warn' : 'ok');
   } else {
     log('No se cargó archivo de Solicitudes — usando seed de ejemplo', 'warn');
