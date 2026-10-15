@@ -1144,7 +1144,7 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
     <div class="panel">
       <div class="panel-header-row">
         <div>
-          <div class="panel-title">OTROS — Solicitud</div>
+          <div class="panel-title">ROAST BEEF — Solicitud</div>
           <div id="otrosCount" class="results-count">—</div>
         </div>
         <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
@@ -1167,6 +1167,24 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
               <div class="filter-actions">
                 <button class="btn btn-primary" id="otApply">Aplicar</button>
                 <button class="btn btn-secondary" id="otCancel">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="fgroup">
+          <label>Local / Sucursal</label>
+          <div class="filter-dropdown" id="otLocalDD">
+            <button class="filter-btn" data-placeholder="Todos los locales">Todos los locales</button>
+            <div class="filter-menu" style="display:none">
+              <input class="filter-search" id="otLocalSearch" placeholder="Buscar local...">
+              <div class="filter-controls">
+                <button class="filter-btn-small" id="otLocalAll">✓ Todos</button>
+                <button class="filter-btn-small" id="otLocalNone">✗ Ninguno</button>
+              </div>
+              <div class="filter-options" id="otLocalOptions"></div>
+              <div class="filter-actions">
+                <button class="btn btn-primary" id="otLocalApply">Aplicar</button>
+                <button class="btn btn-secondary" id="otLocalCancel">Cancelar</button>
               </div>
             </div>
           </div>
@@ -4216,9 +4234,10 @@ const TABLAS_SOL = {
     fechas:[], tocado:false,
   },
   otros: {
-    prefix:'ot', titulo:'OTROS', grupo:'SOLICITUD', totalLabel:'TOTAL',
-    color:'#B8CCE4', archivo:'otros', hoja:'Otros',
-    vacio:'Sin datos de los códigos de Otros.',
+    prefix:'ot', titulo:'ROAST BEEF', grupo:'SOLICITUD', totalLabel:'TOTAL',
+    color:'#B8CCE4', archivo:'roast_beef', hoja:'Roast beef',
+    vacio:'Sin datos de los códigos de Roast beef.',
+    localFiltro:true, localSel:[],
     skus:[
       { sku:'2112002', desc:'Roast beef posta (kilo)' },
       { sku:'2112008', desc:'Roast beef posta (1/2)'  },
