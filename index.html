@@ -153,6 +153,7 @@ select[multiple] option { padding:.22rem; }
 .kpi-card.orange{ border-top-color:#ea580c; } .kpi-card.orange::after{ background:#ea580c; }
 .kpi-card.teal  { border-top-color:#0d9488; } .kpi-card.teal::after  { background:#0d9488; }
 .kpi-card.slate { border-top-color:#475569; } .kpi-card.slate::after { background:#475569; }
+.kpi-card.indigo{ border-top-color:#4f46e5; } .kpi-card.indigo::after{ background:#4f46e5; }
 .kpi-grid-7 { grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); }
 .kpi-grid-7 .kpi-value { font-size:1.6rem; }
 .kpi-top { display:flex; justify-content:space-between; align-items:flex-start; }
@@ -777,6 +778,11 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
         <div class="kpi-value" id="kpiAjustado">—</div>
         <div class="kpi-unit" id="kpiAjustadoNota">Exacto + sustituciones potenciales</div>
       </div>
+      <div class="kpi-card indigo">
+        <div class="kpi-top"><span class="kpi-title">OTIF</span><span class="kpi-icon">⏱️</span></div>
+        <div class="kpi-value" id="kpiOtif">—</div>
+        <div class="kpi-unit" id="kpiOtifNota">A tiempo y completo (por línea)</div>
+      </div>
     </div>
     <div id="kpiControles" style="font-size:.72rem;color:var(--ink-4);margin:-.9rem 0 1.2rem;"></div>
 
@@ -785,6 +791,19 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
       <div class="panel-note">Barras azules: despacho · Barras grises: solicitud · Línea verde: Fill Rate % (eje derecho).</div>
       <canvas id="chartLinea"></canvas>
       <canvas id="chartArea" style="display:none;"></canvas>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-title">⏱️ OTIF por día</div>
+        <div class="panel-note">Porcentaje de líneas (SKU + día + local) a tiempo y completas, a tiempo y completas por separado.</div>
+        <canvas id="chartOtifDia"></canvas>
+      </div>
+      <div class="panel">
+        <div class="panel-title">🏬 OTIF por local</div>
+        <div class="panel-note">Peor a mejor. Verde desde 95%, naranja desde 80%, rojo bajo 80%.</div>
+        <canvas id="chartOtifLocal"></canvas>
+      </div>
     </div>
 
     <div class="grid-2">
@@ -1729,7 +1748,8 @@ function normalizarSolicitudesPedido(rows){
       descripcion: k['PRODUCTO'] || '',
       fecha: fecha,
       sucursal: NOMBRES_OFICIALES[codigoLimpio],
-      cantidad: cantidad
+      cantidad: cantidad,
+      horario: String(k['HORARIO REQUERIDO'] ?? '').trim().toUpperCase()   // AM / PM (para el OTIF)
     });
     validas++;
   }
@@ -2211,10 +2231,87 @@ document.getElementById('btnResetFiltros').addEventListener('click', ()=>{
 function frClass(fr){ if(fr<80) return 'fr-low'; if(fr<95) return 'fr-mid'; if(fr<=105) return 'fr-high'; return 'fr-over'; }
 function barColor(fr){ if(fr<80) return '#dc2626'; if(fr<95) return '#d97706'; if(fr<=105) return '#059669'; return '#2563eb'; }
 
+var chartOtifDia = null, chartOtifLocal = null;
+function renderOtifCharts(){
+  if(typeof Chart === 'undefined' || !document.getElementById('chartOtifDia')) return;
+  const filtrado = getFiltrado();
+  const agrupar = clave => { const m = new Map(); for(const g of filtrado){ const k = clave(g); if(!m.has(k)) m.set(k, []); m.get(k).push(g); } return m; };
+  const pct = (a, b) => b > 0 ? +(a / b * 100).toFixed(1) : null;
+  const colorOtif = v => v == null ? '#cbd5e1' : v >= 95 ? '#059669' : v >= 80 ? '#d97706' : '#dc2626';
+
+  // Por día
+  const porDia = agrupar(g => g.fecha);
+  const fechas = [...porDia.keys()].sort();
+  const resDia = fechas.map(f => calcOTIF(porDia.get(f)));
+  const etiquetas = fechas.map(f => { const [, m, d] = f.split('-'); return d + '/' + m; });
+  const serie = (label, color, key, extra) => ({
+    label, data: resDia.map(r => pct(r[key], r.lineas)), borderColor: color, backgroundColor: color,
+    borderWidth: 2, pointRadius: 3, tension: .3, spanGaps: true, ...extra
+  });
+  if(chartOtifDia) chartOtifDia.destroy();
+  chartOtifDia = new Chart(document.getElementById('chartOtifDia'), {
+    type: 'line',
+    data: { labels: etiquetas, datasets: [
+      serie('OTIF', '#4f46e5', 'otif', { borderWidth: 3, pointRadius: 5, fill: true, backgroundColor: 'rgba(79,70,229,.10)' }),
+      serie('A tiempo', '#0d9488', 'aTiempo', { borderDash: [5, 4] }),
+      serie('Completo', '#2563eb', 'completas', { borderDash: [2, 3] })
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: true, interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', align: 'start', labels: { usePointStyle: true, pointStyle: 'circle', font: { size: 11, weight: '600' }, color: '#3D5166' } },
+        tooltip: { callbacks: {
+          label: ctx => '  ' + ctx.dataset.label + ': ' + (ctx.parsed.y == null ? 'N/A' : ctx.parsed.y.toFixed(1) + '%'),
+          footer: items => items.length ? 'Líneas: ' + fmt(resDia[items[0].dataIndex].lineas) : ''
+        } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#7A8EA3' } },
+        y: { min: 0, max: 100, ticks: { callback: v => v + '%', font: { size: 11 }, color: '#7A8EA3', stepSize: 25 }, grid: { color: 'rgba(0,0,0,0.05)' }, border: { display: false } }
+      }
+    }
+  });
+
+  // Por local (peor a mejor)
+  const porLocal = agrupar(g => g.sucursal);
+  const locales = [...porLocal.entries()].map(([suc, rows]) => { const r = calcOTIF(rows); return { suc, lineas: r.lineas, v: pct(r.otif, r.lineas) }; })
+    .filter(x => x.lineas > 0).sort((a, b) => (a.v ?? Infinity) - (b.v ?? Infinity));
+  if(chartOtifLocal) chartOtifLocal.destroy();
+  chartOtifLocal = new Chart(document.getElementById('chartOtifLocal'), {
+    type: 'bar',
+    data: { labels: locales.map(x => x.suc), datasets: [{
+      label: 'OTIF', data: locales.map(x => x.v), backgroundColor: locales.map(x => colorOtif(x.v)), borderRadius: 3, barPercentage: .7
+    }]},
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: {
+          label: ctx => '  OTIF: ' + (ctx.parsed.x == null ? 'N/A' : ctx.parsed.x.toFixed(1) + '%'),
+          footer: items => items.length ? 'Líneas: ' + fmt(locales[items[0].dataIndex].lineas) : ''
+        } }
+      },
+      scales: {
+        x: { min: 0, max: 100, ticks: { callback: v => v + '%', font: { size: 11 }, color: '#7A8EA3', stepSize: 25 }, grid: { color: 'rgba(0,0,0,0.05)' }, border: { display: false } },
+        y: { grid: { display: false }, ticks: { font: { size: 11, weight: '600' }, color: '#3D5166' } }
+      }
+    },
+    plugins: [{
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart, meta = chart.getDatasetMeta(0);
+        ctx.save(); ctx.font = '700 11px sans-serif'; ctx.fillStyle = '#0D1B2A'; ctx.textBaseline = 'middle';
+        meta.data.forEach((bar, i) => { const v = locales[i].v; ctx.fillText(v == null ? 'N/A' : v.toFixed(1).replace('.', ',') + '%', bar.x + 6, bar.y); });
+        ctx.restore();
+      }
+    }]
+  });
+}
+
 function renderAll(){
   renderHeader();
   renderKPIs();
   renderCharts();
+  renderOtifCharts();
   renderSucursalBars();
   renderQuiebres();
   poblarFiltrosAnalisis();
@@ -2326,6 +2423,65 @@ function calcIndicadores(){
   return { periodo, semanaCompleta, hayDia };
 }
 
+// ============================================================
+// OTIF (On Time In Full) por línea SKU + día + local
+//  · Completo (In Full): despachado el día requerido >= solicitado.
+//  · A tiempo (On Time): se despachó el día requerido y, si la guía trae hora de cierre y el pedido un horario,
+//    antes de las 12:00 (AM) o de las 18:00 (PM). Sin hora de cierre se mide solo por día.
+//  · OTIF: unidades despachadas a tiempo >= solicitado.
+// ============================================================
+const OTIF_CORTE_MIN = { AM: 12 * 60, PM: 18 * 60 };
+
+// Hora de cierre -> minutos del día (texto "14:35[:00]" o fracción de día de Excel); null si no hay dato
+function parseHoraMin(v){
+  if(v == null || v === '') return null;
+  const x = typeof v === 'number' ? v : (/^0?\.\d+$/.test(String(v).trim()) ? parseFloat(v) : NaN);
+  if(!isNaN(x) && x >= 0 && x < 1) return Math.round(x * 1440);
+  const m = String(v).match(/(\d{1,2}):(\d{2})/);
+  return m ? (+m[1]) * 60 + (+m[2]) : null;
+}
+
+// Índices por línea (SKU|fecha|sucursal): horario pedido y guías con su hora de cierre
+var _otifIdx = null, _otifSol = null, _otifDesp = null;
+function indiceOTIF(){
+  if(_otifIdx && _otifSol === RAW.solicitudes && _otifDesp === RAW.despachos) return _otifIdx;
+  const horario = new Map(), guias = new Map();
+  for(const r of (RAW.solicitudes || [])){
+    if(r.horario !== 'AM' && r.horario !== 'PM') continue;
+    const k = r.sku + '|' + r.fecha + '|' + r.sucursal;
+    if(horario.get(k) !== 'AM') horario.set(k, r.horario);   // si hay AM y PM, rige el más exigente (AM)
+  }
+  for(const r of (RAW.despachos || [])){
+    const k = r.sku + '|' + r.fecha + '|' + r.sucursal;
+    if(!guias.has(k)) guias.set(k, []);
+    guias.get(k).push({ c: r.cantidad, min: parseHoraMin(r.hora_cierre) });
+  }
+  _otifIdx = { horario, guias }; _otifSol = RAW.solicitudes; _otifDesp = RAW.despachos;
+  return _otifIdx;
+}
+
+function calcOTIF(rows){
+  const idx = indiceOTIF(), eps = 1e-6;
+  let lineas = 0, aTiempo = 0, completas = 0, otif = 0, conHorario = 0;
+  for(const g of rows){
+    if(!(g.solicitado > 0)) continue;
+    lineas++;
+    const k = g.sku + '|' + g.fecha + '|' + g.sucursal;
+    const hor = idx.horario.get(k), guias = idx.guias.get(k);
+    let uTiempo = g.despachado, evaluada = false;
+    if(hor && guias && guias.some(x => x.min != null)){
+      uTiempo = 0;
+      for(const x of guias) if(x.min == null || x.min < OTIF_CORTE_MIN[hor]) uTiempo += x.c;
+      evaluada = true;
+    }
+    if(uTiempo > eps) aTiempo++;
+    if(g.despachado >= g.solicitado - eps) completas++;
+    if(uTiempo >= g.solicitado - eps) otif++;
+    if(evaluada) conHorario++;
+  }
+  return { lineas, aTiempo, completas, otif, conHorario };
+}
+
 // Controles de consistencia de los indicadores. Devuelve la lista de incumplimientos (vacía = todo OK).
 // p = período filtrado; s = semana completa (base del Ajustado). Exacto <= Ajustado se valida sobre la
 // misma base (semana completa), porque con filtro de día el Exacto del período usa otro denominador.
@@ -2356,12 +2512,21 @@ function renderKPIs(){
   document.getElementById('kpiAjustadoNota').textContent = (hayDia ? 'Semana completa · ' : 'Exacto + sustituciones potenciales · ')
     + fmt(s.compensadas) + ' und potenciales' + (hayDia ? ' · base ' + fmt(s.solicitado) + ' · Exacto semana ' + pct(s.cumplidas, s.solicitado) : '');
 
+  // OTIF (líneas SKU + día + local del período filtrado)
+  const o = calcOTIF(getFiltrado());
+  document.getElementById('kpiOtif').textContent = pct(o.otif, o.lineas);
+  document.getElementById('kpiOtifNota').textContent = 'On time ' + pct(o.aTiempo, o.lineas) + ' · In full ' + pct(o.completas, o.lineas)
+    + ' · ' + fmt(o.lineas) + ' líneas';
+
   const fallas = validarIndicadores(p, s);
+  if(o.otif > o.completas || o.otif > o.aTiempo) fallas.push('OTIF > On time o In full');
   const ctl = document.getElementById('kpiControles');
   if(ctl){
     ctl.style.color = fallas.length ? 'var(--red)' : 'var(--ink-4)';
     ctl.textContent = (fallas.length ? '⚠ Controles: ' + fallas.join(' · ') : '✓ Controles de consistencia OK')
       + ' · Las sustituciones son potenciales (no confirmadas) y no modifican los datos originales.'
+      + ' · OTIF por línea SKU + día + local: despachado el día requerido'
+      + (o.conHorario > 0 ? ' y antes de las 12:00 (AM) o 18:00 (PM) en ' + fmt(o.conHorario) + ' de ' + fmt(o.lineas) + ' líneas; el resto solo por día.' : ' (las guías cargadas no traen hora de cierre: medido solo por día).')
       + (hayDia ? ' · Ajustado y su Exacto usan la semana completa; el resto, los días filtrados.' : '');
     if(fallas.length) console.warn('Indicadores inconsistentes:', fallas);
   }
