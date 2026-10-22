@@ -190,6 +190,80 @@ tbody tr:hover { background:var(--surface-2); }
 .brecha-head div:nth-child(n+3) { text-align:right; }
 .brecha-local { font-size:.78rem; font-weight:600; color:var(--ink-2); text-transform:uppercase; }
 .brecha-num { text-align:right; font-size:.8rem; font-weight:700; font-variant-numeric:tabular-nums; }
+
+/* ─── DASHBOARD (rediseño visual) — estilos acotados a #tab-dashboard ──────── */
+#tab-dashboard { --dl-blue:#2563EB; --dl-blue-dark:#1E3A8A; --dl-ink:#334155; --dl-muted:#94A3B8; --dl-line:#E2E8F0; --dl-green:#16A34A; --dl-red:#DC2626; --dl-orange:#EA580C; }
+.dl-kpis { display:grid; grid-template-columns:minmax(0,2fr) minmax(0,3fr) minmax(0,3fr); gap:1rem; margin-bottom:.6rem; align-items:stretch; }
+.dl-group { background:#fff; border:1px solid var(--dl-line); border-radius:.75rem; padding:.85rem .9rem .95rem; display:flex; flex-direction:column; gap:.6rem; }
+.dl-group-title { font-size:.68rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--dl-muted); margin:0; }
+.dl-cards { display:grid; gap:.7rem; flex:1; }
+.dl-cards-1 { grid-template-columns:minmax(0,1fr); } .dl-cards-3 { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.dl-card { position:relative; display:flex; flex-direction:column; gap:.15rem; padding:.7rem .75rem; border:1px solid var(--dl-line); border-radius:.6rem; background:#F8FAFC; min-width:0; }
+.dl-card-head { display:flex; align-items:center; gap:.4rem; }
+.dl-ico { display:inline-flex; color:var(--dl-blue); }
+.dl-ico svg, .dl-tip svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.dl-card-title { font-size:.74rem; font-weight:700; color:var(--dl-ink); }
+.dl-tip { margin-left:auto; display:inline-flex; color:var(--dl-muted); position:relative; cursor:help; outline:none; }
+.dl-tip:hover, .dl-tip:focus { color:var(--dl-blue); }
+.dl-tip::after { content:attr(data-tip); position:absolute; right:-4px; top:22px; z-index:30; width:230px; background:#0F172A; color:#fff; font-size:.7rem; font-weight:400; line-height:1.35; padding:.5rem .6rem; border-radius:.4rem; opacity:0; pointer-events:none; transform:translateY(-2px); transition:opacity .12s, transform .12s; text-align:left; white-space:normal; }
+.dl-tip:hover::after, .dl-tip:focus::after { opacity:1; transform:none; }
+.dl-value { font-size:1.7rem; font-weight:800; letter-spacing:-.02em; color:#0F172A; line-height:1.15; font-variant-numeric:tabular-nums; }
+.dl-cards-3 .dl-value { font-size:1.9rem; }
+.dl-card.dl-neg .dl-value { color:var(--dl-red); } .dl-card.dl-pos .dl-value { color:var(--dl-orange); }
+.dl-unit { font-size:.7rem; color:var(--dl-muted); }
+.dl-desc, .dl-note { font-size:.68rem; color:#64748B; margin:.1rem 0 0; line-height:1.35; }
+.dl-meter { height:5px; background:#E2E8F0; border-radius:99px; overflow:hidden; margin-top:.35rem; }
+.dl-meter span { display:block; height:100%; width:0; background:var(--dl-blue); border-radius:99px; transition:width .4s; }
+.dl-skel { color:transparent !important; background:linear-gradient(90deg,#E2E8F0 25%,#F1F5F9 50%,#E2E8F0 75%); background-size:200% 100%; animation:dlShimmer 1.2s infinite; border-radius:.4rem; width:5.5rem; min-height:1.6rem; }
+@keyframes dlShimmer { to { background-position:-200% 0; } }
+@media (prefers-reduced-motion:reduce) { .dl-skel { animation:none; } .dl-meter span { transition:none; } }
+.dl-controles { font-size:.7rem; color:var(--dl-muted); margin:.2rem 0 1.1rem; }
+.dl-charts { display:grid; grid-template-columns:minmax(0,3fr) minmax(0,2fr); gap:1rem; margin-bottom:1rem; }
+.dl-charts-2 { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; margin-bottom:1rem; }
+.dl-panel { background:#fff; border:1px solid var(--dl-line); border-radius:.75rem; padding:1rem 1.1rem; min-width:0; }
+.dl-panel-head { display:flex; justify-content:space-between; align-items:flex-start; gap:.8rem; flex-wrap:wrap; margin-bottom:.6rem; }
+.dl-panel-title { font-size:.92rem; font-weight:700; color:#0F172A; margin:0; }
+.dl-panel-note { font-size:.72rem; color:#64748B; margin:.15rem 0 0; }
+.dl-chart { position:relative; height:300px; } .dl-chart.dl-tall { height:340px; }
+.dl-select { font-size:.75rem; padding:.3rem .5rem; border:1px solid var(--dl-line); border-radius:.4rem; background:#fff; color:var(--dl-ink); min-width:0; max-width:100%; }
+.dl-empty { display:flex; align-items:center; justify-content:center; height:100%; font-size:.8rem; color:#64748B; text-align:center; padding:1rem; }
+.dl-empty.dl-error { color:var(--dl-red); }
+.dl-legend { display:flex; gap:1rem; font-size:.68rem; color:#64748B; margin:.1rem 0 .3rem; }
+.dl-legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:.3rem; vertical-align:-1px; }
+.dl-rank-row { display:grid; grid-template-columns:minmax(96px,1.1fr) minmax(120px,2.2fr) 78px; gap:.7rem; align-items:center; padding:.55rem .5rem; border-bottom:1px solid #F1F5F9; border-radius:.4rem; cursor:pointer; }
+.dl-rank-row:hover, .dl-rank-row:focus-visible { background:#F8FAFC; outline:none; }
+.dl-rank-row:focus-visible { box-shadow:0 0 0 2px #BFDBFE; }
+.dl-rank-row.dl-sel { background:#EFF6FF; box-shadow:inset 3px 0 0 var(--dl-blue); }
+.dl-rank-name { font-size:.78rem; font-weight:700; color:var(--dl-ink); text-transform:uppercase; }
+.dl-rank-sub { font-size:.66rem; color:var(--dl-muted); font-weight:500; text-transform:none; }
+.dl-bar { display:grid; grid-template-columns:1fr 46px; gap:.4rem; align-items:center; margin:.12rem 0; }
+.dl-bar i { display:block; height:7px; border-radius:99px; background:#E2E8F0; position:relative; overflow:hidden; }
+.dl-bar i b { position:absolute; left:0; top:0; bottom:0; border-radius:99px; }
+.dl-bar.ex i b { background:var(--dl-blue); } .dl-bar.aj i b { background:var(--dl-blue-dark); }
+.dl-bar span { font-size:.7rem; font-weight:700; text-align:right; font-variant-numeric:tabular-nums; color:var(--dl-ink); }
+.dl-rank-miss { text-align:right; font-size:.76rem; font-weight:700; color:var(--dl-red); font-variant-numeric:tabular-nums; }
+.dl-rank-miss small { display:block; font-size:.62rem; font-weight:500; color:var(--dl-muted); }
+.dl-details { margin-top:.8rem; } .dl-details summary { font-size:.74rem; font-weight:600; color:var(--dl-blue); cursor:pointer; }
+.dl-sku-detail { margin-top:.8rem; border-top:1px dashed var(--dl-line); padding-top:.6rem; font-size:.74rem; }
+.dl-sku-detail .dl-scroll { max-height:220px; overflow:auto; }
+.dl-sku-detail table { width:100%; border-collapse:collapse; }
+.dl-sku-detail th, .dl-sku-detail td { padding:.3rem .4rem; border-bottom:1px solid #F1F5F9; text-align:right; white-space:nowrap; }
+.dl-sku-detail th:first-child, .dl-sku-detail td:first-child, .dl-sku-detail th:nth-child(2), .dl-sku-detail td:nth-child(2) { text-align:left; }
+.dl-link { background:none; border:none; color:var(--dl-blue); font-size:.72rem; font-weight:600; cursor:pointer; padding:0; }
+.dl-otif-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.7rem; margin:.4rem 0 .9rem; }
+.dl-stat { border:1px solid var(--dl-line); border-radius:.6rem; padding:.6rem .75rem; background:#F8FAFC; }
+.dl-stat b { display:block; font-size:1.5rem; font-weight:800; color:#0F172A; font-variant-numeric:tabular-nums; }
+.dl-stat small { font-size:.68rem; color:#64748B; }
+.dl-stat.dl-main { background:#EFF6FF; border-color:#BFDBFE; }
+.dl-estado { font-size:.74rem; padding:.5rem .7rem; border-radius:.5rem; background:#F1F5F9; color:#475569; margin:.2rem 0 .6rem; }
+@media (max-width:1100px) { .dl-kpis { grid-template-columns:minmax(0,1fr); } .dl-charts { grid-template-columns:minmax(0,1fr); } }
+@media (max-width:900px) { .dl-charts-2 { grid-template-columns:minmax(0,1fr); } }
+@media (max-width:700px) {
+  .dl-cards-3 { grid-template-columns:repeat(2,minmax(0,1fr)); } .dl-charts-2 { grid-template-columns:minmax(0,1fr); }
+  .dl-otif-stats { grid-template-columns:minmax(0,1fr); } .dl-value, .dl-cards-3 .dl-value { font-size:1.45rem; }
+  .dl-rank-row { grid-template-columns:1fr 70px; } .dl-rank-row .dl-rank-bars { grid-column:1 / -1; order:3; }
+  .dl-chart { height:260px; }
+}
 .empty-state { text-align:center; color:var(--ink-4); padding:2rem; font-size:.82rem; }
 .footer-note { text-align:center; color:var(--ink-4); font-size:.73rem; margin-top:1.5rem; padding-bottom:1rem; line-height:1.6; }
 .summary-box { background:var(--surface); border-radius:var(--radius-lg); padding:1.2rem; margin-bottom:1rem; border:1px solid var(--border-soft); box-shadow:var(--shadow-sm); }
@@ -742,87 +816,203 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
       <button class="btn-reset" id="btnResetFiltros">✕ Limpiar filtros</button>
     </div>
 
-    <div class="kpi-grid kpi-grid-7">
-      <div class="kpi-card slate">
-        <div class="kpi-top"><span class="kpi-title">Solicitado</span><span class="kpi-icon">📦</span></div>
-        <div class="kpi-value" id="kpiSolicitado">—</div>
-        <div class="kpi-unit">unidades en el período</div>
-      </div>
-      <div class="kpi-card purple">
-        <div class="kpi-top"><span class="kpi-title">Despachado</span><span class="kpi-icon">🚚</span></div>
-        <div class="kpi-value" id="kpiDespachado">—</div>
-        <div class="kpi-unit">unidades en el período</div>
-      </div>
-      <div class="kpi-card red">
-        <div class="kpi-top"><span class="kpi-title">De menos</span><span class="kpi-icon">⬇️</span></div>
-        <div class="kpi-value" id="kpiDeMenos" style="color:var(--red);">—</div>
-        <div class="kpi-unit">unidades sin despachar</div>
-      </div>
-      <div class="kpi-card orange">
-        <div class="kpi-top"><span class="kpi-title">De más</span><span class="kpi-icon">⬆️</span></div>
-        <div class="kpi-value" id="kpiDeMas" style="color:#ea580c;">—</div>
-        <div class="kpi-unit">unidades extra despachadas</div>
-      </div>
-      <div class="kpi-card blue">
-        <div class="kpi-top"><span class="kpi-title">Fill Rate</span><span class="kpi-icon">📈</span></div>
-        <div class="kpi-value" id="kpiFillRate">—</div>
-        <div class="kpi-unit">Despachado / Solicitado (volumen)</div>
-      </div>
-      <div class="kpi-card green">
-        <div class="kpi-top"><span class="kpi-title">Exacto</span><span class="kpi-icon">🎯</span></div>
-        <div class="kpi-value" id="kpiExacto">—</div>
-        <div class="kpi-unit">SKU solicitado cumplido</div>
-      </div>
-      <div class="kpi-card teal">
-        <div class="kpi-top"><span class="kpi-title">Ajustado</span><span class="kpi-icon">🔁</span></div>
-        <div class="kpi-value" id="kpiAjustado">—</div>
-        <div class="kpi-unit" id="kpiAjustadoNota">Exacto + sustituciones potenciales</div>
-      </div>
-      <div class="kpi-card indigo">
-        <div class="kpi-top"><span class="kpi-title">OTIF</span><span class="kpi-icon">⏱️</span></div>
-        <div class="kpi-value" id="kpiOtif">—</div>
-        <div class="kpi-unit" id="kpiOtifNota">A tiempo y completo (por línea)</div>
-      </div>
-    </div>
-    <div id="kpiControles" style="font-size:.72rem;color:var(--ink-4);margin:-.9rem 0 1.2rem;"></div>
-
-    <div class="panel" style="margin-bottom:1.2rem;">
-      <div class="panel-title">📊 Solicitado vs Despachado + Evolución Fill Rate (%)</div>
-      <div class="panel-note">Barras azules: despacho · Barras grises: solicitud · Línea verde: Fill Rate % (eje derecho).</div>
-      <canvas id="chartLinea"></canvas>
-      <canvas id="chartArea" style="display:none;"></canvas>
-    </div>
-
-    <div class="grid-2">
-      <div class="panel">
-        <div class="panel-title">⏱️ OTIF por día</div>
-        <div class="panel-note">Porcentaje de líneas (SKU + día + local) a tiempo y completas, a tiempo y completas por separado.</div>
-        <canvas id="chartOtifDia"></canvas>
-      </div>
-      <div class="panel">
-        <div class="panel-title">🏬 OTIF por local</div>
-        <div class="panel-note">Peor a mejor. Verde desde 95%, naranja desde 80%, rojo bajo 80%.</div>
-        <canvas id="chartOtifLocal"></canvas>
-      </div>
-    </div>
-
-    <div class="grid-2">
-      <div class="panel">
-        <div class="panel-title">🏬 Locales con mayor brecha</div>
-        <div class="day-tabs" id="sucursalDayTabs"></div>
-        <div id="sucursalBars"></div>
-      </div>
-      <div class="panel">
-        <div class="panel-title">🔴 Top Quiebres por Producto (mayor brecha)</div>
-        <div class="day-tabs" id="quiebresDayTabs"></div>
-        <div style="overflow-x:auto; max-height:300px;">
-          <table>
-            <thead><tr><th>SKU</th><th>Descripción</th><th style="text-align:right">Solicitado</th><th style="text-align:right">Despachado</th><th style="text-align:right">Diferencia</th></tr></thead>
-            <tbody id="quiebresBody"></tbody>
-          </table>
+    <section class="dl-kpis" aria-label="Indicadores principales">
+      <div class="dl-group">
+        <h3 class="dl-group-title">Volumen operacional</h3>
+        <div class="dl-cards dl-cards-1">
+          <article class="dl-card">
+            <header class="dl-card-head">
+              <span class="dl-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="m7.5 4.27 9 5.15"/></svg></span>
+              <span class="dl-card-title">Unidades solicitadas</span>
+              <span class="dl-tip" tabindex="0" role="note" data-tip="Suma de las unidades solicitadas por los locales (por SKU, día y sucursal) en el período filtrado."><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span>
+            </header>
+            <div class="dl-value dl-skel" id="kpiSolicitado">—</div>
+            <div class="dl-unit">unidades</div>
+            <p class="dl-desc">Pedido de los locales en el período.</p>
+          </article>
+          <article class="dl-card">
+            <header class="dl-card-head">
+              <span class="dl-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg></span>
+              <span class="dl-card-title">Unidades despachadas</span>
+              <span class="dl-tip" tabindex="0" role="note" data-tip="Suma de las unidades despachadas por la fábrica en el período filtrado, según las guías cargadas."><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span>
+            </header>
+            <div class="dl-value dl-skel" id="kpiDespachado">—</div>
+            <div class="dl-unit">unidades</div>
+            <p class="dl-desc">Salidas de la fábrica en el período.</p>
+          </article>
         </div>
       </div>
+
+      <div class="dl-group">
+        <h3 class="dl-group-title">Indicadores de cumplimiento</h3>
+        <div class="dl-cards dl-cards-3">
+          <article class="dl-card">
+            <header class="dl-card-head">
+              <span class="dl-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>
+              <span class="dl-card-title">Fill Rate volumen</span>
+              <span class="dl-tip" tabindex="0" role="note" data-tip="Unidades despachadas dividido por unidades solicitadas. Puede superar 100% cuando se despacha de más."><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span>
+            </header>
+            <div class="dl-value dl-skel" id="kpiFillRate">—</div>
+            <div class="dl-meter" aria-hidden="true"><span id="dlMeterFr"></span></div>
+            <p class="dl-desc">Despachado / Solicitado.</p>
+          </article>
+          <article class="dl-card">
+            <header class="dl-card-head">
+              <span class="dl-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span>
+              <span class="dl-card-title">Fill Rate exacto</span>
+              <span class="dl-tip" tabindex="0" role="note" data-tip="Unidades cumplidas exactamente (el menor valor entre solicitado y despachado de cada SKU) sobre lo solicitado. No cuenta el exceso ni las sustituciones."><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span>
+            </header>
+            <div class="dl-value dl-skel" id="kpiExacto">—</div>
+            <div class="dl-meter" aria-hidden="true"><span id="dlMeterEx"></span></div>
+            <p class="dl-desc">SKU solicitado cumplido.</p>
+          </article>
+          <article class="dl-card">
+            <header class="dl-card-head">
+              <span class="dl-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></span>
+              <span class="dl-card-title">Fill Rate ajustado</span>
+              <span class="dl-tip" tabindex="0" role="note" data-tip="Exacto más sustituciones potenciales entre SKU equivalentes autorizados, calculadas por semana completa y sucursal. Las sustituciones no son despachos confirmados."><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span>
+            </header>
+            <div class="dl-value dl-skel" id="kpiAjustado">—</div>
+            <div class="dl-meter" aria-hidden="true"><span id="dlMeterAj"></span></div>
+            <p class="dl-note" id="kpiAjustadoNota">Exacto + sustituciones potenciales</p>
+          </article>
+        </div>
+      </div>
+
+      <div class="dl-group">
+        <h3 class="dl-group-title">Desviaciones y nivel de servicio</h3>
+        <div class="dl-cards dl-cards-3">
+          <article class="dl-card dl-neg">
+            <header class="dl-card-head">
+              <span class="dl-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg></span>
+              <span class="dl-card-title">Unidades de menos</span>
+              <span class="dl-tip" tabindex="0" role="note" data-tip="Unidades solicitadas que no se despacharon: suma del faltante de cada SKU (semana, sucursal y SKU)."><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span>
+            </header>
+            <div class="dl-value dl-skel" id="kpiDeMenos">—</div>
+            <div class="dl-unit">unidades</div>
+            <p class="dl-desc">Sin despachar.</p>
+          </article>
+          <article class="dl-card dl-pos">
+            <header class="dl-card-head">
+              <span class="dl-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></span>
+              <span class="dl-card-title">Unidades de más</span>
+              <span class="dl-tip" tabindex="0" role="note" data-tip="Unidades despachadas por encima de lo solicitado: suma del excedente de cada SKU (semana, sucursal y SKU)."><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span>
+            </header>
+            <div class="dl-value dl-skel" id="kpiDeMas">—</div>
+            <div class="dl-unit">unidades</div>
+            <p class="dl-desc">Extra despachadas.</p>
+          </article>
+          <article class="dl-card">
+            <header class="dl-card-head">
+              <span class="dl-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/></svg></span>
+              <span class="dl-card-title">OTIF</span>
+              <span class="dl-tip" tabindex="0" role="note" data-tip="On Time In Full: porcentaje de líneas (SKU + día + local) despachadas a tiempo y completas sobre las líneas solicitadas."><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span>
+            </header>
+            <div class="dl-value dl-skel" id="kpiOtif">—</div>
+            <div class="dl-meter" aria-hidden="true"><span id="dlMeterOtif"></span></div>
+            <p class="dl-note" id="kpiOtifNota">A tiempo y completo (por línea)</p>
+          </article>
+        </div>
+      </div>
+    </section>
+    <div id="kpiControles" class="dl-controles"></div>
+
+    <canvas id="chartArea" style="display:none;"></canvas>
+    <div class="dl-charts">
+      <section class="dl-panel">
+        <div class="dl-panel-head">
+          <div>
+            <h3 class="dl-panel-title">Solicitado vs despachado por día</h3>
+            <p class="dl-panel-note">Unidades por fecha de entrega. Pasa el cursor sobre un día para ver la diferencia y el Fill Rate.</p>
+          </div>
+        </div>
+        <div class="dl-chart"><canvas id="chartLinea" role="img" aria-label="Gráfico de barras agrupadas con las unidades solicitadas y despachadas por día"></canvas></div>
+      </section>
+      <section class="dl-panel">
+        <div class="dl-panel-head">
+          <div>
+            <h3 class="dl-panel-title">Evolución del Fill Rate</h3>
+            <p class="dl-panel-note">Haz clic en la leyenda para activar o desactivar cada serie. El ajustado es de semana completa.</p>
+          </div>
+        </div>
+        <div class="dl-chart"><canvas id="chartFrEvol" role="img" aria-label="Gráfico de líneas con el Fill Rate volumen, exacto y ajustado por día"></canvas></div>
+      </section>
     </div>
+
+    <div class="dl-charts-2">
+      <section class="dl-panel">
+        <div class="dl-panel-head">
+          <div>
+            <h3 class="dl-panel-title">Ranking de cumplimiento por local</h3>
+            <p class="dl-panel-note">Haz clic en un local para filtrar todo el dashboard por él; otro clic lo quita.</p>
+          </div>
+          <label class="dl-panel-note" for="dlOrdenLocal" style="margin:0;display:flex;align-items:center;gap:.4rem;">Ordenar
+            <select class="dl-select" id="dlOrdenLocal">
+              <option value="brecha">Mayor brecha</option>
+              <option value="exacto_asc">Menor Fill Rate exacto</option>
+              <option value="exacto_desc">Mayor Fill Rate exacto</option>
+              <option value="solicitado">Mayor volumen solicitado</option>
+            </select>
+          </label>
+        </div>
+        <div class="day-tabs" id="sucursalDayTabs"></div>
+        <div class="dl-legend" aria-hidden="true"><span><i style="background:#2563EB"></i>Fill Rate exacto</span><span><i style="background:#1E3A8A"></i>Fill Rate ajustado</span></div>
+        <div id="sucursalBars"></div>
+      </section>
+
+      <section class="dl-panel">
+        <div class="dl-panel-head">
+          <div>
+            <h3 class="dl-panel-title">Top 10 productos con mayor quiebre</h3>
+            <p class="dl-panel-note">Haz clic en una barra para ver el detalle por local y día.</p>
+          </div>
+          <label class="dl-panel-note" for="dlModoQuiebre" style="margin:0;display:flex;align-items:center;gap:.4rem;">Ver por
+            <select class="dl-select" id="dlModoQuiebre">
+              <option value="unidades">Mayor faltante en unidades</option>
+              <option value="porcentaje">Mayor % de incumplimiento</option>
+              <option value="sustitucion">Con posible sustitución</option>
+            </select>
+          </label>
+        </div>
+        <div class="day-tabs" id="quiebresDayTabs"></div>
+        <div class="dl-chart dl-tall"><canvas id="chartTopQuiebres" role="img" aria-label="Barras horizontales con los diez productos de mayor quiebre"></canvas></div>
+        <div class="dl-sku-detail" id="dlDetalleSku"></div>
+        <details class="dl-details">
+          <summary>Ver tabla de quiebres</summary>
+          <div style="overflow-x:auto; max-height:300px; margin-top:.5rem;">
+            <table>
+              <thead><tr><th>SKU</th><th>Descripción</th><th style="text-align:right">Solicitado</th><th style="text-align:right">Despachado</th><th style="text-align:right">Diferencia</th></tr></thead>
+              <tbody id="quiebresBody"></tbody>
+            </table>
+          </div>
+        </details>
+      </section>
+    </div>
+
+    <section class="dl-panel" style="margin-bottom:1rem;">
+      <div class="dl-panel-head">
+        <div>
+          <h3 class="dl-panel-title">OTIF: a tiempo y completo</h3>
+          <p class="dl-panel-note">Por línea (SKU + día + local). Se muestran por separado el cumplimiento a tiempo, el completo y el OTIF combinado.</p>
+        </div>
+      </div>
+      <div class="dl-estado" id="dlOtifEstado" role="status">Sin información: carga y procesa los archivos.</div>
+      <div class="dl-otif-stats">
+        <div class="dl-stat"><small>A tiempo</small><b id="dlOtifTiempo">—</b><small id="dlOtifTiempoN"></small></div>
+        <div class="dl-stat"><small>Completo</small><b id="dlOtifCompleto">—</b><small id="dlOtifCompletoN"></small></div>
+        <div class="dl-stat dl-main"><small>OTIF combinado</small><b id="dlOtifCombinado">—</b><small id="dlOtifCombinadoN"></small></div>
+      </div>
+      <div class="dl-charts-2" style="margin-bottom:0;">
+        <div>
+          <p class="dl-panel-note" style="margin-bottom:.3rem;"><b>OTIF por día</b></p>
+          <div class="dl-chart"><canvas id="chartOtifDia" role="img" aria-label="Gráfico de líneas con OTIF, a tiempo y completo por día"></canvas></div>
+        </div>
+        <div>
+          <p class="dl-panel-note" style="margin-bottom:.3rem;"><b>OTIF por local</b> (peor a mejor; verde desde 95%, naranja desde 80%, rojo bajo 80%)</p>
+          <div class="dl-chart"><canvas id="chartOtifLocal" role="img" aria-label="Barras horizontales con el OTIF por local"></canvas></div>
+        </div>
+      </div>
+    </section>
 
   </div>
 
@@ -2232,9 +2422,45 @@ function frClass(fr){ if(fr<80) return 'fr-low'; if(fr<95) return 'fr-mid'; if(f
 function barColor(fr){ if(fr<80) return '#dc2626'; if(fr<95) return '#d97706'; if(fr<=105) return '#059669'; return '#2563eb'; }
 
 var chartOtifDia = null, chartOtifLocal = null;
+// Resumen del OTIF: a tiempo, completo y combinado, con estados distintos para
+// "sin datos", "cero calculado válido" y "medido solo por día"
+function renderOtifResumen(){
+  const ids = { t:'dlOtifTiempo', c:'dlOtifCompleto', o:'dlOtifCombinado', tn:'dlOtifTiempoN', cn:'dlOtifCompletoN', on:'dlOtifCombinadoN' };
+  const set = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
+  const estado = document.getElementById('dlOtifEstado');
+  const o = calcOTIF(getFiltrado());
+  if(!GRANULAR.length){
+    ['t','c','o'].forEach(k => set(ids[k], '—')); ['tn','cn','on'].forEach(k => set(ids[k], ''));
+    if(estado) estado.textContent = 'Sin información: carga y procesa los archivos para evaluar el OTIF.';
+    return;
+  }
+  if(o.lineas === 0){
+    ['t','c','o'].forEach(k => set(ids[k], 'N/A')); ['tn','cn','on'].forEach(k => set(ids[k], ''));
+    if(estado) estado.textContent = 'Sin datos suficientes para evaluar el indicador: no hay líneas solicitadas en el período filtrado.';
+    return;
+  }
+  const pct = n => dlPct(n / o.lineas * 100);   // un 0 calculado se muestra como 0,0%, no como dato faltante
+  set(ids.t, pct(o.aTiempo));    set(ids.tn, fmt(o.aTiempo) + ' de ' + fmt(o.lineas) + ' líneas');
+  set(ids.c, pct(o.completas));  set(ids.cn, fmt(o.completas) + ' de ' + fmt(o.lineas) + ' líneas');
+  set(ids.o, pct(o.otif));       set(ids.on, fmt(o.otif) + ' de ' + fmt(o.lineas) + ' líneas');
+  if(estado) estado.textContent = o.conHorario > 0
+    ? 'Medido por día y horario (AM antes de 12:00, PM antes de 18:00) en ' + fmt(o.conHorario) + ' de ' + fmt(o.lineas) + ' líneas; el resto, solo por día.'
+    : 'Medido solo por día: las guías cargadas no traen hora de cierre o los pedidos no traen horario.';
+}
+
 function renderOtifCharts(){
-  if(typeof Chart === 'undefined' || !document.getElementById('chartOtifDia')) return;
+  renderOtifResumen();
+  if(typeof Chart === 'undefined'){ dlVacio('chartOtifDia', dlSinLibreria, true); dlVacio('chartOtifLocal', dlSinLibreria, true); return; }
+  if(!document.getElementById('chartOtifDia')) return;
   const filtrado = getFiltrado();
+  if(chartOtifDia){ chartOtifDia.destroy(); chartOtifDia = null; }
+  if(chartOtifLocal){ chartOtifLocal.destroy(); chartOtifLocal = null; }
+  if(!filtrado.some(g => g.solicitado > 0)){
+    dlVacio('chartOtifDia', GRANULAR.length ? 'Sin datos suficientes para evaluar el indicador.' : dlMsgSinDatos());
+    dlVacio('chartOtifLocal', GRANULAR.length ? 'Sin datos suficientes para evaluar el indicador.' : dlMsgSinDatos());
+    return;
+  }
+  dlLleno('chartOtifDia'); dlLleno('chartOtifLocal');
   const agrupar = clave => { const m = new Map(); for(const g of filtrado){ const k = clave(g); if(!m.has(k)) m.set(k, []); m.get(k).push(g); } return m; };
   const pct = (a, b) => b > 0 ? +(a / b * 100).toFixed(1) : null;
   const colorOtif = v => v == null ? '#cbd5e1' : v >= 95 ? '#059669' : v >= 80 ? '#d97706' : '#dc2626';
@@ -2252,15 +2478,15 @@ function renderOtifCharts(){
   chartOtifDia = new Chart(document.getElementById('chartOtifDia'), {
     type: 'line',
     data: { labels: etiquetas, datasets: [
-      serie('OTIF', '#4f46e5', 'otif', { borderWidth: 3, pointRadius: 5, fill: true, backgroundColor: 'rgba(79,70,229,.10)' }),
-      serie('A tiempo', '#0d9488', 'aTiempo', { borderDash: [5, 4] }),
-      serie('Completo', '#2563eb', 'completas', { borderDash: [2, 3] })
+      serie('OTIF', '#1E3A8A', 'otif', { borderWidth: 3, pointRadius: 4, fill: true, backgroundColor: 'rgba(30,58,138,.08)' }),
+      serie('A tiempo', '#16A34A', 'aTiempo', { borderDash: [5, 4] }),
+      serie('Completo', '#2563EB', 'completas', { borderDash: [2, 3] })
     ]},
     options: {
-      responsive: true, maintainAspectRatio: true, interaction: { mode: 'index', intersect: false },
+      responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { position: 'top', align: 'start', labels: { usePointStyle: true, pointStyle: 'circle', font: { size: 11, weight: '600' }, color: '#3D5166' } },
-        tooltip: { callbacks: {
+        legend: { position: 'top', align: 'start', labels: { usePointStyle: true, pointStyle: 'line', boxWidth: 22, font: { size: 11, weight: '600' }, color: '#334155' } },
+        tooltip: { ...dlTooltipBase, callbacks: {
           label: ctx => '  ' + ctx.dataset.label + ': ' + (ctx.parsed.y == null ? 'N/A' : ctx.parsed.y.toFixed(1) + '%'),
           footer: items => items.length ? 'Líneas: ' + fmt(resDia[items[0].dataIndex].lineas) : ''
         } }
@@ -2283,7 +2509,7 @@ function renderOtifCharts(){
       label: 'OTIF', data: locales.map(x => x.v), backgroundColor: locales.map(x => colorOtif(x.v)), borderRadius: 3, barPercentage: .7
     }]},
     options: {
-      indexAxis: 'y', responsive: true, maintainAspectRatio: true,
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false, layout: { padding: { right: 44 } },
       plugins: {
         legend: { display: false },
         tooltip: { callbacks: {
@@ -2310,10 +2536,13 @@ function renderOtifCharts(){
 function renderAll(){
   renderHeader();
   renderKPIs();
-  renderCharts();
-  renderOtifCharts();
-  renderSucursalBars();
+  dlSeguro('indicadores visuales', renderKpiVisual);
+  dlSeguro('solicitado vs despachado', renderCharts, 'chartLinea');
+  dlSeguro('evolución del Fill Rate', renderFillRateEvolucion, 'chartFrEvol');
+  dlSeguro('OTIF', renderOtifCharts, 'chartOtifDia');
+  dlSeguro('ranking por local', renderSucursalBars);
   renderQuiebres();
+  dlSeguro('top de quiebres', renderTopQuiebres, 'chartTopQuiebres');
   poblarFiltrosAnalisis();
   renderAnalisis();
   poblarFiltrosGuias();
@@ -2532,144 +2761,84 @@ function renderKPIs(){
   }
 }
 
-function renderCharts(){
-  const filtrado = getFiltrado();
-  const porDia = new Map();
-  for(const g of filtrado){
-    if(!porDia.has(g.fecha)) porDia.set(g.fecha, { solicitado:0, despachado:0 });
-    const e = porDia.get(g.fecha);
-    e.solicitado += g.solicitado;
-    e.despachado += g.despachado;
-  }
-  const fechas     = Array.from(porDia.keys()).sort();
-  const labels     = fechas.map(f => { const [,m,d] = f.split('-'); return d+'/'+m; });
-  const solicitado = fechas.map(f => porDia.get(f).solicitado);
-  const despachado = fechas.map(f => porDia.get(f).despachado);
-  const fillrate   = fechas.map(f => {
-    const e = porDia.get(f);
-    const v = e.solicitado > 0 ? (e.despachado / e.solicitado * 100) : 0;
-    return Math.min(v, 200);
-  });
+// ── Utilidades de presentación del Dashboard (no hacen cálculos de negocio) ─────────────
+const dlPct = (v, dec = 1) => v == null ? 'N/A' : v.toFixed(dec).replace('.', ',') + '%';
+const dlEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 
-  // Gráfico combinado estilo foto: barras overlapped + área fill rate
-  if(chartLinea) chartLinea.destroy();
+// Ejecuta un bloque de dibujo sin que un error detenga el resto; muestra el mensaje en el gráfico
+function dlSeguro(nombre, fn, canvasId){
+  try { fn(); }
+  catch(e){
+    console.error('[Dashboard] ' + nombre + ':', e);
+    if(canvasId) dlVacio(canvasId, 'No se pudo dibujar este gráfico: ' + e.message, true);
+  }
+}
+// Estado vacío / error dentro del contenedor del gráfico
+function dlVacio(canvasId, msg, esError){
+  const c = document.getElementById(canvasId); if(!c) return;
+  const box = c.parentElement; let m = box.querySelector('.dl-empty');
+  if(!m){ m = document.createElement('div'); m.className = 'dl-empty'; box.appendChild(m); }
+  m.textContent = msg; m.classList.toggle('dl-error', !!esError); m.style.display = 'flex'; c.style.display = 'none';
+}
+function dlLleno(canvasId){
+  const c = document.getElementById(canvasId); if(!c) return;
+  const m = c.parentElement.querySelector('.dl-empty'); if(m) m.style.display = 'none';
+  c.style.display = 'block';
+}
+// Mensaje cuando no hay datos: distingue "sin cargar" de "sin resultados para el filtro"
+const dlMsgSinDatos = () => GRANULAR.length ? 'Sin datos para este filtro.' : 'Sin información: carga y procesa los archivos para ver este gráfico.';
+const dlSinLibreria = 'No se pudo cargar la librería de gráficos. Recarga la página.';
+
+// Series por día del período filtrado (mismas sumas que usaba el gráfico original)
+function dlSeriesDia(){
+  const porDia = new Map();
+  for(const g of getFiltrado()){
+    if(!porDia.has(g.fecha)) porDia.set(g.fecha, { solicitado:0, despachado:0, filas:[] });
+    const e = porDia.get(g.fecha);
+    e.solicitado += g.solicitado; e.despachado += g.despachado; e.filas.push(g);
+  }
+  const fechas = Array.from(porDia.keys()).sort();
+  return { fechas, porDia, labels: fechas.map(f => { const [,m,d] = f.split('-'); return d + '/' + m; }) };
+}
+
+const dlTooltipBase = { backgroundColor:'#0F172A', titleColor:'#fff', bodyColor:'#E2E8F0', footerColor:'#CBD5E1', padding:10, boxPadding:4 };
+const dlEjeX = { grid:{ display:false }, ticks:{ font:{ size:11 }, color:'#64748B' }, border:{ color:'#E2E8F0' } };
+const dlEjeY = extra => ({ grid:{ color:'rgba(148,163,184,.25)' }, ticks:{ font:{ size:11 }, color:'#64748B' }, border:{ display:false }, ...extra });
+
+function renderCharts(){
+  if(typeof Chart === 'undefined'){ dlVacio('chartLinea', dlSinLibreria, true); return; }
+  if(chartLinea){ chartLinea.destroy(); chartLinea = null; }
+  if(chartArea) { chartArea.destroy(); chartArea = null; }
+  const { fechas, porDia, labels } = dlSeriesDia();
+  if(!fechas.length){ dlVacio('chartLinea', dlMsgSinDatos()); return; }
+  dlLleno('chartLinea');
+
   chartLinea = new Chart(document.getElementById('chartLinea'), {
     type: 'bar',
     data: {
       labels,
       datasets: [
-        {
-          label: 'Solicitud',
-          data: solicitado,
-          backgroundColor: '#B0BEC8',
-          borderRadius: 2,
-          borderWidth: 0,
-          yAxisID: 'y',
-          barPercentage: 0.85,
-          categoryPercentage: 0.8
-        },
-        {
-          label: 'Despacho',
-          data: despachado,
-          backgroundColor: '#0A5FD6',
-          borderRadius: 2,
-          borderWidth: 0,
-          yAxisID: 'y',
-          barPercentage: 0.55,
-          categoryPercentage: 0.8
-        },
-        {
-          label: 'Fill Rate %',
-          data: fillrate,
-          type: 'line',
-          borderColor: '#C07A00',
-          backgroundColor: 'rgba(192,122,0,0.12)',
-          fill: true,
-          borderWidth: 2,
-          pointRadius: 4,
-          pointBackgroundColor: '#fff',
-          pointBorderColor: '#C07A00',
-          pointBorderWidth: 2,
-          tension: 0.4,
-          yAxisID: 'y2'
-        }
+        { label:'Solicitado', data: fechas.map(f => porDia.get(f).solicitado), backgroundColor:'#CBD5E1', hoverBackgroundColor:'#94A3B8', borderRadius:4, borderSkipped:false, maxBarThickness:46 },
+        { label:'Despachado', data: fechas.map(f => porDia.get(f).despachado), backgroundColor:'#2563EB', hoverBackgroundColor:'#1E3A8A', borderRadius:4, borderSkipped:false, maxBarThickness:46 }
       ]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      interaction: { mode: 'index', intersect: false },
+      responsive:true, maintainAspectRatio:false, interaction:{ mode:'index', intersect:false },
       plugins: {
-        legend: {
-          position: 'top',
-          align: 'start',
-          labels: {
-            usePointStyle: true,
-            pointStyle: 'circle',
-            padding: 18,
-            font: { size: 11, weight: '600' },
-            color: '#3D5166'
+        legend: { position:'top', align:'end', labels:{ usePointStyle:true, pointStyle:'rectRounded', boxWidth:8, font:{ size:11, weight:'600' }, color:'#334155' } },
+        tooltip: { ...dlTooltipBase, callbacks: {
+          title: items => 'Entrega ' + items[0].label,
+          label: ctx => '  ' + ctx.dataset.label + ': ' + fmt(ctx.parsed.y) + ' u',
+          afterBody: items => {
+            const e = porDia.get(fechas[items[0].dataIndex]), dif = e.solicitado - e.despachado;
+            const fr = e.solicitado > 0 ? e.despachado / e.solicitado * 100 : null;
+            return ['', '  Diferencia: ' + (dif > 0 ? 'faltan ' + fmt(dif) : dif < 0 ? 'sobran ' + fmt(-dif) : 'sin diferencia'), '  Fill Rate: ' + dlPct(fr)];
           }
-        },
-        tooltip: {
-          backgroundColor: '#0D1B2A',
-          titleColor: '#fff',
-          bodyColor: '#94A3B8',
-          padding: 10,
-          callbacks: {
-            label: ctx => {
-              if(ctx.dataset.label === 'Fill Rate %') return '  Fill Rate: ' + ctx.parsed.y.toFixed(1) + '%';
-              return '  ' + ctx.dataset.label + ': ' + fmt(ctx.parsed.y);
-            }
-          }
-        }
+        } }
       },
-      scales: {
-        x: {
-          grid: { display: false },
-          ticks: { font: { size: 11 }, color: '#7A8EA3' },
-          border: { color: '#E3E8EF' }
-        },
-        y: {
-          beginAtZero: true,
-          position: 'left',
-          grid: { color: 'rgba(0,0,0,0.05)', drawBorder: false },
-          ticks: { callback: v => fmt(v), font: { size: 11 }, color: '#7A8EA3' },
-          border: { display: false }
-        },
-        y2: {
-          beginAtZero: false,
-          position: 'right',
-          suggestedMax: 150,
-          grid: { drawOnChartArea: false },
-          ticks: { callback: v => v + '%', font: { size: 11 }, color: '#7A8EA3', stepSize: 50 },
-          border: { display: false }
-        }
-      }
-    },
-    plugins: [{
-      afterDatasetsDraw(chart) {
-        const dsIdx = chart.data.datasets.findIndex(d => d.label === 'Fill Rate %');
-        if(dsIdx < 0) return;
-        const ds   = chart.data.datasets[dsIdx];
-        const meta = chart.getDatasetMeta(dsIdx);
-        const ctx2 = chart.ctx;
-        meta.data.forEach((point, i) => {
-          const val = ds.data[i];
-          if(val == null) return;
-          const color = val >= 95 ? '#0B875B' : val >= 80 ? '#C07A00' : '#C8303A';
-          ctx2.save();
-          ctx2.font = 'bold 11px Inter,sans-serif';
-          ctx2.fillStyle = color;
-          ctx2.textAlign = 'center';
-          ctx2.fillText(Math.round(val) + '%', point.x, point.y - 11);
-          ctx2.restore();
-        });
-      }
-    }]
+      scales: { x: dlEjeX, y: dlEjeY({ beginAtZero:true, ticks:{ callback:v => fmt(v), font:{ size:11 }, color:'#64748B' } }) }
+    }
   });
-
-  if(chartArea) { chartArea.destroy(); chartArea = null; }
 }
 
 var panelDiaSucursal  = null; // null = semana completa, 'YYYY-MM-DD' = día
@@ -2725,30 +2894,51 @@ function renderSucursalBars(){
     const s = cumplimientoSemanal(agregarSemanaSucursalSku(semana.get(sucursal) || rows), equiv);
     return {
       sucursal,
+      solicitado: p.solicitado,
+      faltan:     p.deMenos,
       fill_rate: p.solicitado > 0 ? p.despachado / p.solicitado * 100 : null,
       exacto:    p.solicitado > 0 ? p.cumplidas  / p.solicitado * 100 : null,
       ajustado:  s.solicitado > 0 ? (s.cumplidas + s.compensadas) / s.solicitado * 100 : null
     };
-  }).sort((a,b)=>(a.fill_rate ?? Infinity)-(b.fill_rate ?? Infinity));
+  });
+  // Orden de presentación (por defecto, el original: Fill Rate volumen de menor a mayor)
+  const asc = k => (a, b) => (a[k] ?? Infinity) - (b[k] ?? Infinity);
+  const desc = k => (a, b) => (b[k] ?? -Infinity) - (a[k] ?? -Infinity);
+  arr.sort(dlOrdenLocal === 'exacto_asc' ? asc('exacto') : dlOrdenLocal === 'exacto_desc' ? desc('exacto') : dlOrdenLocal === 'solicitado' ? desc('solicitado') : asc('fill_rate'));
 
   const cont = document.getElementById('sucursalBars');
-  if(arr.length===0){ cont.innerHTML = '<div class="empty-state">Sin datos para este filtro</div>'; return; }
+  if(arr.length===0){ cont.innerHTML = '<div class="dl-empty" style="height:auto;padding:1.4rem 0;">' + dlMsgSinDatos() + '</div>'; return; }
 
-  const pc = v => v == null ? 'N/A' : v.toFixed(1).replace('.', ',') + '%';
-  const color = v => v == null ? '#94a3b8' : v < 80 ? '#dc2626' : v < 95 ? '#d97706' : v <= 105 ? '#059669' : '#2563eb';
-  cont.innerHTML =
-    '<div class="brecha-row brecha-head"><div>Local / Sucursal</div><div></div><div>Fill Rate</div><div>Exacto</div><div>Ajustado</div></div>' +
-    arr.map(s=>{
-      const w = s.fill_rate == null ? 0 : Math.min(s.fill_rate,150)/150*100;
-      return '<div class="brecha-row">'+
-        '<div class="brecha-local">'+s.sucursal+'</div>'+
-        '<div class="bar-track"><div class="bar-fill" style="width:'+w+'%; background:'+(s.fill_rate == null ? '#cbd5e1' : barColor(s.fill_rate))+'"></div></div>'+
-        '<div class="brecha-num" style="color:'+color(s.fill_rate)+'">'+pc(s.fill_rate)+'</div>'+
-        '<div class="brecha-num" style="color:'+color(s.exacto)+'">'+pc(s.exacto)+'</div>'+
-        '<div class="brecha-num" style="color:'+(s.ajustado == null ? '#94a3b8' : '#2563eb')+'">'+pc(s.ajustado)+'</div>'+
-      '</div>';
-    }).join('');
+  const ancho = v => v == null ? 0 : Math.max(0, Math.min(100, v));
+  const unico = filtroLocal.length === 1 ? filtroLocal[0] : null;
+  cont.innerHTML = arr.map(s => {
+    const sel = unico === s.sucursal;
+    return '<div class="dl-rank-row' + (sel ? ' dl-sel' : '') + '" role="button" tabindex="0" aria-pressed="' + sel + '" data-suc="' + dlEsc(s.sucursal) + '" title="' + (sel ? 'Quitar el filtro de este local' : 'Filtrar el dashboard por este local') + '">' +
+      '<div><div class="dl-rank-name">' + dlEsc(s.sucursal) + '</div><div class="dl-rank-sub">Fill Rate volumen ' + dlPct(s.fill_rate) + '</div></div>' +
+      '<div class="dl-rank-bars">' +
+        '<div class="dl-bar ex"><i><b style="width:' + ancho(s.exacto) + '%"></b></i><span>' + dlPct(s.exacto) + '</span></div>' +
+        '<div class="dl-bar aj"><i><b style="width:' + ancho(s.ajustado) + '%"></b></i><span>' + dlPct(s.ajustado) + '</span></div>' +
+      '</div>' +
+      '<div class="dl-rank-miss">' + fmt(s.faltan) + '<small>u. faltantes</small></div>' +
+    '</div>';
+  }).join('');
+  cont.querySelectorAll('.dl-rank-row').forEach(el => {
+    const accion = () => seleccionarLocalDesdeGrafico(el.dataset.suc);
+    el.addEventListener('click', accion);
+    el.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); accion(); } });
+  });
 }
+
+// Selección desde el ranking: usa el filtro de local existente (no crea otra lógica de filtrado)
+var dlOrdenLocal = 'brecha';
+function seleccionarLocalDesdeGrafico(sucursal){
+  filtroLocal = (filtroLocal.length === 1 && filtroLocal[0] === sucursal) ? [] : [sucursal];
+  poblarFiltros();   // sincroniza el desplegable de Local con el filtro
+  const btn = document.querySelector('#filtroLocalDD .filter-btn');
+  if(btn) btn.textContent = filtroLocal.length ? filtroLocal.length + ' seleccionados' : 'Seleccionar locales...';
+  renderAll();
+}
+document.getElementById('dlOrdenLocal')?.addEventListener('change', e => { dlOrdenLocal = e.target.value; dlSeguro('ranking por local', renderSucursalBars); });
 
 function renderQuiebres(){
   const diasDisp = [...new Set(getFiltrado().map(g=>g.fecha))].sort();
@@ -2785,6 +2975,158 @@ function renderQuiebres(){
     '</tr>'
   ).join('');
 }
+
+// ============================================================
+// DASHBOARD — componentes de presentación (usan las funciones de cálculo existentes, sin modificarlas)
+// ============================================================
+
+// Barras de progreso de las tarjetas (solo visual) y retiro de los esqueletos de carga
+function renderKpiVisual(){
+  document.querySelectorAll('#tab-dashboard .dl-skel').forEach(el => el.classList.remove('dl-skel'));
+  const { periodo: p, semanaCompleta: s } = calcIndicadores();
+  const o = calcOTIF(getFiltrado());
+  const medidor = (id, v) => { const el = document.getElementById(id); if(el) el.style.width = (v == null ? 0 : Math.max(0, Math.min(100, v))) + '%'; };
+  medidor('dlMeterFr', p.solicitado > 0 ? p.despachado / p.solicitado * 100 : null);
+  medidor('dlMeterEx', p.solicitado > 0 ? p.cumplidas / p.solicitado * 100 : null);
+  medidor('dlMeterAj', s.solicitado > 0 ? (s.cumplidas + s.compensadas) / s.solicitado * 100 : null);
+  medidor('dlMeterOtif', o.lineas > 0 ? o.otif / o.lineas * 100 : null);
+}
+
+// Evolución del Fill Rate por día: volumen, exacto y ajustado (el ajustado es de semana completa)
+var chartFrEvol = null;
+function renderFillRateEvolucion(){
+  if(typeof Chart === 'undefined'){ dlVacio('chartFrEvol', dlSinLibreria, true); return; }
+  if(chartFrEvol){ chartFrEvol.destroy(); chartFrEvol = null; }
+  const { fechas, porDia, labels } = dlSeriesDia();
+  if(!fechas.length){ dlVacio('chartFrEvol', dlMsgSinDatos()); return; }
+  dlLleno('chartFrEvol');
+
+  const equiv = equivalenciasSku();
+  const semanas = new Map();   // Ajustado: semana completa (ignora el filtro de día), una vez por semana
+  for(const g of getFiltrado(true)){ const k = lunesDeSemana(g.fecha); if(!semanas.has(k)) semanas.set(k, []); semanas.get(k).push(g); }
+  const ajustadoSemana = new Map();
+  for(const [k, rows] of semanas){
+    const s = cumplimientoSemanal(agregarSemanaSucursalSku(rows), equiv);
+    ajustadoSemana.set(k, s.solicitado > 0 ? (s.cumplidas + s.compensadas) / s.solicitado * 100 : null);
+  }
+  const volumen = [], exacto = [], ajustado = [];
+  for(const f of fechas){
+    const e = porDia.get(f);
+    volumen.push(e.solicitado > 0 ? e.despachado / e.solicitado * 100 : null);
+    const c = cumplimientoSemanal(agregarSemanaSucursalSku(e.filas), equiv);
+    exacto.push(c.solicitado > 0 ? c.cumplidas / c.solicitado * 100 : null);
+    ajustado.push(ajustadoSemana.get(lunesDeSemana(f)) ?? null);
+  }
+  const serie = (label, data, color, extra) => ({ label, data, borderColor:color, backgroundColor:color, borderWidth:2, pointRadius:3, pointHoverRadius:5, tension:.25, spanGaps:true, ...extra });
+  chartFrEvol = new Chart(document.getElementById('chartFrEvol'), {
+    type: 'line',
+    data: { labels, datasets: [
+      serie('Fill Rate volumen', volumen, '#2563EB'),
+      serie('Fill Rate exacto', exacto, '#16A34A'),
+      serie('Fill Rate ajustado (semana completa)', ajustado, '#1E3A8A', { borderDash:[6, 4] })
+    ] },
+    options: {
+      responsive:true, maintainAspectRatio:false, interaction:{ mode:'index', intersect:false },
+      plugins: {
+        legend: { position:'top', align:'start', labels:{ usePointStyle:true, pointStyle:'line', font:{ size:11, weight:'600' }, color:'#334155' } },
+        tooltip: { ...dlTooltipBase, callbacks: { title: items => 'Entrega ' + items[0].label, label: ctx => '  ' + ctx.dataset.label + ': ' + dlPct(ctx.parsed.y) } }
+      },
+      scales: { x: dlEjeX, y: dlEjeY({ suggestedMin:0, ticks:{ callback:v => v + '%', font:{ size:11 }, color:'#64748B' } }) }
+    }
+  });
+}
+
+// ── Top 10 de productos con mayor quiebre ──────────────────────────────────────────────
+var dlModoQuiebre = 'unidades', dlSkuSel = null, chartTopQuiebres = null;
+
+// SKU -> lista de SKU equivalentes autorizados (catálogo existente, ambos sentidos)
+function dlEquivalentesPorSku(){
+  const m = new Map();
+  for(const g of equivalenciasSku()){
+    m.set(g.congelado, g.pe.slice());
+    for(const p of g.pe) m.set(p, [g.congelado]);
+  }
+  return m;
+}
+function dlResumenPorSku(){
+  const m = new Map(), eq = dlEquivalentesPorSku();
+  for(const g of getQuiebresFiltrado()){
+    let e = m.get(g.sku);
+    if(!e){ e = { sku:g.sku, descripcion:g.descripcion || '', solicitado:0, despachado:0, locales:new Map() }; m.set(g.sku, e); }
+    e.solicitado += g.solicitado; e.despachado += g.despachado;
+    if(!e.descripcion && g.descripcion) e.descripcion = g.descripcion;
+    const l = e.locales.get(g.sucursal) || { sol:0, desp:0 };
+    l.sol += g.solicitado; l.desp += g.despachado; e.locales.set(g.sucursal, l);
+  }
+  return [...m.values()].map(e => {
+    const dif = e.solicitado - e.despachado;
+    return { ...e, dif, pct: e.solicitado > 0 ? dif / e.solicitado * 100 : null,
+      afectados: [...e.locales.values()].filter(l => l.sol > l.desp).length, equiv: eq.get(e.sku) || [] };
+  });
+}
+
+function renderTopQuiebres(){
+  if(typeof Chart === 'undefined'){ dlVacio('chartTopQuiebres', dlSinLibreria, true); return; }
+  if(chartTopQuiebres){ chartTopQuiebres.destroy(); chartTopQuiebres = null; }
+  let arr = dlResumenPorSku().filter(e => e.dif > 0);
+  if(dlModoQuiebre === 'sustitucion') arr = arr.filter(e => e.equiv.length);
+  arr.sort(dlModoQuiebre === 'porcentaje' ? (a, b) => (b.pct ?? -1) - (a.pct ?? -1) || b.dif - a.dif : (a, b) => b.dif - a.dif);
+  arr = arr.slice(0, 10);
+  if(!arr.length){
+    dlVacio('chartTopQuiebres', GRANULAR.length ? (dlModoQuiebre === 'sustitucion' ? 'Ningún producto con faltante tiene equivalente en el catálogo.' : 'Sin quiebres para este filtro.') : dlMsgSinDatos());
+    renderDetalleSku(); return;
+  }
+  dlLleno('chartTopQuiebres');
+  const porPct = dlModoQuiebre === 'porcentaje';
+  const color = e => e.sku === dlSkuSel ? '#1E3A8A' : dlModoQuiebre === 'sustitucion' ? '#EA580C' : '#DC2626';
+  chartTopQuiebres = new Chart(document.getElementById('chartTopQuiebres'), {
+    type: 'bar',
+    data: { labels: arr.map(e => e.sku + ' · ' + (e.descripcion || 'Sin descripción').replace(/\s+/g, ' ').trim().slice(0, 30)),
+      datasets: [{ label: porPct ? '% de incumplimiento' : 'Unidades faltantes', data: arr.map(e => porPct ? +(e.pct ?? 0).toFixed(1) : e.dif),
+        backgroundColor: arr.map(color), borderRadius:3, barPercentage:.72 }] },
+    options: {
+      indexAxis:'y', responsive:true, maintainAspectRatio:false, layout:{ padding:{ right:46 } },
+      onClick: (evt, els) => { if(els.length){ dlSkuSel = arr[els[0].index].sku; renderTopQuiebres(); } },
+      onHover: (evt, els) => { evt.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
+      plugins: {
+        legend: { display:false },
+        tooltip: { ...dlTooltipBase, callbacks: {
+          title: items => arr[items[0].dataIndex].sku + ' · ' + (arr[items[0].dataIndex].descripcion || ''),
+          label: () => '',
+          afterBody: items => { const e = arr[items[0].dataIndex];
+            return ['Solicitado: ' + fmt(e.solicitado) + ' u', 'Despachado: ' + fmt(e.despachado) + ' u', 'Diferencia: ' + fmt(e.dif) + ' u (' + dlPct(e.pct) + ' de lo solicitado)',
+              'Locales afectados: ' + e.afectados, 'Equivalente (potencial): ' + (e.equiv.length ? e.equiv.join(', ') : 'sin equivalente')]; }
+        } }
+      },
+      scales: { x: dlEjeY({ beginAtZero:true, ticks:{ callback:v => porPct ? v + '%' : fmt(v), font:{ size:11 }, color:'#64748B' } }), y: { grid:{ display:false }, ticks:{ font:{ size:10.5, weight:'600' }, color:'#334155' } } }
+    },
+    plugins: [{ afterDatasetsDraw(chart){
+      const { ctx } = chart, meta = chart.getDatasetMeta(0);
+      ctx.save(); ctx.font = '700 11px sans-serif'; ctx.fillStyle = '#0F172A'; ctx.textBaseline = 'middle';
+      meta.data.forEach((bar, i) => ctx.fillText(porPct ? dlPct(arr[i].pct) : fmt(arr[i].dif), bar.x + 6, bar.y));
+      ctx.restore();
+    } }]
+  });
+  renderDetalleSku();
+}
+
+// Detalle del SKU seleccionado: por local y día, con su equivalente (potencial) del catálogo
+function renderDetalleSku(){
+  const box = document.getElementById('dlDetalleSku'); if(!box) return;
+  if(!dlSkuSel){ box.innerHTML = '<p class="dl-panel-note" style="margin:0;">Selecciona una barra para ver el detalle del producto por local y día.</p>'; return; }
+  const filas = getQuiebresFiltrado().filter(g => g.sku === dlSkuSel)
+    .sort((a, b) => a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : a.sucursal.localeCompare(b.sucursal));
+  if(!filas.length){ box.innerHTML = '<p class="dl-panel-note" style="margin:0;">El producto seleccionado no tiene datos con este filtro. <button class="dl-link" id="dlSkuCerrar">Quitar selección</button></p>'; document.getElementById('dlSkuCerrar').onclick = () => { dlSkuSel = null; renderTopQuiebres(); }; return; }
+  const eq = dlEquivalentesPorSku().get(dlSkuSel) || [];
+  const desc = (filas.find(r => r.descripcion) || {}).descripcion || '';
+  box.innerHTML = '<div style="display:flex;justify-content:space-between;gap:.6rem;margin-bottom:.4rem;"><b>' + dlEsc(dlSkuSel) + ' · ' + dlEsc(desc) + '</b><button class="dl-link" id="dlSkuCerrar">Cerrar detalle</button></div>' +
+    '<div class="dl-scroll"><table><thead><tr><th>Día</th><th>Local</th><th>Solicitado</th><th>Despachado</th><th>Diferencia</th><th>Equivalente</th></tr></thead><tbody>' +
+    filas.map(g => { const dif = g.solicitado - g.despachado, [, m, d] = g.fecha.split('-');
+      return '<tr><td>' + d + '/' + m + '</td><td>' + dlEsc(g.sucursal) + '</td><td>' + fmt(g.solicitado) + '</td><td>' + fmt(g.despachado) + '</td><td style="color:' + (dif > 0 ? '#DC2626' : dif < 0 ? '#EA580C' : '#334155') + ';font-weight:700;">' + (dif > 0 ? '-' : dif < 0 ? '+' : '') + fmt(Math.abs(dif)) + '</td><td>' + (eq.length ? dlEsc(eq.join(', ')) : '—') + '</td></tr>'; }).join('') +
+    '</tbody></table></div><p class="dl-panel-note">Los equivalentes del catálogo son sustituciones potenciales, no despachos confirmados.</p>';
+  document.getElementById('dlSkuCerrar').onclick = () => { dlSkuSel = null; renderTopQuiebres(); };
+}
+document.getElementById('dlModoQuiebre')?.addEventListener('change', e => { dlModoQuiebre = e.target.value; dlSeguro('top de quiebres', renderTopQuiebres, 'chartTopQuiebres'); });
 
 // ============================================================
 // VARIABLES GLOBALES DE AUTENTICACIÓN
