@@ -4429,7 +4429,7 @@ document.getElementById('dtBtnReset').addEventListener('click', () => {
 // ============================================================
 const GR_SKUS = ['2101001','2101005','2101006','2101003','2101010','2101012',
   '2101019','2101016','2101007','2101020','2101018','2101009',
-  '2101011','2101021','2101017','2101015','2101023','2101024'];
+  '2101011','2101021','2101017','2101015','2101023','2101024','2101025'];
 
 const GR_SKUS2 = ['1101031','1101033','1101034','1101035','1101036','1101037','1101038','1101039','1101040',
   '1101041','1101042','1101043','1101044','1101045','1101046'];
@@ -4454,6 +4454,7 @@ const GR_PARES = [
   ['2101015', '1101046'],
   ['2101023', '1101043'],
   ['2101024', null],
+  ['2101025', null],
 ];
 
 // Nombre de respaldo por SKU: si el archivo cargado no trae descripción (o el producto solo tiene datos en la
@@ -4473,6 +4474,7 @@ const GR_NOMBRES = {
   '2101015':'Emp. tomate P/E - 1 UN', '2101016':'Emp. camarón queso P/E - 1 UN', '2101017':'Emp. queso orégano P/E - 1 UN',
   '2101018':'Emp. napolitana P/E - 1 UN', '2101019':'Emp. aji gallina P/E - 1 UN', '2101020':'EMP. MECHADA QUESO P/E - 1 UN',
   '2101021':'Emp. queso horno P/E - 1 UN', '2101023':'EMP. BERENJENA CHAMPIÑON P/E - 1 UN', '2101024':'EMP.PINO NOT MEAT P/E - 1 UN',
+  '2101025':'EMP PARRILLERA P/E - 1 UN',
 };
 // Nombre del SKU: el del archivo (de cualquier fecha/local) o, si no hay, el de respaldo
 function nombreGrSku(sku) {
@@ -4545,6 +4547,7 @@ const GR_CATEGORIA = {};
   .forEach(s => GR_CATEGORIA[s] = 'P/E BLANCAS');
 ['1101033','1101034','1101035','1101043','2101001','2101005','2101006','2101023'].forEach(s => GR_CATEGORIA[s] = 'P/E NEGRAS');
 GR_CATEGORIA['1101036'] = 'P/E BLANCAS';
+GR_CATEGORIA['2101025'] = 'P/E BLANCAS';
 
 function buildGrPivotTable(src) {
   const mapFresh = buildGrMap(src, GR_SKUS);
