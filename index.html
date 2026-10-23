@@ -1152,8 +1152,22 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
         </div>
       </div>
       <div class="fgroup">
-        <label>Fecha Envío</label>
-        <input type="date" id="grFechaDesde" class="range-input" style="width:140px;">
+        <label>Fechas de envío</label>
+        <div class="filter-dropdown" id="grFechaDD">
+          <button class="filter-btn" data-placeholder="Todas las fechas">Todas las fechas</button>
+          <div class="filter-menu" style="display:none">
+            <input class="filter-search" id="grFechaSearch" placeholder="Buscar fecha...">
+            <div class="filter-controls">
+              <button class="filter-btn-small" id="grFechaAll">✓ Todas</button>
+              <button class="filter-btn-small" id="grFechaNone">✗ Ninguna</button>
+            </div>
+            <div class="filter-options" id="grFechaOptions"></div>
+            <div class="filter-actions">
+              <button class="btn btn-primary" id="grFechaApply">Aplicar</button>
+              <button class="btn btn-secondary" id="grFechaCancel">Cancelar</button>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="fgroup">
         <label>Categoría</label>
@@ -4482,7 +4496,8 @@ function nombreGrSku(sku) {
   return (g ? String(g.descripcion).replace(/\s+/g, ' ').trim() : '') || GR_NOMBRES[sku] || '';
 }
 
-var grFechaDesde = '';
+var grFechas = [];            // fechas seleccionadas (varias); vacío = todas las fechas
+var grFechasTocado = false;   // false = aún no eligió: por defecto hoy, o la fecha más reciente con datos
 var grLocal = [];
 
 // Filtro de categoría de la tabla Frescas / Ultracongeladas (sin selección = ambas)
@@ -4511,7 +4526,7 @@ function getGrGranular() {
   let allSkus = [...(verF ? GR_SKUS : []), ...(verC ? GR_SKUS2 : [])];
   if(grSku.length) { const sel = grSkuSeleccion(); allSkus = allSkus.filter(s => sel.has(s)); }
   let g = GRANULAR.filter(r => allSkus.includes(r.sku));
-  if(grFechaDesde) g = g.filter(r => r.fecha === grFechaDesde);
+  if(grFechas.length) g = g.filter(r => grFechas.includes(r.fecha));
   if(grLocal.length > 0) g = g.filter(r => grLocal.includes(r.sucursal));
   return g;
 }
@@ -4645,7 +4660,7 @@ function renderGuiaRapida() {
     ? buildGrPivotTable(src)
     : '<div class="empty-state">Sin datos.</div>';
   document.getElementById('grResultsCount').textContent =
-    (grSku.length ? grSku.length + ' de ' + GR_PARES.length : GR_PARES.length) + ' productos' + (grFechaDesde ? ' · ' + grFechaDesde : '') + (grCatLabel() ? ' · ' + grCatLabel() : '');
+    (grSku.length ? grSku.length + ' de ' + GR_PARES.length : GR_PARES.length) + ' productos · ' + (grFechas.length ? [...grFechas].sort().map(ddmmGr).join(' · ') : 'todas las fechas') + (grCatLabel() ? ' · ' + grCatLabel() : '');
   renderQueso();
   Object.keys(TABLAS_SOL).forEach(renderSol);
 }
@@ -4664,6 +4679,20 @@ function poblarFiltroGrSku() {
   if(btn) btn.textContent = grSku.length ? grSku.length + ' seleccionados' : btn.getAttribute('data-placeholder');
 }
 
+// Filtro de fechas de la tabla Frescas / Ultracongeladas: varias fechas, cantidades sumadas
+function poblarFiltroGrFecha() {
+  const disp = fechasDisponiblesGr([...GR_SKUS, ...GR_SKUS2]);   // de la más reciente a la más antigua
+  if(!grFechasTocado){
+    const hoy = isoLocalGr(new Date());
+    grFechas = disp.includes(hoy) ? [hoy] : (disp.length ? [disp[0]] : []);
+  } else {
+    grFechas = grFechas.filter(f => disp.includes(f));
+  }
+  setupCustomFilter('grFecha', disp, grFechas, sel => { grFechas = [...sel].sort(); grFechasTocado = true; renderGuiaRapida(); });
+  const btn = document.querySelector('#grFechaDD .filter-btn');
+  if(btn) btn.textContent = grFechas.length ? grFechas.length + ' seleccionados' : btn.getAttribute('data-placeholder');
+}
+
 function poblarFiltrosGuiaRapida() {
   const locales = [...new Set(GRANULAR
     .filter(r=>[...GR_SKUS,...GR_SKUS2].includes(r.sku))
@@ -4671,11 +4700,7 @@ function poblarFiltrosGuiaRapida() {
   setupCustomFilter('grLocal', locales, grLocal, sel => { grLocal=sel; renderGuiaRapida(); });
   setupCustomFilter('grCat', GR_CATS, grCat, sel => { grCat=[...sel]; renderGuiaRapida(); });
   poblarFiltroGrSku();
-  const desde = document.getElementById('grFechaDesde');
-  if(!grFechaDesde && desde && !desde.value) {
-    const hoy = new Date().toISOString().slice(0,10);
-    grFechaDesde = hoy; desde.value = hoy;
-  }
+  poblarFiltroGrFecha();
   poblarFiltroQueso();
   Object.keys(TABLAS_SOL).forEach(poblarFiltroSol);
 }
@@ -5130,7 +5155,7 @@ function imprimirGrTabla(divId, titulo) {
   const cont = document.getElementById(divId);
   const tablas = cont?.querySelectorAll('table');
   if(!tablas || !tablas.length) { alert('Sin datos para imprimir.'); return; }
-  const fecha = grFechaDesde||'';
+  const fecha = grFechas.length ? [...grFechas].sort().map(ddmmGr).join(' · ') : 'todas las fechas';
   const local  = (grLocal.length?' · '+grLocal.join(', '):'') + (grCatLabel()?' · '+grCatLabel():'') + (grSku.length?' · '+grSku.length+' SKU':'');
   const style = `<style>body{font-family:sans-serif;font-size:10px;padding:12px;}h2{font-size:13px;margin-bottom:6px;text-align:left;}table{width:auto !important;border-collapse:collapse;margin-bottom:10px;}th,td{border:1px solid #475569;padding:.3em .5em;}th{font-weight:700;text-align:center;background:#f1f5f9;}thead tr:nth-child(2) th:nth-child(2){text-align:left;}td.sku{font-family:monospace;font-weight:700;}td{text-align:right;}td:nth-child(2){text-align:left;}.td-total-sol{background:#DBEAFE;font-weight:700;}@media print{@page{size:landscape;margin:10mm;}}</style>`;
   const win = window.open('','_blank');
@@ -5178,15 +5203,13 @@ function descargarEmpanadasExcel() {
   });
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'Empanadas');
-  XLSX.writeFile(wb,'empanadas_'+(grFechaDesde||new Date().toISOString().slice(0,10))+'.xlsx');
+  const fs = [...grFechas].sort();
+  XLSX.writeFile(wb,'empanadas_'+(fs.length ? fs[0] + (fs.length > 1 ? '_a_' + fs[fs.length-1] : '') : isoLocalGr(new Date()))+'.xlsx');
 }
 
-const _grDesde = document.getElementById('grFechaDesde');
 const _grReset = document.getElementById('grBtnReset');
-if(_grDesde) _grDesde.addEventListener('change',e=>{grFechaDesde=e.target.value;renderGuiaRapida();});
 if(_grReset) _grReset.addEventListener('click',()=>{
-  grLocal=[]; grFechaDesde = new Date().toISOString().slice(0,10);
-  if(_grDesde) _grDesde.value=grFechaDesde;
+  grLocal=[]; grFechasTocado=false; poblarFiltroGrFecha();
   const btn=document.querySelector('#grLocalDD .filter-btn');
   if(btn)btn.textContent='Seleccionar locales...';
   grCat=[];
