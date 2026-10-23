@@ -2584,7 +2584,7 @@ const EQUIV_CONGELADO_PE = [
   ['1101033','2101001'], ['1101034','2101005'], ['1101035','2101006'], ['1101031','2101010'],
   ['1101042','2101011'], ['1101036','2101019'], ['1101037','2101016'], ['1101038','2101007'],
   ['1101039','2101020'], ['1101040','2101018'], ['1101041','2101009'], ['1101044','2101021'],
-  ['1101043','2101023'], ['1101045','2101017'], ['1101046','2101015'],
+  ['1101043','2101023'], ['1101045','2101017'], ['1101046','2101015'], ['1101032','2101025'],
   // Lasañas — Congeladas <-> Frescas
   ['1102001','2102001'], ['1102013','2102013'], ['1102019','2102019'], ['1102003','2102003'],
   ['1102014','2102014'], ['1102004','2102004'], ['1102020','2102020'], ['1102005','2102005'],
@@ -4431,7 +4431,7 @@ const GR_SKUS = ['2101001','2101005','2101006','2101003','2101010','2101012',
   '2101019','2101016','2101007','2101020','2101018','2101009',
   '2101011','2101021','2101017','2101015','2101023','2101024','2101025'];
 
-const GR_SKUS2 = ['1101031','1101033','1101034','1101035','1101036','1101037','1101038','1101039','1101040',
+const GR_SKUS2 = ['1101031','1101032','1101033','1101034','1101035','1101036','1101037','1101038','1101039','1101040',
   '1101041','1101042','1101043','1101044','1101045','1101046'];
 
 // Emparejamiento fila a fila: SKU fresco -> SKU ultracongelado equivalente (o null si no tiene par)
@@ -4454,7 +4454,7 @@ const GR_PARES = [
   ['2101015', '1101046'],
   ['2101023', '1101043'],
   ['2101024', null],
-  ['2101025', null],
+  ['2101025', '1101032'],
 ];
 
 // Nombre de respaldo por SKU: si el archivo cargado no trae descripción (o el producto solo tiene datos en la
@@ -4474,7 +4474,7 @@ const GR_NOMBRES = {
   '2101015':'Emp. tomate P/E - 1 UN', '2101016':'Emp. camarón queso P/E - 1 UN', '2101017':'Emp. queso orégano P/E - 1 UN',
   '2101018':'Emp. napolitana P/E - 1 UN', '2101019':'Emp. aji gallina P/E - 1 UN', '2101020':'EMP. MECHADA QUESO P/E - 1 UN',
   '2101021':'Emp. queso horno P/E - 1 UN', '2101023':'EMP. BERENJENA CHAMPIÑON P/E - 1 UN', '2101024':'EMP.PINO NOT MEAT P/E - 1 UN',
-  '2101025':'EMP PARRILLERA P/E - 1 UN',
+  '2101025':'EMP PARRILLERA P/E - 1 UN', '1101032':'EMP. PARRILLERA P/E CONG. - UN 1 UN',
 };
 // Nombre del SKU: el del archivo (de cualquier fecha/local) o, si no hay, el de respaldo
 function nombreGrSku(sku) {
@@ -4548,6 +4548,7 @@ const GR_CATEGORIA = {};
 ['1101033','1101034','1101035','1101043','2101001','2101005','2101006','2101023'].forEach(s => GR_CATEGORIA[s] = 'P/E NEGRAS');
 GR_CATEGORIA['1101036'] = 'P/E BLANCAS';
 GR_CATEGORIA['2101025'] = 'P/E BLANCAS';
+GR_CATEGORIA['1101032'] = 'P/E BLANCAS';
 
 function buildGrPivotTable(src) {
   const mapFresh = buildGrMap(src, GR_SKUS);
