@@ -1917,9 +1917,21 @@ function fechaPedidoISO(v){
   return toISODate(v);
 }
 
+// Formulario "ETIQUETAS - MMPP" (fajas y etiquetas): se omite completo, con todos sus códigos.
+// Los códigos conocidos se omiten aunque el archivo traiga el pedido bajo otra plantilla (ej. "ETIQUETAS - SIN TIPO").
+const PLANTILLA_ETIQUETAS_MMPP = 'ETIQUETAS - MMPP';
+const SKUS_ETIQUETAS_MMPP = ['5631082','5631083','5631085','5631087','5631090','5631097','5631113','5631114','5631118','5631148','5631166','5631168','5631169','5631170','5631172'];
+
 function normalizarSolicitudesPedido(rows){
-  let validas = 0, rechazadas = 0, sinSolicitud = 0, excluidosEstado = 0, excluidosPlantilla = 0;
+  let validas = 0, rechazadas = 0, sinSolicitud = 0, excluidosEstado = 0, excluidosPlantilla = 0, excluidosEtiquetas = 0;
   const out = [];
+  // Códigos del formulario ETIQUETAS - MMPP: los conocidos más los que traiga este archivo bajo esa plantilla
+  const skusEtiquetas = new Set(SKUS_ETIQUETAS_MMPP);
+  for(const row of rows){
+    let pl = '', sk = '';
+    for(const c of Object.keys(row)){ const u = c.trim().toUpperCase(); if(u === 'PLANTILLA') pl = row[c]; else if(u === 'SKU') sk = row[c]; }
+    if(String(pl ?? '').toUpperCase().includes(PLANTILLA_ETIQUETAS_MMPP)) skusEtiquetas.add(String(sk ?? '').trim());
+  }
   for(const row of rows){
     const k = {};
     Object.keys(row).forEach(c => { k[c.trim().toUpperCase()] = row[c]; });
@@ -1929,6 +1941,7 @@ function normalizarSolicitudesPedido(rows){
     const estadoPedido = String(k['ESTADO'] ?? '').trim().toUpperCase();
     if(estadoPedido === 'RECHAZADO' || estadoPedido === 'ANULADO' || estadoPedido === 'CANCELADO'){ excluidosEstado++; continue; }
     if(String(k['PLANTILLA'] ?? '').toUpperCase().includes('MATERIAS PRIMAS')){ excluidosPlantilla++; continue; }
+    if(String(k['PLANTILLA'] ?? '').toUpperCase().includes(PLANTILLA_ETIQUETAS_MMPP) || skusEtiquetas.has(String(k['SKU'] ?? '').trim())){ excluidosEtiquetas++; continue; }
 
     let codigoLimpio = parseInt(String(k['CODIGO'] ?? '').replace(/^0+/,'') || '0', 10);
     if(!CODIGOS_OFICIALES.has(codigoLimpio)){
@@ -1959,7 +1972,7 @@ function normalizarSolicitudesPedido(rows){
     });
     validas++;
   }
-  return { out, validas, rechazadas, sinSolicitud, excluidosEstado, excluidosPlantilla, formato:'pedido' };
+  return { out, validas, rechazadas, sinSolicitud, excluidosEstado, excluidosPlantilla, excluidosEtiquetas, formato:'pedido' };
 }
 
 function normalizarSolicitudesRows(rows){
@@ -2104,7 +2117,7 @@ function procesar(){
     dq.total_raw = solRows.length;
     dq.validas = r.validas;
     dq.rechazadas = r.rechazadas;
-    if(r.formato === 'pedido') log('Formato pedido: ' + r.excluidosEstado + ' filas excluidas por estado RECHAZADO/ANULADO, ' + r.excluidosPlantilla + ' por plantilla Materias Primas', 'info');
+    if(r.formato === 'pedido') log('Formato pedido: ' + r.excluidosEstado + ' filas excluidas por estado RECHAZADO/ANULADO, ' + r.excluidosPlantilla + ' por plantilla Materias Primas, ' + r.excluidosEtiquetas + ' por el formulario ETIQUETAS - MMPP y sus códigos', 'info');
     log('Solicitudes: ' + r.validas + ' válidas, ' + r.rechazadas + ' rechazadas (sucursal no mapeada, cantidad vacía/cero, o fecha inválida)', r.rechazadas > 0 ? 'warn' : 'ok');
   } else {
     log('No se cargó archivo de Solicitudes — usando seed de ejemplo', 'warn');
