@@ -415,6 +415,10 @@ module.exports = async function handler(req, res) {
 
   } catch(err) {
     console.error('[api/auth] error:', err);
-    return res.status(500).json({ error: 'Error interno' });   // el detalle queda solo en el log del servidor
+    // El detalle (p. ej. "GitHub API error: Bad credentials") solo se muestra a un administrador con sesión;
+    // a cualquier otro usuario se le responde un mensaje genérico.
+    const s = obtenerSesion(req);
+    const detalle = s && s.role === 'admin' ? ': ' + String(err.message || err).slice(0, 300) : '';
+    return res.status(500).json({ error: 'Error interno' + detalle });
   }
 };
