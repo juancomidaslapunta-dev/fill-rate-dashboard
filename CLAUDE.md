@@ -1,7 +1,7 @@
 # Fill Rate Dashboard — Comidas La Punta
 
 ## Stack
-- Vanilla HTML/JS (un solo archivo: index.html)
+- Vanilla HTML/JS (un solo archivo: public/index.html; solo la carpeta public/ se publica en el sitio)
 - Vercel (serverless) — /api/auth.js
 - Supabase: https://xxoxowjkviqgijeyxhmn.supabase.co
 - GitHub: juancomidaslapunta-dev/fill-rate-dashboard

@@ -15,6 +15,34 @@ function sha256(str) {
   return crypto.createHash('sha256').update(str).digest('hex');
 }
 
+// ── contraseñas: scrypt con sal por usuario (formato  scrypt$<sal>$<hash>) ───────
+// Los hashes SHA-256 antiguos (sin sal) siguen siendo válidos hasta que se cambie la contraseña.
+const SCRYPT_PREFIX = 'scrypt$';
+const MIN_PASSWORD = 10;
+
+function hashPassword(pw) {
+  const salt = crypto.randomBytes(16);
+  const h = crypto.scryptSync(String(pw), salt, 64);
+  return SCRYPT_PREFIX + salt.toString('hex') + '$' + h.toString('hex');
+}
+
+function verificarPassword(pw, stored) {
+  if (typeof stored !== 'string') return false;
+  try {
+    if (stored.startsWith(SCRYPT_PREFIX)) {
+      const [, saltHex, hashHex] = stored.split('$');
+      const calc = crypto.scryptSync(String(pw), Buffer.from(saltHex, 'hex'), 64);
+      const esperado = Buffer.from(hashHex, 'hex');
+      return esperado.length === calc.length && crypto.timingSafeEqual(calc, esperado);
+    }
+    const a = Buffer.from(sha256(String(pw)), 'hex');
+    const b = Buffer.from(stored, 'hex');
+    return b.length === a.length && crypto.timingSafeEqual(a, b);
+  } catch (e) {
+    return false;
+  }
+}
+
 function generarToken() {
   return crypto.randomBytes(32).toString('hex');
 }
@@ -50,13 +78,9 @@ function cargarUsuarios() {
     const content  = fs.readFileSync(filePath, 'utf8');
     return JSON.parse(content);
   } catch(e) {}
-  // Fallback hardcodeado (admin/editor/lector con 123456)
-  const h = '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92';
-  return {
-    admin:  { hash: h, role: 'admin' },
-    editor: { hash: h, role: 'editor' },
-    lector: { hash: h, role: 'lector' }
-  };
+  // Sin usuarios configurados: nadie puede entrar (no hay cuentas por defecto)
+  console.error('[api/auth] No hay usuarios: configura FILLRATE_USERS o users.json');
+  return {};
 }
 
 // ── guardar usuarios vía GitHub API ──────────────────────────────────────────
@@ -116,20 +140,35 @@ async function guardarUsuariosGitHub(users) {
 const SESSIONS = {};
 
 const COOKIE = 'fr_sid';
+const SESION_MS = 8 * 60 * 60 * 1000;   // la sesión vence a las 8 horas también en el servidor
 
 function leerCookie(req) {
   const h = req.headers.cookie || '';
-  const m = h.match(new RegExp(COOKIE + '=([^;]+)'));
+  const m = h.match(new RegExp('(?:^|;\\s*)' + COOKIE + '=([^;]+)'));
   return m ? decodeURIComponent(m[1]) : null;
 }
 
-function setCookie(res, token) {
-  res.setHeader('Set-Cookie',
-    `${COOKIE}=${encodeURIComponent(token)}; Path=/; Max-Age=28800; HttpOnly; SameSite=Lax`);
+// Sesión vigente (o null). Una sesión vencida se elimina.
+function obtenerSesion(req) {
+  const token = leerCookie(req);
+  const sesion = token && Object.prototype.hasOwnProperty.call(SESSIONS, token) ? SESSIONS[token] : null;
+  if (!sesion) return null;
+  if (Date.now() - sesion.ts > SESION_MS) { delete SESSIONS[token]; return null; }
+  return sesion;
 }
 
-function clearCookie(res) {
-  res.setHeader('Set-Cookie', `${COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`);
+// La cookie lleva Secure cuando la conexión es HTTPS (siempre en Vercel)
+function atributoSecure(req) {
+  return String((req && req.headers && req.headers['x-forwarded-proto']) || '').split(',')[0].trim() === 'https' ? '; Secure' : '';
+}
+
+function setCookie(res, token, req) {
+  res.setHeader('Set-Cookie',
+    `${COOKIE}=${encodeURIComponent(token)}; Path=/; Max-Age=28800; HttpOnly; SameSite=Lax${atributoSecure(req)}`);
+}
+
+function clearCookie(res, req) {
+  res.setHeader('Set-Cookie', `${COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax${atributoSecure(req)}`);
 }
 
 // ── handler ───────────────────────────────────────────────────────────────────
@@ -139,6 +178,7 @@ module.exports = async function handler(req, res) {
   const action = (body && body.action) || (req.query && req.query.action);
 
   res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 'no-store');
 
   try {
 
@@ -148,21 +188,22 @@ module.exports = async function handler(req, res) {
       if (!username || !password) {
         return res.status(400).json({ error: 'Usuario y contraseña requeridos' });
       }
+      const nombre = String(username).trim();
       const users = cargarUsuarios();
-      const user  = users[String(username).trim()];
-      if (!user || user.hash !== sha256(String(password))) {
+      const user  = Object.prototype.hasOwnProperty.call(users, nombre) ? users[nombre] : null;
+      if (!user) hashPassword(String(password));   // mismo costo con usuario inexistente: no revela qué usuarios existen
+      if (!user || !verificarPassword(password, user.hash)) {
         return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
       }
       const token = generarToken();
-      SESSIONS[token] = { username: String(username).trim(), role: user.role, ts: Date.now() };
-      setCookie(res, token);
-      return res.status(200).json({ username: String(username).trim(), role: user.role });
+      SESSIONS[token] = { username: nombre, role: user.role, ts: Date.now() };
+      setCookie(res, token, req);
+      return res.status(200).json({ username: nombre, role: user.role });
     }
 
     // SESSION CHECK
     if (action === 'session' || (req.method === 'GET' && !action)) {
-      const token  = leerCookie(req);
-      const sesion = token && SESSIONS[token];
+      const sesion = obtenerSesion(req);
       if (!sesion) return res.status(200).json({ authenticated: false });
       return res.status(200).json({ authenticated: true, username: sesion.username, role: sesion.role });
     }
@@ -171,13 +212,12 @@ module.exports = async function handler(req, res) {
     if (action === 'logout') {
       const token = leerCookie(req);
       if (token) delete SESSIONS[token];
-      clearCookie(res);
+      clearCookie(res, req);
       return res.status(200).json({ ok: true });
     }
 
     // ── Acciones de admin ─────────────────────────────────────────────────────
-    const token  = leerCookie(req);
-    const sesion = token && SESSIONS[token];
+    const sesion = obtenerSesion(req);
     if (!sesion || sesion.role !== 'admin') {
       return res.status(403).json({ error: 'Solo admin puede realizar esta acción' });
     }
@@ -197,20 +237,20 @@ module.exports = async function handler(req, res) {
       if (!username || !password || !role) {
         return res.status(400).json({ error: 'username, password y role son requeridos' });
       }
-      if (!/^[a-zA-Z0-9_.-]{3,32}$/.test(username)) {
+      if (!/^[a-zA-Z0-9_.-]{3,32}$/.test(username) || ['__proto__', 'constructor', 'prototype'].includes(username)) {
         return res.status(400).json({ error: 'Usuario inválido (3-32 chars, solo letras/números/._-)' });
       }
-      if (String(password).length < 6) {
-        return res.status(400).json({ error: 'Contraseña mínimo 6 caracteres' });
+      if (String(password).length < MIN_PASSWORD) {
+        return res.status(400).json({ error: 'Contraseña mínimo ' + MIN_PASSWORD + ' caracteres' });
       }
       if (!['lector','editor','admin'].includes(role)) {
         return res.status(400).json({ error: 'Rol inválido' });
       }
       const users = cargarUsuarios();
-      if (users[username]) {
+      if (Object.prototype.hasOwnProperty.call(users, username)) {
         return res.status(400).json({ error: 'El usuario ya existe' });
       }
-      users[username] = { hash: sha256(String(password)), role };
+      users[username] = { hash: hashPassword(password), role };
       await guardarUsuariosGitHub(users);
       return res.status(201).json({ ok: true, message: 'Usuario creado. Vercel redesplegará en ~30 segundos.' });
     }
@@ -219,10 +259,10 @@ module.exports = async function handler(req, res) {
     if (action === 'change_password') {
       const { username, password } = body || {};
       if (!username || !password) return res.status(400).json({ error: 'username y password requeridos' });
-      if (String(password).length < 6) return res.status(400).json({ error: 'Contraseña mínimo 6 caracteres' });
+      if (String(password).length < MIN_PASSWORD) return res.status(400).json({ error: 'Contraseña mínimo ' + MIN_PASSWORD + ' caracteres' });
       const users = cargarUsuarios();
-      if (!users[username]) return res.status(404).json({ error: 'Usuario no existe' });
-      users[username].hash = sha256(String(password));
+      if (!Object.prototype.hasOwnProperty.call(users, username)) return res.status(404).json({ error: 'Usuario no existe' });
+      users[username].hash = hashPassword(password);
       await guardarUsuariosGitHub(users);
       return res.status(200).json({ ok: true, message: 'Contraseña actualizada. Vercel redesplegará en ~30 segundos.' });
     }
@@ -234,7 +274,7 @@ module.exports = async function handler(req, res) {
       if (username === 'admin' && role !== 'admin') return res.status(400).json({ error: 'No puedes degradar la cuenta admin' });
       if (!['lector','editor','admin'].includes(role)) return res.status(400).json({ error: 'Rol inválido' });
       const users = cargarUsuarios();
-      if (!users[username]) return res.status(404).json({ error: 'Usuario no existe' });
+      if (!Object.prototype.hasOwnProperty.call(users, username)) return res.status(404).json({ error: 'Usuario no existe' });
       users[username].role = role;
       await guardarUsuariosGitHub(users);
       return res.status(200).json({ ok: true, message: 'Rol actualizado. Vercel redesplegará en ~30 segundos.' });
@@ -246,7 +286,7 @@ module.exports = async function handler(req, res) {
       if (!username) return res.status(400).json({ error: 'username requerido' });
       if (username === 'admin') return res.status(400).json({ error: 'No puedes eliminar la cuenta admin' });
       const users = cargarUsuarios();
-      if (!users[username]) return res.status(404).json({ error: 'Usuario no existe' });
+      if (!Object.prototype.hasOwnProperty.call(users, username)) return res.status(404).json({ error: 'Usuario no existe' });
       delete users[username];
       await guardarUsuariosGitHub(users);
       return res.status(200).json({ ok: true, message: 'Usuario eliminado. Vercel redesplegará en ~30 segundos.' });
@@ -375,6 +415,6 @@ module.exports = async function handler(req, res) {
 
   } catch(err) {
     console.error('[api/auth] error:', err);
-    return res.status(500).json({ error: 'Error interno', detalle: String(err.message || err) });
+    return res.status(500).json({ error: 'Error interno' });   // el detalle queda solo en el log del servidor
   }
 };

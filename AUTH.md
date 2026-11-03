@@ -1,11 +1,15 @@
 # 🔐 SISTEMA DE AUTENTICACIÓN
 
+> **Documento histórico.** El acceso actual funciona con `/api/auth` (sesión en el servidor). Las contraseñas
+> **no se documentan** en el repositorio: las define y rota el administrador. Cualquier contraseña que haya
+> aparecido en versiones anteriores de este archivo debe considerarse comprometida.
+
 ## CREDENCIALES
 
 ```
 Rol: LECTOR (Lectura)
   Usuario:    lector
-  Contraseña: *APTRJdUf$hOcE6u
+  Contraseña: (la define el administrador; no se documenta aquí)
   Permisos:   • Ver Dashboard
               • Ver Análisis
               • Ver Guías de Despacho
@@ -13,7 +17,7 @@ Rol: LECTOR (Lectura)
 
 Rol: EDITOR (Lectura + Escritura)
   Usuario:    editor
-  Contraseña: LKrxJ^AU&mY!FHTW
+  Contraseña: (la define el administrador; no se documenta aquí)
   Permisos:   • Todo lo anterior +
               • Importar archivos Excel
               • Procesar datos
@@ -36,8 +40,8 @@ Rol: EDITOR (Lectura + Escritura)
 ```
 En Vercel → Project Settings → Environment Variables:
 
-LECTOR_PASS = *APTRJdUf$hOcE6u
-EDITOR_PASS = LKrxJ^AU&mY!FHTW
+LECTOR_PASS = <definir en Vercel; no se guarda en el repositorio>
+EDITOR_PASS = <definir en Vercel; no se guarda en el repositorio>
 ```
 
 ### Fase 3: Backend Seguro (FUTURO)
@@ -182,11 +186,11 @@ Ir a: https://vercel.com → fill-rate-dashboard → Settings → Environment Va
 Agregar:
 ```
 Name:  LECTOR_PASS
-Value: *APTRJdUf$hOcE6u
+Value: <definir en Vercel; no se guarda en el repositorio>
 Scope: Production, Preview, Development
 
 Name:  EDITOR_PASS
-Value: LKrxJ^AU&mY!FHTW
+Value: <definir en Vercel; no se guarda en el repositorio>
 Scope: Production, Preview, Development
 ```
 
@@ -194,8 +198,8 @@ Scope: Production, Preview, Development
 
 Para pruebas locales, crear `.env.local`:
 ```
-LECTOR_PASS=*APTRJdUf$hOcE6u
-EDITOR_PASS=LKrxJ^AU&mY!FHTW
+LECTOR_PASS=<definir en Vercel; no se guarda en el repositorio>
+EDITOR_PASS=<definir en Vercel; no se guarda en el repositorio>
 ```
 
 **NO INCLUIR en Git** (ya en .gitignore)
@@ -207,14 +211,14 @@ EDITOR_PASS=LKrxJ^AU&mY!FHTW
 ### Test 1: Login Lector
 ```
 Usuario: lector
-Password: *APTRJdUf$hOcE6u
+Password: <la contraseña vigente del usuario>
 Resultado: Acceso a Dashboard sin botón "Importar"
 ```
 
 ### Test 2: Login Editor
 ```
 Usuario: editor
-Password: LKrxJ^AU&mY!FHTW
+Password: <la contraseña vigente del usuario>
 Resultado: Acceso completo con botón "Importar"
 ```
 

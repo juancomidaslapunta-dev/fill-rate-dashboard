@@ -39,8 +39,8 @@ fi
 echo -e "${GREEN}✅ Git instalado: $(git --version)${NC}"
 
 # Verificar que estamos en la carpeta correcta
-if [ ! -f "index.html" ]; then
-    echo -e "${RED}❌ No se encuentra index.html${NC}"
+if [ ! -f "public/index.html" ]; then
+    echo -e "${RED}❌ No se encuentra public/index.html${NC}"
     echo "   Ejecuta este script desde: /home/claude/dashboard-deployment/"
     exit 1
 fi

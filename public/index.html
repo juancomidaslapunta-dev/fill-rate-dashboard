@@ -1722,6 +1722,17 @@ var chartLinea = null, chartArea = null;
 // ============================================================
 function fmt(n){ return Math.round(n).toLocaleString('es-CL'); }
 
+// ── Seguridad: textos que vienen de archivos o de datos compartidos nunca se insertan como HTML ──
+// escHtml: escapa un texto antes de armarlo dentro de innerHTML o de un atributo.
+function escHtml(s){
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+// limpiarTextoEntrada: red de seguridad al leer archivos / datos compartidos. Reemplaza < y > por sus
+// equivalentes de ancho completo (se ven casi igual, pero ya no pueden abrir una etiqueta HTML).
+function limpiarTextoEntrada(v){
+  return typeof v === 'string' ? v.replace(/</g, '＜').replace(/>/g, '＞') : v;
+}
+
 function normalizarTexto(s){
   return String(s||'')
     .toLowerCase()
@@ -1889,6 +1900,8 @@ function handleFile(file, statusId, kind){
       const sheetName = wb.SheetNames[0];
       const ws = wb.Sheets[sheetName];
       const rows = XLSX.utils.sheet_to_json(ws, { defval:null });
+      // Seguridad: ninguna celda de texto puede traer etiquetas HTML hacia las tablas
+      rows.forEach(r => { for(const k in r) r[k] = limpiarTextoEntrada(r[k]); });
 
       if(kind === 'solicitudes'){
         PARSED.solicitudesFile = rows;
@@ -3077,8 +3090,8 @@ function renderQuiebres(){
   }
   tbody.innerHTML = rows.map(r=>
     '<tr>'+
-      '<td><span class="sku">'+r.sku+'</span></td>'+
-      '<td>'+(r.descripcion||'—')+'</td>'+
+      '<td><span class="sku">'+escHtml(r.sku)+'</span></td>'+
+      '<td>'+escHtml(r.descripcion||'—')+'</td>'+
       '<td style="text-align:right">'+fmt(r.solicitado)+'</td>'+
       '<td style="text-align:right">'+fmt(r.despachado)+'</td>'+
       '<td style="text-align:right"><span class="gap-pos">'+fmt(r.diferencia)+'</span></td>'+
@@ -3606,11 +3619,11 @@ function renderAnalisis(){
     const frPct = r.fill_rate === null ? 100 : Math.min(r.fill_rate,150)/150*100;
     const guiasHtml = r.guias.length === 0
       ? '<span style="color:#94a3b8;font-size:.76rem;">sin guía</span>'
-      : r.guias.map(gn => '<span class="guia-chip" data-guia="'+gn+'">'+gn+'</span>').join(' ');
+      : r.guias.map(gn => '<span class="guia-chip" data-guia="'+escHtml(gn)+'">'+escHtml(gn)+'</span>').join(' ');
     return '<tr>'+
-      '<td><span class="sku">'+r.sku+'</span></td>'+
-      '<td>'+(r.descripcion||'—')+'</td>'+
-      '<td>'+r.sucursal+'</td>'+
+      '<td><span class="sku">'+escHtml(r.sku)+'</span></td>'+
+      '<td>'+escHtml(r.descripcion||'—')+'</td>'+
+      '<td>'+escHtml(r.sucursal)+'</td>'+
       '<td style="text-align:right">'+fmt(r.programa)+'</td>'+
       '<td style="text-align:right">'+fmt(r.inventario)+'</td>'+
       '<td style="text-align:right">'+fmt(r.solicitado)+'</td>'+
@@ -3776,17 +3789,17 @@ function abrirModalGuia(numeroGuia){
   }
   document.getElementById('modalGuiaTitulo').textContent = '🚚 Guía ' + g.numero_guia;
   document.getElementById('modalGuiaMeta').innerHTML =
-    '<div class="modal-meta-item"><b>Fecha emisión:</b> ' + g.fecha + '</div>' +
-    '<div class="modal-meta-item"><b>Sucursal:</b> ' + g.sucursal + '</div>' +
-    '<div class="modal-meta-item"><b>Nro. Comanda:</b> ' + (g.numero_comanda||'—') + '</div>' +
-    '<div class="modal-meta-item"><b>Hora cierre:</b> ' + (g.hora_cierre||'—') + '</div>' +
-    '<div class="modal-meta-item"><b>Estado:</b> ' + (g.estado||'—') + '</div>' +
+    '<div class="modal-meta-item"><b>Fecha emisión:</b> ' + escHtml(g.fecha) + '</div>' +
+    '<div class="modal-meta-item"><b>Sucursal:</b> ' + escHtml(g.sucursal) + '</div>' +
+    '<div class="modal-meta-item"><b>Nro. Comanda:</b> ' + escHtml(g.numero_comanda||'—') + '</div>' +
+    '<div class="modal-meta-item"><b>Hora cierre:</b> ' + escHtml(g.hora_cierre||'—') + '</div>' +
+    '<div class="modal-meta-item"><b>Estado:</b> ' + escHtml(g.estado||'—') + '</div>' +
     '<div class="modal-meta-item"><b>Total SKU:</b> ' + g.total_skus + '</div>' +
     '<div class="modal-meta-item"><b>Total unidades:</b> ' + fmt(g.total_unidades) + '</div>';
 
   const tbody = document.getElementById('modalGuiaBody');
   tbody.innerHTML = g.lineas.map(l =>
-    '<tr><td><span class="sku">'+l.sku+'</span></td><td>'+(l.descripcion||'—')+'</td><td style="text-align:right">'+fmt(l.cantidad)+'</td></tr>'
+    '<tr><td><span class="sku">'+escHtml(l.sku)+'</span></td><td>'+escHtml(l.descripcion||'—')+'</td><td style="text-align:right">'+fmt(l.cantidad)+'</td></tr>'
   ).join('');
 
   document.getElementById('modalGuiaOverlay').classList.add('open');
@@ -3860,14 +3873,14 @@ function renderGuias(){
   }
 
   tbody.innerHTML = rows.map(g =>
-    '<tr class="guia-row" data-guia="'+g.numero_guia+'">'+
-      '<td><span class="sku">'+g.numero_guia+'</span></td>'+
-      '<td>'+g.fecha+'</td>'+
-      '<td>'+g.sucursal+'</td>'+
-      '<td>'+(g.numero_comanda||'—')+'</td>'+
+    '<tr class="guia-row" data-guia="'+escHtml(g.numero_guia)+'">'+
+      '<td><span class="sku">'+escHtml(g.numero_guia)+'</span></td>'+
+      '<td>'+escHtml(g.fecha)+'</td>'+
+      '<td>'+escHtml(g.sucursal)+'</td>'+
+      '<td>'+escHtml(g.numero_comanda||'—')+'</td>'+
       '<td style="text-align:right">'+g.total_skus+'</td>'+
       '<td style="text-align:right">'+fmt(g.total_unidades)+'</td>'+
-      '<td><button class="btn-ver-guia" data-guia="'+g.numero_guia+'">Ver detalle →</button></td>'+
+      '<td><button class="btn-ver-guia" data-guia="'+escHtml(g.numero_guia)+'">Ver detalle →</button></td>'+
     '</tr>'
   ).join('');
 
@@ -4147,10 +4160,10 @@ function renderStock() {
 
   tbody.innerHTML = rows.map(r => `
     <tr>
-      <td>${r.numero_local || '—'}</td>
-      <td><strong>${r.sucursal}</strong></td>
-      <td class="sku">${r.sku}</td>
-      <td>${r.descripcion || '—'}</td>
+      <td>${escHtml(r.numero_local || '—')}</td>
+      <td><strong>${escHtml(r.sucursal)}</strong></td>
+      <td class="sku">${escHtml(r.sku)}</td>
+      <td>${escHtml(r.descripcion || '—')}</td>
       <td style="text-align:right">${r.inv_entrada > 0 ? fmt(r.inv_entrada) : '—'}</td>
       <td style="text-align:right">${fmt(r.solicitado)}</td>
       <td style="text-align:right">${fmt(r.despachado)}</td>
@@ -4459,10 +4472,10 @@ function renderDetalle() {
     const dif = totDes - totSol;
     const difCls = dif===0?'td-dif-zero':dif>0?'td-dif-pos':'td-dif-neg';
     return `<tr>
-      <td class="td-fix td-fix-0">${r.sala||'—'}</td>
-      <td class="td-fix td-fix-1">${r.nombre}</td>
-      <td class="td-fix td-fix-2">${r.sku}</td>
-      <td class="td-fix td-fix-3">${r.prod||'—'}</td>
+      <td class="td-fix td-fix-0">${escHtml(r.sala||'—')}</td>
+      <td class="td-fix td-fix-1">${escHtml(r.nombre)}</td>
+      <td class="td-fix td-fix-2">${escHtml(r.sku)}</td>
+      <td class="td-fix td-fix-3">${escHtml(r.prod||'—')}</td>
       ${solCols}
       <td class="td-total-sol">${fmt(totSol)}</td>
       ${desCols}
@@ -4716,8 +4729,8 @@ function buildGrPivotTable(src) {
     if(totRow === 0) return ''; // oculta filas totalmente en blanco
     const rP = verF ? rF : rC; // SKU/Descripción de la fila: el fresco, o el ultracongelado si solo se ve esa categoría
     return `<tr>
-      <td class="sku">${rP.sku}</td>
-      <td style="font-weight:600;text-align:left;">${rP.desc}</td>
+      <td class="sku">${escHtml(rP.sku)}</td>
+      <td style="font-weight:600;text-align:left;">${escHtml(rP.desc)}</td>
       ${verF ? fCells : ''}
       ${ambas ? `<td class="sku">${skuC||''}</td>` : ''}
       ${verC ? cCells : ''}
@@ -5145,8 +5158,8 @@ function buildSolTable(t, m) {
       </tr>
     </thead>
     <tbody>${m.filas.map(f => `<tr>
-      <td class="sku">${f.sku}</td>
-      <td class="desc">${f.desc}</td>
+      <td class="sku">${escHtml(f.sku)}</td>
+      <td class="desc">${escHtml(f.desc)}</td>
       ${f.valores.map(v => '<td class="num">'+(v>0?fmt(v):'')+'</td>').join('')}
       <td class="tot">${fmt(f.total)}</td>
     </tr>`).join('')}</tbody>
@@ -5475,10 +5488,10 @@ if(_grReset) _grReset.addEventListener('click',()=>{
       }
       if (all.length > 0) {
         GRANULAR = all.map(r => ({
-          sku:         r.sku         || '',
-          descripcion: r.descripcion || '',
+          sku:         limpiarTextoEntrada(r.sku         || ''),
+          descripcion: limpiarTextoEntrada(r.descripcion || ''),
           fecha:       r.fecha       || '',
-          sucursal:    r.sucursal    || '',
+          sucursal:    limpiarTextoEntrada(r.sucursal    || ''),
           solicitado:  Number(r.solicitado)  || 0,
           despachado:  Number(r.despachado)  || 0,
           diferencia:  Number(r.diferencia)  || 0,

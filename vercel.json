@@ -1,6 +1,9 @@
 {
   "buildCommand": "echo 'build ok'",
-  "outputDirectory": ".",
+  "outputDirectory": "public",
+  "functions": {
+    "api/auth.js": { "includeFiles": "users.json" }
+  },
   "rewrites": [
     { "source": "/api/auth", "destination": "/api/auth.js" },
     { "source": "/api/auth/:path*", "destination": "/api/auth.js" }
@@ -11,7 +14,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://xxoxowjkviqgijeyxhmn.supabase.co wss://xxoxowjkviqgijeyxhmn.supabase.co"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://xxoxowjkviqgijeyxhmn.supabase.co wss://xxoxowjkviqgijeyxhmn.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
         },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options", "value": "DENY" },

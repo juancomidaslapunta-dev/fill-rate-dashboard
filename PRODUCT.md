@@ -31,7 +31,7 @@ El cumplimiento se calcula a nivel SKU, día y sucursal, y el Fill Rate Ajustado
 
 ## Capabilities and Constraints
 
-- Un solo archivo `index.html` con HTML y JavaScript vanilla, desplegado en Vercel (push a `main`), con una función serverless `/api/auth` para el acceso.
+- Un solo archivo `public/index.html` (única carpeta publicada en el sitio) con HTML y JavaScript vanilla, desplegado en Vercel (push a `main`), con una función serverless `/api/auth` para el acceso.
 - Locales oficiales: 299 Manquehue, 300 Vitacura, 302 Quinchamalí, 303 Dehesa, 314 Bulnes Correa, 316 Renato Sánchez, 426 Chicureo, 483 Padre Hurtado, 500 Maitencillo, 526 Las Lilas y 900 Fábrica.
 - Reglas de negocio confirmadas: Chicureo y Las Lilas piden en packs y el total a granel se muestra multiplicando por 10 (el pack 1110063 equivale a 5 + 5 de queso horno y pino carne, en todos los locales); algunos frescos no tienen congelado equivalente (2101003, 2101012, 2101024).
 - **Abierto:** el proyecto de Supabase (`kpi_fill_rate`) no responde (el dominio no resuelve), así que guardar y cargar datos compartidos no funciona hoy. Falta decidir si se recrea o se reemplaza.

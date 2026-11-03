@@ -79,7 +79,7 @@ git clone https://github.com/tuuser/fill-rate-dashboard.git
 cd fill-rate-dashboard
 
 # Abrir en navegador
-open index.html
+open public/index.html
 
 # O servir con Python
 python3 -m http.server 8000
