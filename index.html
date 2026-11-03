@@ -1264,6 +1264,24 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
             </div>
           </div>
         </div>
+        <div class="fgroup">
+          <label>Local / Sucursal</label>
+          <div class="filter-dropdown" id="qfLocalDD">
+            <button class="filter-btn" data-placeholder="Todos los locales">Todos los locales</button>
+            <div class="filter-menu" style="display:none">
+              <input class="filter-search" id="qfLocalSearch" placeholder="Buscar local...">
+              <div class="filter-controls">
+                <button class="filter-btn-small" id="qfLocalAll">✓ Todos</button>
+                <button class="filter-btn-small" id="qfLocalNone">✗ Ninguno</button>
+              </div>
+              <div class="filter-options" id="qfLocalOptions"></div>
+              <div class="filter-actions">
+                <button class="btn btn-primary" id="qfLocalApply">Aplicar</button>
+                <button class="btn btn-secondary" id="qfLocalCancel">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
         <button class="btn-reset" id="qfBtnReset">✕ Limpiar</button>
       </div>
       <div style="overflow-x:auto;" id="quesoTable"><div class="empty-state">Carga archivos para ver datos.</div></div>
@@ -1314,6 +1332,24 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
             </div>
           </div>
         </div>
+        <div class="fgroup">
+          <label>Local / Sucursal</label>
+          <div class="filter-dropdown" id="pfLocalDD">
+            <button class="filter-btn" data-placeholder="Todos los locales">Todos los locales</button>
+            <div class="filter-menu" style="display:none">
+              <input class="filter-search" id="pfLocalSearch" placeholder="Buscar local...">
+              <div class="filter-controls">
+                <button class="filter-btn-small" id="pfLocalAll">✓ Todos</button>
+                <button class="filter-btn-small" id="pfLocalNone">✗ Ninguno</button>
+              </div>
+              <div class="filter-options" id="pfLocalOptions"></div>
+              <div class="filter-actions">
+                <button class="btn btn-primary" id="pfLocalApply">Aplicar</button>
+                <button class="btn btn-secondary" id="pfLocalCancel">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
         <button class="btn-reset" id="pfBtnReset">✕ Limpiar</button>
       </div>
       <div class="sol-wrap" style="overflow-x:auto;--sol-bg:#C4D79B;" id="packsTable"><div class="empty-state">Carga archivos para ver datos.</div></div>
@@ -1349,6 +1385,24 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
             </div>
           </div>
         </div>
+        <div class="fgroup">
+          <label>Local / Sucursal</label>
+          <div class="filter-dropdown" id="ckLocalDD">
+            <button class="filter-btn" data-placeholder="Todos los locales">Todos los locales</button>
+            <div class="filter-menu" style="display:none">
+              <input class="filter-search" id="ckLocalSearch" placeholder="Buscar local...">
+              <div class="filter-controls">
+                <button class="filter-btn-small" id="ckLocalAll">✓ Todos</button>
+                <button class="filter-btn-small" id="ckLocalNone">✗ Ninguno</button>
+              </div>
+              <div class="filter-options" id="ckLocalOptions"></div>
+              <div class="filter-actions">
+                <button class="btn btn-primary" id="ckLocalApply">Aplicar</button>
+                <button class="btn btn-secondary" id="ckLocalCancel">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
         <button class="btn-reset" id="ckBtnReset">✕ Limpiar</button>
       </div>
       <div class="sol-wrap" style="overflow-x:auto;--sol-bg:#B8CCE4;" id="cocktailTable"><div class="empty-state">Carga archivos para ver datos.</div></div>
@@ -1380,6 +1434,24 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
               <div class="filter-actions">
                 <button class="btn btn-primary" id="ccApply">Aplicar</button>
                 <button class="btn btn-secondary" id="ccCancel">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="fgroup">
+          <label>Local / Sucursal</label>
+          <div class="filter-dropdown" id="ccLocalDD">
+            <button class="filter-btn" data-placeholder="Todos los locales">Todos los locales</button>
+            <div class="filter-menu" style="display:none">
+              <input class="filter-search" id="ccLocalSearch" placeholder="Buscar local...">
+              <div class="filter-controls">
+                <button class="filter-btn-small" id="ccLocalAll">✓ Todos</button>
+                <button class="filter-btn-small" id="ccLocalNone">✗ Ninguno</button>
+              </div>
+              <div class="filter-options" id="ccLocalOptions"></div>
+              <div class="filter-actions">
+                <button class="btn btn-primary" id="ccLocalApply">Aplicar</button>
+                <button class="btn btn-secondary" id="ccLocalCancel">Cancelar</button>
               </div>
             </div>
           </div>
@@ -4750,6 +4822,7 @@ const QUESO_LOCALES = [
 const DIAS_ES = ['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'];
 var qfFechas = [];
 var qfTocado = false;
+var qfLocalSel = [];   // locales mostrados en el cuadro de queso frita; vacío = todos
 
 function isoLocalGr(d) {
   const p = n => String(n).padStart(2,'0');
@@ -4779,7 +4852,8 @@ function calcQueso(fechas) {
   const src = GRANULAR.filter(r => r.sku === SKU_QUESO && fechas.includes(r.fecha));
   const totCol = fechas.map(() => 0);
   let granTotal = 0;
-  const filas = QUESO_LOCALES.map(l => {
+  const locales = qfLocalSel.length ? QUESO_LOCALES.filter(l => qfLocalSel.includes(l.key)) : QUESO_LOCALES;
+  const filas = locales.map(l => {
     const valores = fechas.map((f,i) => {
       const v = src.filter(r => r.sucursal === l.key && r.fecha === f).reduce((s,r) => s + r.solicitado, 0);
       totCol[i] += v;
@@ -4839,6 +4913,9 @@ function poblarFiltroQueso() {
   setupCustomFilter('qf', disp, qfFechas, sel => { qfFechas = [...sel]; qfTocado = true; renderQueso(); });
   const btn = document.querySelector('#qfDD .filter-btn');
   if(btn) btn.textContent = qfFechas.length ? qfFechas.length + ' seleccionados' : btn.getAttribute('data-placeholder');
+  setupCustomFilter('qfLocal', QUESO_LOCALES.map(l => l.key), qfLocalSel, sel => { qfLocalSel = [...sel]; renderQueso(); });
+  const btnLocal = document.querySelector('#qfLocalDD .filter-btn');
+  if(btnLocal) btnLocal.textContent = qfLocalSel.length ? qfLocalSel.length + ' seleccionados' : btnLocal.getAttribute('data-placeholder');
 }
 
 function descargarQuesoExcel() {
@@ -4876,7 +4953,7 @@ function imprimirQueso() {
 }
 
 const _qfReset = document.getElementById('qfBtnReset');
-if(_qfReset) _qfReset.addEventListener('click', () => { qfTocado = false; poblarFiltroQueso(); renderQueso(); });
+if(_qfReset) _qfReset.addEventListener('click', () => { qfTocado = false; qfLocalSel = []; poblarFiltroQueso(); renderQueso(); });
 
 // ============================================================
 // TABLAS DE SOLICITUD POR LOCAL — filas = SKU, columnas = locales
@@ -4900,6 +4977,7 @@ const TABLAS_SOL = {
     prefix:'pf', titulo:'EMPANADAS P/E CONGELADAS', grupo:'SOLICITUD (Packs)', totalLabel:'TOTAL',
     color:'#C4D79B', archivo:'empanadas_pe_congeladas', hoja:'Empanadas P-E congeladas',
     vacio:'Sin datos de los códigos de empanadas P/E congeladas (packs).',
+    localFiltro:true, localSel:[],
     skus:[
       { sku:'1101005', desc:'Pack Emp. champiñon P/E Cong.'  },
       { sku:'1101007', desc:'Pack Emp. jamon queso P/E Cong' },
@@ -4915,6 +4993,7 @@ const TABLAS_SOL = {
     prefix:'ck', titulo:'EMPANADAS COCKTAIL', grupo:'SOLICITUD (GRANEL)', totalLabel:'SALDO',
     color:'#B8CCE4', archivo:'empanadas_cocktail', hoja:'Empanadas cocktail',
     vacio:'Sin datos de los códigos de empanadas cocktail.',
+    localFiltro:true, localSel:[],
     packEnGranel:{ locales:['CHICUREO','LAS LILAS'], prefijo:'1', factor:10,
       mixtos:{ '2110027':[{ sku:'1110063', factor:5 }], '2110010':[{ sku:'1110063', factor:5 }] } },
     skus:[
@@ -4932,6 +5011,7 @@ const TABLAS_SOL = {
     prefix:'cc', titulo:'EMPANADAS COCKTAIL CONGELADAS', grupo:'SOLICITUD (Packs)', totalLabel:'TOTAL',
     color:'#C4D79B', archivo:'empanadas_cocktail_congeladas', hoja:'Empanadas cocktail congeladas',
     vacio:'Sin datos de los códigos de empanadas cocktail congeladas (packs).',
+    localFiltro:true, localSel:[],
     skus:[
       { sku:'1110004', desc:'Pack Emp. camaron queso cock. C' },
       { sku:'1110005', desc:'Pack Emp. champiñón cock. C'     },
