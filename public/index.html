@@ -488,7 +488,7 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
   <div class="tabs">
     <button class="tab-btn active" data-tab="dashboard">📈 Dashboard</button>
     <button class="tab-btn" data-tab="analisis">🔍 Análisis</button>
-    <button class="tab-btn" data-tab="stock">📦 Stock</button>
+    <button class="tab-btn" data-tab="stock">📦 Control de inventarios</button>
     <button class="tab-btn" data-tab="detalle">📋 Detalle</button>
     <button class="tab-btn" data-tab="guiarapida">🗂️ Empanadas</button>
     <button class="tab-btn" data-tab="otros">🍖 Otros</button>
@@ -602,7 +602,7 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
     <div class="panel">
       <div class="panel-header-row">
         <div>
-          <div class="panel-title">📦 Stock por Sucursal y SKU</div>
+          <div class="panel-title">📦 Inventario por Sucursal y SKU</div>
           <div id="stResultsCount" class="results-count">—</div>
         </div>
       </div>
@@ -626,7 +626,7 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
             </tr>
           </thead>
           <tbody id="stTableBody">
-            <tr><td colspan="13" class="empty-state">Carga y procesa los archivos para ver el stock.</td></tr>
+            <tr><td colspan="13" class="empty-state">Carga y procesa los archivos para ver el control de inventarios.</td></tr>
           </tbody>
         </table>
       </div>
@@ -4192,7 +4192,8 @@ function poblarFiltrosStock() {
 function imprimirStock() {
   const wrap = document.getElementById('stTableWrap');
   const orig = document.body.innerHTML;
-  document.body.innerHTML = '<style>body{font-family:sans-serif;font-size:11px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ccc;padding:4px;}</style>' + wrap.outerHTML;
+  document.body.innerHTML = '<style>body{font-family:sans-serif;font-size:11px;}h2{font-size:14px;margin:0 0 8px;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ccc;padding:4px;}</style>'
+    + '<h2>Control de inventarios — Inventario por Sucursal y SKU · ' + new Date().toISOString().slice(0,10) + '</h2>' + wrap.outerHTML;
   window.print();
   document.body.innerHTML = orig;
   location.reload();
@@ -4219,8 +4220,8 @@ function descargarStockExcel() {
   const ws = XLSX.utils.json_to_sheet(data);
   ws['!cols'] = [{wch:8},{wch:16},{wch:10},{wch:32},{wch:10},{wch:10},{wch:10},{wch:14},{wch:12},{wch:18},{wch:12},{wch:10}];
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Stock');
-  XLSX.writeFile(wb, 'stock_' + new Date().toISOString().slice(0,10) + '.xlsx');
+  XLSX.utils.book_append_sheet(wb, ws, 'Inventario por Sucursal y SKU');
+  XLSX.writeFile(wb, 'control_inventarios_' + new Date().toISOString().slice(0,10) + '.xlsx');
 }
 
 // Filtros y sort del tab Stock

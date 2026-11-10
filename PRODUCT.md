@@ -27,7 +27,7 @@ El cumplimiento se calcula a nivel SKU, día y sucursal, y el Fill Rate Ajustado
 - Se excluyen los pedidos rechazados y las plantillas de materias primas.
 - Se trabaja por semana ISO, con filtros por local, semana y día.
 - Las hojas de solicitud se imprimen en formato horizontal y deben caber en una página.
-- Pestañas actuales: Dashboard, Análisis, Stock, Detalle, Empanadas, Otros, Guías de Despacho e Importar Archivos.
+- Pestañas actuales: Dashboard, Análisis, Control de inventarios, Detalle, Empanadas, Otros, Guías de Despacho e Importar Archivos.
 
 ## Capabilities and Constraints
 

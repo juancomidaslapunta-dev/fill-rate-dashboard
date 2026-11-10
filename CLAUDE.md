@@ -18,7 +18,7 @@ kpi_fill_rate: id, sku, descripcion, fecha, sucursal, solicitado, despachado, di
 299:MANQUEHUE, 300:VITACURA, 302:QUINCHAMALI, 303:DEHESA, 314:BULNES CORREA, 316:RENATO SANCHEZ, 426:CHICUREO, 483:PADRE HURTADO, 500:MAITENCILLO, 526:LAS LILAS, 900:FABRICA
 
 ## Pestañas
-Dashboard | Análisis | Stock | Detalle | Empanadas | Guías de Despacho | Importar Archivos
+Dashboard | Análisis | Control de inventarios | Detalle | Empanadas | Guías de Despacho | Importar Archivos
 
 ## Deploy
 Push a main → Vercel despliega automáticamente
