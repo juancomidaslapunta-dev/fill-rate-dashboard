@@ -2031,11 +2031,8 @@ function normalizarSolicitudesPedido(rows){
     let codigoLimpio = parseInt(String(k['CODIGO'] ?? '').replace(/^0+/,'') || '0', 10);
     if(!CODIGOS_OFICIALES.has(codigoLimpio)){
       // Local sin código en el archivo (ej. "SIN CODIGO" para Las Lilas): buscar por nombre de tienda
-      const tienda = String(k['TIENDA SOLICITANTE'] ?? '').trim().toUpperCase();
-      const porNombre = Object.keys(NOMBRES_OFICIALES).find(c => {
-        const n = String(NOMBRES_OFICIALES[c]).toUpperCase();
-        return tienda === n || tienda.replace(/^LA\s+/,'') === n.replace(/^LA\s+/,'');
-      });
+      const oficial = nombreOficialSucursal(null, k['TIENDA SOLICITANTE']);   // incluye PROVIDENCIA = LAS LILAS
+      const porNombre = Object.keys(NOMBRES_OFICIALES).find(c => NOMBRES_OFICIALES[c] === oficial);
       if(porNombre) codigoLimpio = parseInt(porNombre, 10);
     }
     if(!codigoLimpio || !CODIGOS_OFICIALES.has(codigoLimpio)){ rechazadas++; continue; }
@@ -2232,7 +2229,7 @@ function procesar(){
       const local  = String(row['N° Local'] || row['ID Local'] || '').trim();
       const stock  = parseFloat(row['Stock Físico'] || 0);
       if(sku && local && stock > 0){
-        const sucursal = NOMBRES_OFICIALES[parseInt(local)] || String(row['Nombre Local'] || row['Local'] || '').trim();
+        const sucursal = nombreOficialSucursal(local, row['Nombre Local'] || row['Local']);
         const key = sku + '|' + sucursal;
         invIndex[key] = stock;
       }
@@ -2260,7 +2257,7 @@ function procesar(){
       const local = String(row['ID Local'] || '').trim();
       const venta = parseFloat(row['Venta Diaria'] || 0);
       if(sku && local){
-        const sucursal = NOMBRES_OFICIALES[parseInt(local)] || String(row['Local'] || '').trim();
+        const sucursal = nombreOficialSucursal(local, row['Local']);
         const key = sku + '|' + sucursal;
         progIndex[key] = (progIndex[key] || 0) + venta;
       }
@@ -3385,7 +3382,7 @@ function getAnalisisAgregado(){
       if(anFechaDesde && fecha < anFechaDesde) continue;
       if(anFechaHasta && fecha > anFechaHasta) continue;
 
-      const suc = NOMBRES_OFICIALES[parseInt(local)] || String(r['Local']||'').trim();
+      const suc = nombreOficialSucursal(local, r['Local']);
       if(!suc) continue;
       if(anLocal.length > 0 && !anLocal.includes(suc)) continue;
       if(anSkuExcluido(sku, suc)) continue;
@@ -3970,6 +3967,7 @@ const CODIGOS_POR_NOMBRE = Object.fromEntries(
 // cuando no coinciden con el nombre oficial. Clave: nombre sin tildes, en mayúsculas y sin el prefijo "SUCURSAL".
 const ALIAS_SUCURSAL = {
   'PROVIDENCIA':'LAS LILAS',      // local 526
+  'CENTRAL':'FABRICA',            // local 900
   'LA DEHESA':'DEHESA'
 };
 // Devuelve el nombre oficial del local: primero por código (si el archivo lo trae) y, si no, por nombre.
@@ -5511,7 +5509,7 @@ if(_grReset) _grReset.addEventListener('click',()=>{
           sku:         limpiarTextoEntrada(r.sku         || ''),
           descripcion: limpiarTextoEntrada(r.descripcion || ''),
           fecha:       r.fecha       || '',
-          sucursal:    limpiarTextoEntrada(r.sucursal    || ''),
+          sucursal:    nombreOficialSucursal(null, limpiarTextoEntrada(r.sucursal || '')),   // datos guardados antes con otro nombre
           solicitado:  Number(r.solicitado)  || 0,
           despachado:  Number(r.despachado)  || 0,
           diferencia:  Number(r.diferencia)  || 0,
