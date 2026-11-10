@@ -2283,7 +2283,7 @@ function procesar(){
   if(vsRows) {
     const sucursalesVS = new Set(vsRows.map(r => {
       const cod = parseInt(r['Cod Sucursal'] || 0);
-      return (cod && NOMBRES_OFICIALES[cod]) ? NOMBRES_OFICIALES[cod] : String(r['Sucursal'] || '').trim().toUpperCase();
+      return nombreOficialSucursal(cod, r['Sucursal']);
     }).filter(Boolean));
     log('Venta Semana: ' + vsRows.length + ' filas leídas | sucursales: ' + [...sucursalesVS].join(', '), 'ok');
   }
@@ -3966,6 +3966,26 @@ const CODIGOS_POR_NOMBRE = Object.fromEntries(
   Object.entries(NOMBRES_OFICIALES).map(([k,v]) => [v, parseInt(k)])
 );
 
+// Nombres con que un local aparece en los archivos externos (venta semanal, inventarios, programa)
+// cuando no coinciden con el nombre oficial. Clave: nombre sin tildes, en mayúsculas y sin el prefijo "SUCURSAL".
+const ALIAS_SUCURSAL = {
+  'PROVIDENCIA':'LAS LILAS',      // local 526
+  'LA DEHESA':'DEHESA'
+};
+// Devuelve el nombre oficial del local: primero por código (si el archivo lo trae) y, si no, por nombre.
+function nombreOficialSucursal(cod, nombre) {
+  const porCodigo = NOMBRES_OFICIALES[parseInt(cod)];
+  if(porCodigo) return porCodigo;
+  const n = String(nombre || '').trim().toUpperCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')      // sin tildes
+    .replace(/^SUCURSAL\s+/, '').replace(/\s+/g, ' ').trim();
+  if(ALIAS_SUCURSAL[n]) return ALIAS_SUCURSAL[n];
+  for(const oficial of Object.values(NOMBRES_OFICIALES)) {   // "VITACURA LOS ABEDULES" -> VITACURA
+    if(n === oficial || n.startsWith(oficial + ' ')) return oficial;
+  }
+  return n;
+}
+
 function getStockRows(granularFiltrado) {
   const src = granularFiltrado || GRANULAR;
 
@@ -3974,8 +3994,7 @@ function getStockRows(granularFiltrado) {
   const invSalidaIdx  = {}; // sku|suc → salida
   const ventaSemIdx   = {}; // sku|suc → venta
 
-  const normSuc = (cod, nombre) =>
-    NOMBRES_OFICIALES[parseInt(cod)] || String(nombre||'').trim().toUpperCase();
+  const normSuc = (cod, nombre) => nombreOficialSucursal(cod, nombre);
 
   if(PARSED.inventariosFile) {
     for(const r of PARSED.inventariosFile) {
