@@ -1122,6 +1122,7 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
               <th class="sort-th" data-sort="solicitado" style="text-align:right">Solicitado<span class="arrow">▾</span></th>
               <th class="sort-th" data-sort="despachado" style="text-align:right">Despachado<span class="arrow">▾</span></th>
               <th class="sort-th" data-sort="fill_rate" style="text-align:right">% Cumplimiento<span class="arrow">▾</span></th>
+              <th>Solicitud</th>
               <th>Guía Despacho</th>
             </tr>
           </thead>
@@ -1692,6 +1693,23 @@ body.rol-editor #btnGuardarDatos{display:none!important;}
   </div>
 </div>
 
+<!-- ============ MODAL DETALLE SOLICITUD ============ -->
+<div class="modal-overlay" id="modalSolOverlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="modalSolTitulo">Solicitud</h3>
+      <button class="modal-close" id="modalSolClose">✕</button>
+    </div>
+    <div class="modal-meta" id="modalSolMeta"></div>
+    <div class="modal-table-wrap">
+      <table>
+        <thead><tr><th>SKU</th><th>Descripción</th><th style="text-align:right">Solicitado</th></tr></thead>
+        <tbody id="modalSolBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <script id="seed-data" type="application/json">__SEED_JSON__</script>
 <script>
 // ============================================================
@@ -1708,6 +1726,7 @@ let RAW = { solicitudes: [], despachos: [] };  // registros granulares crudos
 var PARSED = { solicitudesFile: null, despachosFile: null, inventariosFile: null, programaFile: null, invSalidaFile: null, ventaSemanaFile: null };
 var GRANULAR = [];      // tabla final SKU+fecha+sucursal con solicitado/despachado
 let DESPACHOS_LINEA = []; // cada línea de despacho individual, con numero_guia preservado
+let SOLICITUDES_INDEX = new Map(); // id_solicitud -> { id, fecha, sucursal, horario, plantilla, estado, emision, entrega, lineas:[...], total_unidades }
 let GUIAS_INDEX = new Map(); // numero_guia -> { numero_guia, fecha, sucursal, lineas:[...], total_unidades }
 var DATA_QUALITY = { total_raw:0, validas:0, rechazadas:0, pct_rechazo:0, insumos_excluidos:0 };
 
@@ -2050,7 +2069,13 @@ function normalizarSolicitudesPedido(rows){
       fecha: fecha,
       sucursal: NOMBRES_OFICIALES[codigoLimpio],
       cantidad: cantidad,
-      horario: String(k['HORARIO REQUERIDO'] ?? '').trim().toUpperCase()   // AM / PM (para el OTIF)
+      horario: String(k['HORARIO REQUERIDO'] ?? '').trim().toUpperCase(),   // AM / PM (para el OTIF)
+      // Datos de la solicitud (solo informativos: columna "Solicitud" de Análisis; no entran a ningún cálculo)
+      id_solicitud: String(k['ID'] ?? '').trim(),
+      emision: String(k['EMISION'] ?? '').trim(),
+      plantilla: String(k['PLANTILLA'] ?? '').trim(),
+      estado: estadoPedido,
+      entrega: String(k['ENTREGA'] ?? '').trim()
     });
     validas++;
   }
@@ -2392,6 +2417,22 @@ function construirGranular(){
   }
   for(const g of GUIAS_INDEX.values()){
     g.total_skus = g.lineas.length;
+  }
+
+  // Construir SOLICITUDES_INDEX: id_solicitud -> {info + lineas[]} (solo informativo, no entra a los cálculos)
+  SOLICITUDES_INDEX = new Map();
+  for(const r of RAW.solicitudes){
+    if(!r.id_solicitud) continue;
+    if(!SOLICITUDES_INDEX.has(r.id_solicitud)){
+      SOLICITUDES_INDEX.set(r.id_solicitud, {
+        id: r.id_solicitud, fecha: r.fecha, sucursal: r.sucursal, horario: r.horario || '',
+        plantilla: r.plantilla || '', estado: r.estado || '', emision: r.emision || '', entrega: r.entrega || '',
+        lineas: [], total_unidades: 0
+      });
+    }
+    const s = SOLICITUDES_INDEX.get(r.id_solicitud);
+    s.lineas.push({ sku:r.sku, descripcion:r.descripcion, cantidad:r.cantidad });
+    s.total_unidades += r.cantidad;
   }
 }
 
@@ -3417,9 +3458,21 @@ function getAnalisisAgregado(){
     }
   }
 
+  // Solicitudes (pedidos) de cada SKU+sucursal dentro del mismo filtro de fecha/local de la tabla
+  const solPorSkuSucursal = new Map();
+  for(const r of RAW.solicitudes){
+    if(!r.id_solicitud) continue;
+    if(anFechaDesde && r.fecha < anFechaDesde) continue;
+    if(anFechaHasta && r.fecha > anFechaHasta) continue;
+    const key = r.sku + '|' + r.sucursal;
+    if(!solPorSkuSucursal.has(key)) solPorSkuSucursal.set(key, new Set());
+    solPorSkuSucursal.get(key).add(r.id_solicitud);
+  }
+
   let rows = Array.from(map.entries()).map(([key,e])=>{
     const guiasSet = guiasPorSkuSucursal.get(key) || new Set();
     return {
+      solicitudes: Array.from(solPorSkuSucursal.get(key) || []),
       sku: e.sku, descripcion: e.descripcion, sucursal: e.sucursal,
       programa: e.programa, solicitado: e.solicitado, despachado: e.despachado, inventario: e.inventario,
       fill_rate: e.solicitado>0 ? (e.despachado/e.solicitado*100) : (e.despachado>0 ? null : 0),
@@ -3558,7 +3611,7 @@ function printSummary(){
           const inv = cells[4]?.textContent.trim() || '0';
           const sol = cells[5]?.textContent.trim() || '0';
           const desp = cells[6]?.textContent.trim() || '0';
-          const fr = cells[8]?.querySelector('.fr-pill')?.textContent.trim() || '0%';
+          const fr = cells[7]?.querySelector('.fr-pill')?.textContent.trim() || '0%';
           
           return '<tr>' +
             '<td><span class="sku">' + sku + '</span></td>' +
@@ -3607,7 +3660,7 @@ function renderAnalisis(){
 
   const tbody = document.getElementById('analisisBody');
   if(rows.length===0){
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#64748b;padding:1.6rem;">Sin resultados para estos filtros</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#64748b;padding:1.6rem;">Sin resultados para estos filtros</td></tr>';
     return;
   }
 
@@ -3617,6 +3670,9 @@ function renderAnalisis(){
     const guiasHtml = r.guias.length === 0
       ? '<span style="color:#94a3b8;font-size:.76rem;">sin guía</span>'
       : r.guias.map(gn => '<span class="guia-chip" data-guia="'+escHtml(gn)+'">'+escHtml(gn)+'</span>').join(' ');
+    const solHtml = r.solicitudes.length === 0
+      ? '<span style="color:#94a3b8;font-size:.76rem;">sin solicitud</span>'
+      : r.solicitudes.map(id => '<span class="guia-chip sol-chip" data-sol="'+escHtml(id)+'">'+escHtml(id)+'</span>').join(' ');
     return '<tr>'+
       '<td><span class="sku">'+escHtml(r.sku)+'</span></td>'+
       '<td>'+escHtml(r.descripcion||'—')+'</td>'+
@@ -3629,12 +3685,17 @@ function renderAnalisis(){
         '<div class="cumplimiento-bar-mini"><div class="cumplimiento-bar-mini-fill" style="width:'+frPct+'%; background:'+barColorAnalisis(r.fill_rate)+'"></div></div>'+
         '<span class="fr-pill '+frClassAnalisis(r.fill_rate)+'">'+frDisplay+'</span>'+
       '</div></td>'+
+      '<td><div class="guias-cell">'+solHtml+'</div></td>'+
       '<td><div class="guias-cell">'+guiasHtml+'</div></td>'+
     '</tr>';
   }).join('');
 
+  tbody.querySelectorAll('.sol-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{ abrirModalSolicitud(chip.dataset.sol); });
+  });
+
   // Listeners para chips de guía (delegado, se re-crea cada render)
-  tbody.querySelectorAll('.guia-chip').forEach(chip=>{
+  tbody.querySelectorAll('.guia-chip:not(.sol-chip)').forEach(chip=>{
     chip.addEventListener('click', ()=>{
       abrirModalGuia(chip.dataset.guia);
     });
@@ -3801,6 +3862,28 @@ function abrirModalGuia(numeroGuia){
 
   document.getElementById('modalGuiaOverlay').classList.add('open');
 }
+function abrirModalSolicitud(id){
+  const s = SOLICITUDES_INDEX.get(id);
+  if(!s){ alert('No se encontró el detalle de la solicitud ' + id); return; }
+  document.getElementById('modalSolTitulo').textContent = '📝 Solicitud ' + s.id;
+  document.getElementById('modalSolMeta').innerHTML =
+    '<div class="modal-meta-item"><b>Fecha requerida:</b> ' + escHtml(s.fecha) + '</div>' +
+    '<div class="modal-meta-item"><b>Sucursal:</b> ' + escHtml(s.sucursal) + '</div>' +
+    '<div class="modal-meta-item"><b>Horario:</b> ' + escHtml(s.horario||'—') + '</div>' +
+    '<div class="modal-meta-item"><b>Emisión:</b> ' + escHtml(s.emision||'—') + '</div>' +
+    '<div class="modal-meta-item"><b>Entrega:</b> ' + escHtml(s.entrega||'—') + '</div>' +
+    '<div class="modal-meta-item"><b>Plantilla:</b> ' + escHtml(s.plantilla||'—') + '</div>' +
+    '<div class="modal-meta-item"><b>Estado:</b> ' + escHtml(s.estado||'—') + '</div>' +
+    '<div class="modal-meta-item"><b>Total SKU:</b> ' + s.lineas.length + '</div>' +
+    '<div class="modal-meta-item"><b>Total unidades:</b> ' + fmt(s.total_unidades) + '</div>';
+  document.getElementById('modalSolBody').innerHTML = s.lineas.map(l =>
+    '<tr><td><span class="sku">'+escHtml(l.sku)+'</span></td><td>'+escHtml(l.descripcion||'—')+'</td><td style="text-align:right">'+fmt(l.cantidad)+'</td></tr>'
+  ).join('');
+  document.getElementById('modalSolOverlay').classList.add('open');
+}
+function cerrarModalSolicitud(){ document.getElementById('modalSolOverlay').classList.remove('open'); }
+document.getElementById('modalSolClose').addEventListener('click', cerrarModalSolicitud);
+document.getElementById('modalSolOverlay').addEventListener('click', e=>{ if(e.target.id === 'modalSolOverlay') cerrarModalSolicitud(); });
 function cerrarModalGuia(){
   document.getElementById('modalGuiaOverlay').classList.remove('open');
 }
